@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Recibo {{ parcela.contrato.numero }}-{{ parcela.numero }}</title>
+<style>
+  @page { size: A5; margin: 1.5cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; }
+
+  .header { text-align: center; border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 16px; }
+  .header h1 { font-size: 14pt; text-transform: uppercase; }
+  .header p  { font-size: 9pt; color: #555; }
+
+  .titulo-recibo { text-align: center; font-size: 13pt; font-weight: bold;
+                   text-transform: uppercase; margin: 12px 0; letter-spacing: 1px; }
+
+  .valor-destaque { text-align: center; background: #f9fafb; border: 1px solid #e5e7eb;
+                    border-radius: 8px; padding: 12px; margin: 14px 0; }
+  .valor-destaque .rs { font-size: 20pt; font-weight: bold; }
+
+  table.info { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  table.info td { padding: 4px 4px; font-size: 10pt; border-bottom: 1px solid #f3f4f6; }
+  table.info td:first-child { font-weight: bold; width: 38%; color: #374151; }
+
+  .assinatura { margin-top: 30px; text-align: center; }
+  .linha { border-top: 1px solid #374151; width: 60%; margin: 0 auto 6px; }
+  .assinatura p { font-size: 9.5pt; color: #555; }
+
+  .rodape { margin-top: 16px; text-align: center; font-size: 8.5pt; color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  {% if tenant.logo %}
+  <img src="{{ tenant.logo.url }}" style="height:36px; margin-bottom:6px;">
+  {% endif %}
+  <h1>{{ tenant.nome }}</h1>
+  <p>CNPJ: {{ tenant.cnpj }} · {{ tenant.cidade }}/{{ tenant.estado }}</p>
+</div>
+
+<div class="titulo-recibo">Recibo de Pagamento</div>
+
+<div class="valor-destaque">
+  <p style="font-size:9pt; color:#6b7280; margin-bottom:4px;">Valor recebido</p>
+  <p class="rs">R$ {{ parcela.valor_total }}</p>
+</div>
+
+<table class="info">
+  <tr><td>Contrato:</td><td>{{ parcela.contrato.numero }}</td></tr>
+  <tr><td>Inquilino:</td><td>{{ parcela.contrato.inquilino.nome }}</td></tr>
+  <tr><td>Imóvel:</td><td>{{ parcela.contrato.imovel.get_endereco_completo }}</td></tr>
+  <tr><td>Referência:</td><td>Parcela {{ parcela.numero }} — {{ parcela.data_vencimento|date:"F/Y" }}</td></tr>
+  <tr><td>Vencimento:</td><td>{{ parcela.data_vencimento|date:"d/m/Y" }}</td></tr>
+  <tr><td>Data pagamento:</td><td>{{ parcela.data_pagamento|date:"d/m/Y" }}</td></tr>
+  <tr><td>Aluguel:</td><td>R$ {{ parcela.valor }}</td></tr>
+  {% if parcela.valor_condominio %}<tr><td>Condomínio:</td><td>R$ {{ parcela.valor_condominio }}</td></tr>{% endif %}
+  {% if parcela.valor_iptu %}<tr><td>IPTU:</td><td>R$ {{ parcela.valor_iptu }}</td></tr>{% endif %}
+  {% if parcela.valor_multa %}<tr><td>Multa:</td><td>R$ {{ parcela.valor_multa }}</td></tr>{% endif %}
+  {% if parcela.valor_desconto %}<tr><td>Desconto:</td><td>- R$ {{ parcela.valor_desconto }}</td></tr>{% endif %}
+  {% if parcela.observacao %}<tr><td>Obs:</td><td>{{ parcela.observacao }}</td></tr>{% endif %}
+</table>
+
+<div class="assinatura">
+  <div class="linha"></div>
+  <p>{{ tenant.nome }}</p>
+  <p>Recebedor</p>
+</div>
+
+<div class="rodape">
+  Documento gerado em {{ parcela.data_pagamento|date:"d/m/Y" }} · {{ tenant.nome }} · CNPJ {{ tenant.cnpj }}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Configurações da Conta{% endblock %}
+{% block mobile_title %}Configurações{% endblock %}
+
+{% block breadcrumb %}
+  <i class="ti ti-chevron-right text-slate-300"></i>
+  <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-slate-700">
+    <i class="ti ti-settings text-base"></i>
+    Configurações da conta
+  </span>
+{% endblock %}
+
+{% block page_header %}
+  <div class="mb-6 flex flex-col gap-1">
+    <h1 class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-slate-900">
+      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+        <i class="ti ti-settings text-xl"></i>
+      </span>
+      Configurações da Conta
+    </h1>
+    <p class="text-sm text-slate-500">Dados e personalização visual da sua imobiliária.</p>
+  </div>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data"
+      x-data="{
+        primaria: '{{ tenant.cor_primaria|default:'#2563eb' }}',
+        secundaria: '{{ tenant.cor_secundaria|default:'#1e40af' }}',
+        acento: '{{ tenant.cor_acento|default:'#3b82f6' }}'
+      }">
+  {% csrf_token %}
+
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+    <!-- Dados gerais -->
+    <div class="lg:col-span-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <div class="mb-5 flex items-center gap-2 border-b border-slate-100 pb-4">
+          <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <i class="ti ti-building text-lg"></i>
+          </span>
+          <h2 class="text-base font-bold text-slate-800">Dados da Imobiliária</h2>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label for="{{ form.nome.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.nome.label }}</label>
+            {{ form.nome }}
+            {% if form.nome.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.nome.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.cnpj.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.cnpj.label }}</label>
+            {{ form.cnpj }}
+            {% if form.cnpj.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.cnpj.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.email.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.email.label }}</label>
+            {{ form.email }}
+            {% if form.email.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.email.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.telefone.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.telefone.label }}</label>
+            {{ form.telefone }}
+            {% if form.telefone.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.telefone.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="sm:col-span-2">
+            <label for="{{ form.endereco.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.endereco.label }}</label>
+            {{ form.endereco }}
+            {% if form.endereco.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.endereco.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label for="{{ form.cidade.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.cidade.label }}</label>
+            {{ form.cidade }}
+            {% if form.cidade.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.cidade.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.estado.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.estado.label }}</label>
+            {{ form.estado }}
+            {% if form.estado.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.estado.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.cep.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.cep.label }}</label>
+            {{ form.cep }}
+            {% if form.cep.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.cep.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personalização visual -->
+    <div class="lg:col-span-1">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <div class="mb-5 flex items-center gap-2 border-b border-slate-100 pb-4">
+          <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <i class="ti ti-palette text-lg"></i>
+          </span>
+          <h2 class="text-base font-bold text-slate-800">Personalização Visual</h2>
+        </div>
+
+        <!-- Logo -->
+        <div class="mb-5">
+          <label for="{{ form.logo.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.logo.label }}</label>
+          {% if tenant.logo %}
+            <div class="mb-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <img src="{{ tenant.logo.url }}" alt="Logo atual" class="h-12 w-12 rounded-lg object-contain bg-white p-1 ring-1 ring-slate-200">
+              <span class="text-xs font-medium text-slate-500">Logo atual</span>
+            </div>
+          {% endif %}
+          <input type="file" name="{{ form.logo.html_name }}" id="{{ form.logo.id_for_label }}"
+                 accept="image/*"
+                 class="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-700 hover:file:bg-primary-100">
+          {% if form.logo.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.logo.errors.0 }}</p>{% endif %}
+        </div>
+
+        <!-- Cores -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-700">{{ form.cor_primaria.label }}</p>
+              <p class="text-xs text-slate-400" x-text="primaria"></p>
+            </div>
+            <div x-on:input="primaria = $event.target.value">{{ form.cor_primaria }}</div>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-700">{{ form.cor_secundaria.label }}</p>
+              <p class="text-xs text-slate-400" x-text="secundaria"></p>
+            </div>
+            <div x-on:input="secundaria = $event.target.value">{{ form.cor_secundaria }}</div>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-700">{{ form.cor_acento.label }}</p>
+              <p class="text-xs text-slate-400" x-text="acento"></p>
+            </div>
+            <div x-on:input="acento = $event.target.value">{{ form.cor_acento }}</div>
+          </div>
+        </div>
+
+        <!-- Pré-visualização -->
+        <div class="mt-5">
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Pré-visualização</p>
+          <div class="overflow-hidden rounded-xl border border-slate-200">
+            <div class="flex h-16 items-center px-4 text-sm font-bold text-white transition-colors"
+                 x-bind:style="`background: ${primaria}`">
+              <span>Cor primária</span>
+            </div>
+            <div class="flex">
+              <div class="h-8 flex-1 transition-colors" x-bind:style="`background: ${secundaria}`"></div>
+              <div class="h-8 flex-1 transition-colors" x-bind:style="`background: ${acento}`"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Barra de ações sticky -->
+  <div class="sticky bottom-0 z-30 mt-6 -mx-4 border-t border-slate-200 bg-white/90 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div class="mx-auto flex max-w-7xl items-center justify-end gap-3">
+      <a href="{% url 'dashboard' %}" class="btn-secondary">
+        <i class="ti ti-x text-base"></i>
+        Cancelar
+      </a>
+      <button type="submit" class="btn-primary">
+        <i class="ti ti-device-floppy text-base"></i>
+        Salvar configurações
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}

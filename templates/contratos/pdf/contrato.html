@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <title>Contrato {{ contrato.numero }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm 2cm 3cm 2cm;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Times New Roman", serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #111;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #111;
+            padding-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 10pt;
+            color: #444;
+            margin-top: 4px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+        }
+
+        table.dados {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+
+        table.dados td {
+            padding: 3px 6px;
+            font-size: 10.5pt;
+        }
+
+        table.dados td:first-child {
+            font-weight: bold;
+            width: 35%;
+            color: #333;
+        }
+
+        .clausula {
+            margin-bottom: 14px;
+        }
+
+        .clausula .num {
+            font-weight: bold;
+        }
+
+        .assinaturas {
+            margin-top: 50px;
+        }
+
+        .assinatura-linha {
+            border-top: 1px solid #444;
+            width: 40%;
+            display: inline-block;
+        }
+
+        .assinatura-bloco {
+            display: inline-block;
+            width: 46%;
+            text-align: center;
+            margin: 0 2%;
+        }
+
+        .assinatura-bloco p {
+            font-size: 9.5pt;
+            margin-top: 4px;
+            color: #333;
+        }
+
+        .local-data {
+            margin-top: 40px;
+            font-size: 10.5pt;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    {% if tenant.logo %}
+        <img src="{{ tenant.logo.url }}" style="height:50px; margin-bottom:8px;">
+    {% endif %}
+    <h1>{{ tenant.nome }}</h1>
+    <p>CNPJ: {{ tenant.cnpj }} · {{ tenant.endereco }}, {{ tenant.cidade }}/{{ tenant.estado }}</p>
+    <p style="margin-top:10px; font-size:13pt; font-weight:bold;">CONTRATO DE LOCAÇÃO RESIDENCIAL</p>
+    <p>Nº {{ contrato.numero }}</p>
+</div>
+
+<div class="section">
+    <div class="section-title">I — Das Partes</div>
+    <p><strong>LOCADOR (Proprietário):</strong> {{ contrato.imovel.proprietario_nome }},
+        CPF/CNPJ: {{ contrato.imovel.proprietario_cpf_cnpj|default:"—" }},
+        {% if contrato.imovel.proprietario_email %}e-mail: {{ contrato.imovel.proprietario_email }}{% endif %}
+    </p>
+    <br>
+    <p><strong>LOCATÁRIO (Inquilino):</strong> {{ contrato.inquilino.nome }},
+        {% if contrato.inquilino.tipo == 'pf' %}
+            CPF: {{ contrato.inquilino.cpf|default:"—" }}, RG: {{ contrato.inquilino.rg|default:"—" }},
+        {% else %}
+            CNPJ: {{ contrato.inquilino.cnpj|default:"—" }},
+        {% endif %}
+        telefone: {{ contrato.inquilino.telefone }}, e-mail: {{ contrato.inquilino.email|default:"—" }}
+    </p>
+    {% if contrato.inquilino.fiador_nome %}
+        <br>
+        <p><strong>FIADOR:</strong> {{ contrato.inquilino.fiador_nome }},
+            CPF: {{ contrato.inquilino.fiador_cpf|default:"—" }},
+            telefone: {{ contrato.inquilino.fiador_telefone|default:"—" }}
+        </p>
+    {% endif %}
+    <br>
+    <p><strong>INTERMEDIADORA:</strong> {{ tenant.nome }}, CNPJ: {{ tenant.cnpj }}</p>
+</div>
+
+<div class="section">
+    <div class="section-title">II — Do Imóvel</div>
+    <table class="dados">
+        <tr>
+            <td>Endereço:</td>
+            <td>{{ contrato.imovel.get_endereco_completo }}</td>
+        </tr>
+        <tr>
+            <td>Tipo:</td>
+            <td>{{ contrato.imovel.get_tipo_display }}</td>
+        </tr>
+        <tr>
+            <td>Código:</td>
+            <td>{{ contrato.imovel.codigo }}</td>
+        </tr>
+        {% if contrato.imovel.area_construida %}
+            <tr>
+                <td>Área construída:</td>
+                <td>{{ contrato.imovel.area_construida }} m²</td>
+            </tr>{% endif %}
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-title">III — Da Vigência</div>
+    <table class="dados">
+        <tr>
+            <td>Início:</td>
+            <td>{{ contrato.data_inicio|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <td>Término:</td>
+            <td>{{ contrato.data_fim|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <td>Duração:</td>
+            <td>{{ contrato.duracao_meses }} meses</td>
+        </tr>
+        {% if contrato.data_assinatura %}
+            <tr>
+                <td>Assinatura:</td>
+                <td>{{ contrato.data_assinatura|date:"d/m/Y" }}</td>
+            </tr>{% endif %}
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-title">IV — Dos Valores e Condições de Pagamento</div>
+    <table class="dados">
+        <tr>
+            <td>Valor do aluguel:</td>
+            <td>R$ {{ contrato.valor_aluguel }}</td>
+        </tr>
+        {% if contrato.valor_condominio %}
+            <tr>
+                <td>Condomínio:</td>
+                <td>R$ {{ contrato.valor_condominio }}</td>
+            </tr>{% endif %}
+        {% if contrato.valor_iptu %}
+            <tr>
+                <td>IPTU mensal:</td>
+                <td>R$ {{ contrato.valor_iptu }}</td>
+            </tr>{% endif %}
+        <tr>
+            <td>Total mensal:</td>
+            <td><strong>R$ {{ contrato.valor_total_mensal }}</strong></td>
+        </tr>
+        <tr>
+            <td>Vencimento:</td>
+            <td>Todo dia {{ contrato.dia_vencimento }} do mês</td>
+        </tr>
+        <tr>
+            <td>Reajuste:</td>
+            <td>{{ contrato.get_indice_reajuste_display }} a cada {{ contrato.periodicidade_reajuste }} meses</td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-title">V — Das Garantias</div>
+    <p>Tipo de garantia: <strong>{{ contrato.get_tipo_garantia_display }}</strong>
+        {% if contrato.valor_caucao %} — Valor da caução: R$ {{ contrato.valor_caucao }}{% endif %}</p>
+</div>
+
+<div class="section">
+    <div class="section-title">VI — Da Multa Rescisória</div>
+    <p>Em caso de rescisão antecipada, será cobrada multa de <strong>{{ contrato.multa_rescisao }}%</strong>
+        sobre o valor total restante do contrato, proporcional ao período faltante.</p>
+</div>
+
+{% if contrato.clausulas_adicionais %}
+    <div class="section">
+        <div class="section-title">VII — Cláusulas Adicionais</div>
+        <p style="white-space: pre-line;">{{ contrato.clausulas_adicionais }}</p>
+    </div>
+{% endif %}
+
+<div class="local-data">
+    <p>{{ contrato.imovel.cidade }}/{{ contrato.imovel.estado }},
+        _____/______/________</p>
+</div>
+
+<div class="assinaturas">
+    <div class="assinatura-bloco">
+        <div class="assinatura-linha"></div>
+        <p>{{ contrato.imovel.proprietario_nome }}</p>
+        <p>LOCADOR</p>
+    </div>
+    <div class="assinatura-bloco">
+        <div class="assinatura-linha"></div>
+        <p>{{ contrato.inquilino.nome }}</p>
+        <p>LOCATÁRIO</p>
+    </div>
+    {% if contrato.inquilino.fiador_nome %}
+        <div class="assinatura-bloco" style="margin-top:40px;">
+            <div class="assinatura-linha"></div>
+            <p>{{ contrato.inquilino.fiador_nome }}</p>
+            <p>FIADOR</p>
+        </div>
+    {% endif %}
+    <div class="assinatura-bloco" style="margin-top:40px;">
+        <div class="assinatura-linha"></div>
+        <p>{{ tenant.nome }}</p>
+        <p>IMOBILIÁRIA INTERMEDIADORA</p>
+    </div>
+</div>
+<div style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9pt; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 4px;">
+    Contrato {{ contrato.numero }} &mdash; Página
+    <pdf:pagenumber> de
+        <pdf:pagecount>
+</div>
+</body>
+</html>

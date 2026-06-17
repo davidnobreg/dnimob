@@ -1,0 +1,53 @@
+{% extends "base_public.html" %}
+{% block title %}Conta criada — DN Imob{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center px-4 py-16">
+  <div class="max-w-lg w-full text-center space-y-6">
+
+    <div class="flex justify-center">
+      <div class="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-4xl">
+        🎉
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <h1 class="text-3xl font-extrabold text-slate-900">Imobiliária criada com sucesso!</h1>
+      <p class="text-slate-500">
+        Sua conta foi criada e seu período de
+        <strong class="text-slate-700">14 dias grátis</strong> já começou.
+      </p>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm space-y-1">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Acesse seu sistema em</p>
+      <a href="http://{{ tenant.get_primary_domain.domain }}"
+         target="_blank"
+         class="block text-lg font-bold text-primary-600 hover:text-primary-700 hover:underline break-all">
+        http://{{ tenant.get_primary_domain.domain }}
+      </a>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+      <h3 class="text-sm font-bold text-slate-700 mb-3">Próximos passos</h3>
+      <ol class="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+        <li>Acesse o link acima e faça login com seu e-mail e senha</li>
+        <li>Configure seus dados em <strong>Configurações → Conta</strong></li>
+        <li>Conecte seu WhatsApp em <strong>Configurações → WhatsApp</strong></li>
+        <li>Configure o Sicredi em <strong>Configurações → Sicredi</strong></li>
+        <li>Cadastre seus imóveis e comece!</li>
+      </ol>
+    </div>
+
+    <a href="http://{{ tenant.get_primary_domain.domain }}"
+       target="_blank"
+       class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-600/20 transition hover:-translate-y-0.5 hover:bg-primary-700">
+      Ir para meu sistema
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+      </svg>
+    </a>
+
+  </div>
+</div>
+{% endblock %}

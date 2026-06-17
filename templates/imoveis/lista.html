@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Imóveis{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-gray-300">/</span>
+<a href="{% url 'imovel_lista' %}" class="text-gray-600 hover:text-primary-600">Imóveis</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+  {# ── Cabeçalho ── #}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Imóveis</h1>
+      <p class="text-sm text-gray-500 mt-0.5">
+        {% if page_obj and page_obj.paginator.count %}
+          Exibindo {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }}
+        {% else %}
+          Gerencie o portfólio de imóveis
+        {% endif %}
+      </p>
+    </div>
+    <a href="{% url 'imovel_criar' %}"
+       class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition">
+      <i class="ti ti-plus text-base"></i>
+      Novo imóvel
+    </a>
+  </div>
+
+  {# ── Cards de resumo ── #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {% with cards=totais %}
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide">Total</p>
+      <p class="text-3xl font-bold text-gray-900 mt-1">{{ cards.total }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-green-600 uppercase tracking-wide font-medium">Disponíveis</p>
+      <p class="text-3xl font-bold text-green-600 mt-1">{{ cards.disponivel }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-blue-600 uppercase tracking-wide font-medium">Alugados</p>
+      <p class="text-3xl font-bold text-blue-600 mt-1">{{ cards.alugado }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-yellow-600 uppercase tracking-wide font-medium">Manutenção</p>
+      <p class="text-3xl font-bold text-yellow-600 mt-1">{{ cards.manutencao }}</p>
+    </div>
+  {% endwith %}
+  </div>
+
+  {# ── Filtros ── #}
+  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div class="md:col-span-2">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Busca</label>
+        {{ form_filtro.q }}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+        {{ form_filtro.tipo }}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+        {{ form_filtro.status }}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Finalidade</label>
+        {{ form_filtro.finalidade }}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Cidade</label>
+        {{ form_filtro.cidade }}
+      </div>
+      <div class="md:col-span-6 flex items-center justify-between gap-3 pt-1">
+        <button type="submit"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition">
+          <i class="ti ti-filter text-base"></i>
+          Filtrar
+        </button>
+        {% if request.GET.q or request.GET.tipo or request.GET.status or request.GET.finalidade or request.GET.cidade %}
+        <a href="{% url 'imovel_lista' %}" class="text-xs text-gray-400 hover:text-gray-600">
+          Limpar filtros
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  {# ── Grid de cards ── #}
+  {% if page_obj and page_obj.paginator.count %}
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+    {% for imovel in page_obj %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition group">
+
+      {# Foto ou placeholder #}
+      <div class="h-44 bg-gray-100 relative overflow-hidden">
+        {% with foto=imovel.fotos.first %}
+        {% if foto %}
+          <img src="{{ foto.imagem.url }}" alt="{{ imovel.get_endereco_completo }}"
+               loading="lazy"
+               class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+        {% else %}
+          <div class="flex items-center justify-center h-full text-gray-300">
+            <svg class="w-16 h-16" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <polyline stroke-linecap="round" stroke-linejoin="round" points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+        {% endif %}
+        {% endwith %}
+
+        {# Badge de status #}
+        <span class="absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full
+          {% if imovel.status == 'disponivel' %}bg-green-100 text-green-700
+          {% elif imovel.status == 'alugado' %}bg-blue-100 text-blue-700
+          {% elif imovel.status == 'vendido' %}bg-purple-100 text-purple-700
+          {% elif imovel.status == 'manutencao' %}bg-yellow-100 text-yellow-700
+          {% else %}bg-gray-100 text-gray-700{% endif %}">
+          {{ imovel.get_status_display }}
+        </span>
+      </div>
+
+      <div class="p-4">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="text-xs text-gray-400 font-mono">{{ imovel.codigo }}</span>
+            <h3 class="font-semibold text-gray-900 leading-tight">
+              {{ imovel.get_tipo_display }} — {{ imovel.bairro }}
+            </h3>
+            <p class="text-xs text-gray-500 mt-0.5">{{ imovel.cidade }}/{{ imovel.estado }}</p>
+          </div>
+        </div>
+
+        {# Características #}
+        <div class="flex gap-3 mt-3 text-xs text-gray-500">
+          {% if imovel.area_construida %}
+          <span>{{ imovel.area_construida|floatformat:0 }} m²</span>
+          {% endif %}
+          {% if imovel.quartos %}
+          <span>{{ imovel.quartos }} qto{{ imovel.quartos|pluralize:"s" }}</span>
+          {% endif %}
+          {% if imovel.banheiros %}
+          <span>{{ imovel.banheiros }} bnh</span>
+          {% endif %}
+          {% if imovel.vagas %}
+          <span>{{ imovel.vagas }} vaga{{ imovel.vagas|pluralize:"s" }}</span>
+          {% endif %}
+        </div>
+
+        {# Valor #}
+        <div class="mt-3">
+          {% if imovel.valor_aluguel %}
+          <p class="text-lg font-bold text-primary-600">
+            R$ {{ imovel.valor_aluguel|intcomma }}<span class="text-xs font-normal text-gray-400">/mês</span>
+          </p>
+          {% elif imovel.valor_venda %}
+          <p class="text-lg font-bold text-gray-800">R$ {{ imovel.valor_venda|intcomma }}</p>
+          {% else %}
+          <p class="text-sm text-gray-400">Valor não informado</p>
+          {% endif %}
+        </div>
+
+        <div class="flex gap-2 mt-4">
+          <a href="{% url 'imovel_detalhe' imovel.pk %}"
+             class="flex-1 text-center text-xs font-medium py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
+            Ver detalhes
+          </a>
+          <a href="{% url 'imovel_editar' imovel.pk %}"
+             class="flex-1 text-center text-xs font-medium py-1.5 rounded-lg bg-primary-600/10 text-primary-700 hover:bg-primary-600/20 transition">
+            Editar
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Paginação #}
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-center gap-2">
+    {% if page_obj.has_previous %}
+    <a href="?{% for k,v in request.GET.items %}{% if k != 'page' and v %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"
+       class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">‹</a>
+    {% endif %}
+    <span class="px-3 py-1.5 text-sm text-gray-500">
+      Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </span>
+    {% if page_obj.has_next %}
+    <a href="?{% for k,v in request.GET.items %}{% if k != 'page' and v %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}"
+       class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="bg-white rounded-xl border border-gray-200 py-20 text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+    </svg>
+    <p class="text-gray-500">Nenhum imóvel encontrado.</p>
+    <a href="{% url 'imovel_criar' %}" class="mt-3 inline-block text-sm text-primary-600 hover:underline">
+      Cadastrar o primeiro imóvel
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

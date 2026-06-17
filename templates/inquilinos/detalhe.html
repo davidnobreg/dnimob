@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}{{ inquilino.nome }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'inquilino_lista' %}" class="text-gray-400 hover:text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <span class="text-sm text-gray-400">Inquilinos</span>
+    <span class="text-sm text-gray-300">/</span>
+    <span class="text-sm text-gray-600">{{ inquilino.nome }}</span>
+  </div>
+
+  {# Cabeçalho #}
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <div class="flex items-start justify-between">
+      <div class="flex items-center gap-4">
+        {% if inquilino.foto %}
+        <img src="{{ inquilino.foto.url }}" alt=""
+             class="w-16 h-16 rounded-full object-cover border-2 border-gray-100">
+        {% else %}
+        <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 text-2xl font-bold flex items-center justify-center">
+          {{ inquilino.nome|first|upper }}
+        </div>
+        {% endif %}
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-medium text-gray-400">{{ inquilino.get_tipo_display }}</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+              {% if inquilino.status == 'ativo' %}bg-green-100 text-green-700
+              {% elif inquilino.status == 'inadimplente' %}bg-red-100 text-red-700
+              {% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ inquilino.get_status_display }}
+            </span>
+          </div>
+          <h1 class="text-2xl font-bold text-gray-900">{{ inquilino.nome }}</h1>
+          {% if inquilino.documento_principal %}
+          <p class="text-sm font-mono text-gray-500 mt-0.5">{{ inquilino.documento_principal }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <a href="{% url 'inquilino_editar' inquilino.pk %}"
+         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Editar
+      </a>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    {# Contato #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-4">Contato</h2>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Telefone</dt>
+          <dd class="font-medium">{{ inquilino.telefone|default:"—" }}</dd>
+        </div>
+        {% if inquilino.telefone2 %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Telefone 2</dt>
+          <dd class="font-medium">{{ inquilino.telefone2 }}</dd>
+        </div>
+        {% endif %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">E-mail</dt>
+          <dd class="font-medium">{{ inquilino.email|default:"—" }}</dd>
+        </div>
+        {% if inquilino.profissao %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Profissão</dt>
+          <dd class="font-medium">{{ inquilino.profissao }}</dd>
+        </div>
+        {% endif %}
+        {% if inquilino.renda_mensal %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Renda</dt>
+          <dd class="font-medium">R$ {{ inquilino.renda_mensal }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    {# Endereço #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-4">Endereço</h2>
+      {% if inquilino.logradouro %}
+      <p class="text-sm text-gray-700">
+        {{ inquilino.logradouro }}, {{ inquilino.numero }}
+        {% if inquilino.complemento %} — {{ inquilino.complemento }}{% endif %}<br>
+        {{ inquilino.bairro }}, {{ inquilino.cidade }}/{{ inquilino.estado }}<br>
+        CEP {{ inquilino.cep }}
+      </p>
+      {% else %}
+      <p class="text-sm text-gray-400">Endereço não informado.</p>
+      {% endif %}
+
+      {% if inquilino.fiador_nome %}
+      <div class="mt-4 pt-4 border-t border-gray-100">
+        <p class="text-xs font-semibold text-gray-500 mb-2">FIADOR</p>
+        <p class="text-sm font-medium">{{ inquilino.fiador_nome }}</p>
+        {% if inquilino.fiador_cpf %}<p class="text-sm text-gray-500 font-mono">{{ inquilino.fiador_cpf }}</p>{% endif %}
+        {% if inquilino.fiador_telefone %}<p class="text-sm text-gray-500">{{ inquilino.fiador_telefone }}</p>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if inquilino.observacoes %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-4">Observações</h2>
+    <p class="text-sm text-gray-700 whitespace-pre-line">{{ inquilino.observacoes }}</p>
+  </div>
+  {% endif %}
+
+  {# Contratos vinculados #}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Contratos</h2>
+      <span class="text-xs text-gray-400">{{ contratos|length }} registro{{ contratos|length|pluralize }}</span>
+    </div>
+
+    {% if contratos %}
+    <table class="min-w-full divide-y divide-gray-100 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Contrato</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Imóvel</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Vigência</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for contrato in contratos %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3 font-mono font-semibold text-gray-800">{{ contrato.numero }}</td>
+          <td class="px-4 py-3 text-gray-600 hidden md:table-cell">
+            {{ contrato.imovel.codigo }} — {{ contrato.imovel.bairro }}, {{ contrato.imovel.cidade }}
+          </td>
+          <td class="px-4 py-3 text-gray-500 hidden md:table-cell whitespace-nowrap">
+            {{ contrato.data_inicio|date:"d/m/Y" }} → {{ contrato.data_fim|date:"d/m/Y" }}
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if contrato.status == 'ativo' %}bg-green-100 text-green-700
+              {% elif contrato.status == 'pendente' %}bg-yellow-100 text-yellow-700
+              {% elif contrato.status == 'encerrado' %}bg-gray-100 text-gray-600
+              {% else %}bg-red-100 text-red-700{% endif %}">
+              {{ contrato.get_status_display }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'contrato_detalhe' contrato.pk %}"
+               class="text-xs font-medium text-blue-600 hover:text-blue-800">Ver →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="px-6 py-10 text-center text-sm text-gray-400">
+      Nenhum contrato vinculado a este inquilino.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="text-xs text-gray-400 pb-8">
+    Cadastrado em {{ inquilino.criado_em|date:"d/m/Y H:i" }} •
+    Atualizado em {{ inquilino.atualizado_em|date:"d/m/Y H:i" }}
+  </div>
+
+</div>
+{% endblock %}

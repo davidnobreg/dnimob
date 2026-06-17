@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Editar Template — {{ template.get_evento_display }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{% url 'whatsapp_templates' %}" class="back-link">← Templates</a>
+  <h1>✏️ {{ template.get_evento_display }}</h1>
+</div>
+
+<div class="template-editor-grid">
+  <div class="card">
+    <div class="card-header"><h2>Mensagem</h2></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+          {{ form.ativo.label_tag }}
+          {{ form.ativo }}
+        </div>
+
+        <div class="form-group">
+          {{ form.mensagem.label_tag }}
+          {{ form.mensagem }}
+          {% if form.mensagem.errors %}
+            <span class="field-error">{{ form.mensagem.errors.0 }}</span>
+          {% endif %}
+          <small class="help-text">
+            Use *texto* para negrito e _texto_ para itálico no WhatsApp.
+          </small>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Salvar template</button>
+          <a href="{% url 'whatsapp_templates' %}" class="btn-ghost">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Variáveis disponíveis -->
+  <div class="card">
+    <div class="card-header"><h2>Variáveis disponíveis</h2></div>
+    <div class="card-body">
+      {% if template.variaveis_disponiveis %}
+        <p class="help-text">Clique em uma variável para copiar:</p>
+        <div class="var-list">
+          {% for var in template.variaveis_disponiveis %}
+            <button class="var-btn" onclick="inserirVariavel('{‌{ {{ var }} }‌}')">
+              <code>{‌{ {{ var }} }‌}</code>
+            </button>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">Nenhuma variável específica para este template.</p>
+      {% endif %}
+
+      <hr>
+      <h4>Pré-visualização</h4>
+      <div class="whatsapp-preview" id="preview">
+        <div class="wpp-bubble">
+          <pre id="previewTexto">{{ template.mensagem }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const textarea = document.querySelector('textarea[name="mensagem"]');
+const previewTexto = document.getElementById('previewTexto');
+
+function inserirVariavel(variavel) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const texto = textarea.value;
+  textarea.value = texto.slice(0, start) + variavel + texto.slice(end);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = start + variavel.length;
+  atualizarPreview();
+}
+
+function atualizarPreview() {
+  previewTexto.textContent = textarea.value;
+}
+
+textarea?.addEventListener('input', atualizarPreview);
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────
+# Stack de produção — Docker Swarm / Portainer
+# Imagem imutável: código baked no build via GitHub Actions
+# Variáveis de ambiente configuradas no Portainer (não usa .env)
+# Redes e volumes criados externamente antes do primeiro deploy
+# ─────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Django (web) ────────────────────────────────────────────────
+  web:
+    image: davidnobrega/dnimob:latest
+
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - RUN_MIGRATIONS=true
+      - SENTRY_DSN=${SENTRY_DSN}
+      - GIT_COMMIT=${GIT_COMMIT}
+
+    ports:
+      - "8001:8001"
+
+    volumes:
+      - logs:/app/logs
+      - media:/app/media
+
+    networks:
+      - imob_network
+      - npm_public
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+  # ── Celery Worker ───────────────────────────────────────────────
+  celery:
+    image: davidnobrega/dnimob:latest
+
+    command: celery -A config worker --loglevel=info --concurrency=4 -Q celery,financeiro,whatsapp
+
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - SENTRY_DSN=${SENTRY_DSN}
+
+    volumes:
+      - logs:/app/logs
+      - media:/app/media
+
+    networks:
+      - imob_network
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+
+  # ── Celery Beat (agendador) ─────────────────────────────────────
+  beat:
+    image: davidnobrega/dnimob:latest
+
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+
+    volumes:
+      - logs:/app/logs
+      - celerybeat:/app/celerybeat
+
+    networks:
+      - imob_network
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+
+  # ── Flower (monitor Celery) ─────────────────────────────────────
+  flower:
+    image: davidnobrega/dnimob:latest
+
+    command: celery -A config flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme}
+
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+
+    ports:
+      - "5555:5555"
+
+    volumes:
+      - logs:/app/logs
+
+    networks:
+      - imob_network
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  logs:
+    external: true
+  media:
+    external: true
+  celerybeat:
+    external: true
+
+networks:
+  imob_network:
+    external: true
+  npm_public:
+    external: true

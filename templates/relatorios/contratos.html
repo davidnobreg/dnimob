@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Contratos Ativos{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">📝 Contratos Ativos</h1>
+      <p class="text-sm text-gray-500 mt-1">{{ total }} contrato{{ total|pluralize }} ativo{{ total|pluralize }}</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="?formato=pdf" class="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">📄 PDF</a>
+      <a href="?formato=excel" class="text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">📊 Excel</a>
+    </div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    {% if contratos %}
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inquilino</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Imóvel</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Início</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fim</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aluguel</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for c in contratos %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-medium text-gray-800">{{ c.inquilino.nome }}</td>
+            <td class="px-4 py-3 text-gray-500 hidden md:table-cell">{{ c.imovel }}</td>
+            <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ c.data_inicio|date:"d/m/Y" }}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="{% if c.data_fim|timeuntil == '' %}text-red-500{% else %}text-gray-500{% endif %}">
+                {{ c.data_fim|date:"d/m/Y" }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-right font-medium text-gray-700">R$ {{ c.valor_aluguel|floatformat:2|intcomma }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="py-16 text-center text-gray-400">
+        <p class="text-4xl mb-3">📝</p>
+        <p class="font-medium">Nenhum contrato ativo.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

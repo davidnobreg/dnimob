@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir Inquilino{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto mt-16">
+  <div class="bg-white rounded-xl border border-red-100 p-8 text-center shadow-sm">
+    <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+      <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+    </div>
+    <h1 class="text-xl font-bold text-gray-900 mb-2">Excluir inquilino?</h1>
+    <p class="text-gray-700 font-semibold mb-6">{{ inquilino.nome }}</p>
+    <p class="text-xs text-red-500 mb-6">Esta ação é irreversível.</p>
+    <div class="flex gap-3 justify-center">
+      <a href="{% url 'inquilino_detalhe' inquilino.pk %}"
+         class="px-5 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition">
+        Cancelar
+      </a>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit"
+                class="px-5 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 transition">
+          Confirmar exclusão
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8">
+<style>
+  @page { size: A4 landscape; margin: 1.5cm; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #1f2937; }
+  h1 { font-size: 15px; color: #0e9f6e; margin-bottom: 2px; }
+  .sub { font-size: 8px; color: #6b7280; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #0e9f6e; color: white; padding: 5px 7px; text-align: left; font-size: 8px; text-transform: uppercase; }
+  td { padding: 4px 7px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f0fdf4; }
+  .rodape { margin-top: 16px; font-size: 7px; color: #9ca3af; text-align: center; }
+</style></head>
+<body>
+  <h1>Relatório de Imóveis</h1>
+  <p class="sub">Total: {{ total }} imóvel{{ total|pluralize:"is" }} — Gerado em {{ gerado_em|date:"d/m/Y H:i" }}</p>
+  <table>
+    <thead><tr><th>Código</th><th>Tipo</th><th>Finalidade</th><th>Endereço</th><th>Cidade</th><th>Status</th><th style="text-align:right">Aluguel</th></tr></thead>
+    <tbody>
+      {% for i in imoveis %}
+      <tr>
+        <td>{{ i.codigo }}</td>
+        <td>{{ i.get_tipo_display }}</td>
+        <td>{{ i.get_finalidade_display }}</td>
+        <td>{{ i.logradouro }}, {{ i.numero }}</td>
+        <td>{{ i.cidade }}</td>
+        <td>{{ i.get_status_display }}</td>
+        <td style="text-align:right">R$ {{ i.valor_aluguel|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="rodape">DN Imob</p>
+</body>
+</html>

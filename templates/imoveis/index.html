@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Imóveis{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-gray-300">/</span>
+<a href="{% url 'imovel_lista' %}" class="text-gray-600 hover:text-primary-600">Imóveis</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Imóveis</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Cadastre, consulte e mantenha seu portfólio.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'imovel_lista' %}"
+         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+        <i class="ti ti-list-details text-base text-gray-400"></i>
+        Ver lista
+      </a>
+      <a href="{% url 'imovel_criar' %}"
+         class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition">
+        <i class="ti ti-plus text-base"></i>
+        Novo imóvel
+      </a>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-10 text-center">
+    <div class="w-12 h-12 rounded-full bg-primary-600/10 flex items-center justify-center mx-auto mb-3">
+      <i class="ti ti-home text-2xl text-primary-700"></i>
+    </div>
+    <p class="text-sm text-gray-600">
+      Acesse a lista para filtrar por status, tipo e finalidade, ou cadastre um novo imóvel.
+    </p>
+  </div>
+</div>
+{% endblock %}

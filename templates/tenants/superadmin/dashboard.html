@@ -1,0 +1,117 @@
+{% extends "base_public.html" %}
+{% block title %}Superadmin — DN Imob{% endblock %}
+
+{% block content %}
+<div class="superadmin-layout">
+  <aside class="superadmin-sidebar">
+    <div class="sa-logo">⚡ DN Imob</div>
+    <nav>
+      <a href="{% url 'superadmin_dashboard' %}" class="sa-nav-link active">Dashboard</a>
+      <a href="/admin/" class="sa-nav-link">Django Admin</a>
+    </nav>
+  </aside>
+
+  <main class="superadmin-main">
+    <header class="sa-header">
+      <h1>Painel Master</h1>
+      <p>Gerencie todas as imobiliárias da plataforma</p>
+    </header>
+
+    <!-- KPIs -->
+    <div class="sa-kpi-grid">
+      <div class="sa-kpi">
+        <span class="kpi-num">{{ total }}</span>
+        <span class="kpi-label">Total de tenants</span>
+      </div>
+      <div class="sa-kpi kpi-green">
+        <span class="kpi-num">{{ ativos }}</span>
+        <span class="kpi-label">Tenants ativos</span>
+      </div>
+      <div class="sa-kpi kpi-yellow">
+        <span class="kpi-num">{{ trial }}</span>
+        <span class="kpi-label">Em trial</span>
+      </div>
+      <div class="sa-kpi kpi-red">
+        <span class="kpi-num">{{ total|add:"-"|add:ativos }}</span>
+        <span class="kpi-label">Inativos</span>
+      </div>
+    </div>
+
+    <!-- Tabela de tenants -->
+    <div class="sa-card">
+      <div class="sa-card-header">
+        <h2>Imobiliárias</h2>
+        <input type="search" placeholder="Filtrar..." class="sa-search" id="filtroTenants">
+      </div>
+      <div class="table-responsive">
+        <table class="sa-table" id="tabelaTenants">
+          <thead>
+            <tr>
+              <th>Imobiliária</th>
+              <th>Subdomínio</th>
+              <th>Plano</th>
+              <th>Status</th>
+              <th>Trial expira</th>
+              <th>Criado em</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tenant in tenants %}
+            <tr>
+              <td>
+                <strong>{{ tenant.nome }}</strong>
+                <small class="text-muted d-block">{{ tenant.email }}</small>
+              </td>
+              <td>
+                <a href="http://{{ tenant.get_primary_domain.domain }}" target="_blank" class="subdomain-link">
+                  {{ tenant.schema_name }}
+                </a>
+              </td>
+              <td>
+                <span class="badge badge-plano">{{ tenant.plano|default:"—" }}</span>
+              </td>
+              <td>
+                {% if tenant.ativo %}
+                  {% if tenant.trial %}
+                    <span class="badge badge-yellow">Trial</span>
+                  {% else %}
+                    <span class="badge badge-green">Ativo</span>
+                  {% endif %}
+                {% else %}
+                  <span class="badge badge-red">Inativo</span>
+                {% endif %}
+              </td>
+              <td>{{ tenant.trial_expira|date:"d/m/Y"|default:"—" }}</td>
+              <td>{{ tenant.criado_em|date:"d/m/Y" }}</td>
+              <td class="sa-actions">
+                <a href="{% url 'superadmin_tenant_detalhe' tenant.pk %}" class="btn-sm btn-outline">Ver</a>
+                <form method="post" action="{% url 'superadmin_toggle_tenant' tenant.pk %}" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-sm {% if tenant.ativo %}btn-danger{% else %}btn-success{% endif %}">
+                    {% if tenant.ativo %}Desativar{% else %}Ativar{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted">Nenhuma imobiliária cadastrada ainda.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.getElementById('filtroTenants').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#tabelaTenants tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

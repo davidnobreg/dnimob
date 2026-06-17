@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Inadimplência{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Inadimplência</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Parcelas em atraso</p>
+    </div>
+    <a href="{% url 'financeiro_dashboard' %}" class="text-sm text-gray-500 hover:text-gray-700">← Financeiro</a>
+  </div>
+
+  {% if atrasadas %}
+  <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+    <p class="text-sm font-semibold text-red-700">
+      {{ atrasadas.count }} parcela{{ atrasadas.count|pluralize }} em atraso
+    </p>
+    <p class="text-lg font-bold text-red-700">Total: R$ {{ total|floatformat:2|intcomma }}</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Inquilino</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Imóvel</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Vencimento</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Parcela</th>
+          <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Valor</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for p in atrasadas %}
+        <tr class="hover:bg-red-50/30">
+          <td class="px-4 py-3">
+            <p class="font-medium text-gray-800">{{ p.contrato.inquilino.nome }}</p>
+            <p class="text-xs text-gray-400">{{ p.contrato.numero }}</p>
+          </td>
+          <td class="px-4 py-3 text-gray-600 hidden md:table-cell">
+            {{ p.contrato.imovel.codigo }} — {{ p.contrato.imovel.bairro }}
+          </td>
+          <td class="px-4 py-3 text-red-600 font-medium">{{ p.data_vencimento|date:"d/m/Y" }}</td>
+          <td class="px-4 py-3 text-gray-600">{{ p.numero }}</td>
+          <td class="px-4 py-3 text-right font-bold text-red-600">R$ {{ p.valor|intcomma }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'parcela_pagar' p.pk %}" class="text-xs text-primary hover:underline font-medium">Receber</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="bg-white rounded-xl border border-gray-200 py-20 text-center">
+    <p class="text-4xl mb-3">✅</p>
+    <p class="text-gray-500">Nenhuma parcela em atraso. Parabéns!</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

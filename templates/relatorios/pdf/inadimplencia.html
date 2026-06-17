@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 2cm; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #1f2937; }
+  h1 { font-size: 16px; color: #dc2626; margin-bottom: 2px; }
+  .sub { font-size: 9px; color: #6b7280; margin-bottom: 8px; }
+  .alerta { background: #fef2f2; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 4px; margin-bottom: 16px; font-size: 11px; color: #dc2626; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #dc2626; color: white; padding: 6px 8px; text-align: left; font-size: 9px; text-transform: uppercase; }
+  td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #fef2f2; }
+  .rodape { margin-top: 20px; font-size: 8px; color: #9ca3af; text-align: center; }
+</style>
+</head>
+<body>
+  <h1>Relatório de Inadimplência</h1>
+  <p class="sub">Gerado em {{ gerado_em|date:"d/m/Y H:i" }}</p>
+  <div class="alerta">{{ count }} parcela{{ count|pluralize }} em atraso — Total: R$ {{ total_valor|floatformat:2 }}</div>
+
+  <table>
+    <thead>
+      <tr><th>Inquilino</th><th>Imóvel</th><th>Competência</th><th>Vencimento</th><th style="text-align:right">Valor</th></tr>
+    </thead>
+    <tbody>
+      {% for p in parcelas %}
+      <tr>
+        <td>{{ p.contrato.inquilino.nome }}</td>
+        <td>{{ p.contrato.imovel }}</td>
+        <td>{{ p.competencia }}</td>
+        <td>{{ p.data_vencimento|date:"d/m/Y" }}</td>
+        <td style="text-align:right; color:#dc2626; font-weight:bold">R$ {{ p.valor_total|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="rodape">DN Imob</p>
+</body>
+</html>

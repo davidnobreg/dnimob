@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Templates WhatsApp{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  {# Cabeçalho #}
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">🗂️ Templates de Mensagens</h1>
+      <p class="text-sm text-gray-500 mt-1">Personalize os 13 eventos automáticos de WhatsApp da sua imobiliária.</p>
+    </div>
+  </div>
+
+  {% for grupo in grupos %}
+  <div class="space-y-3">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
+      {{ grupo.titulo }}
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {% for template in grupo.templates %}
+      <div class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
+
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="font-semibold text-gray-800 text-sm">{{ template.get_evento_display }}</h3>
+            <span class="text-xs font-mono text-gray-400">{{ template.evento }}</span>
+          </div>
+          {% if template.ativo %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span> Ativo
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span> Inativo
+            </span>
+          {% endif %}
+        </div>
+
+        <p class="text-sm text-gray-500 leading-relaxed">
+          {{ template.mensagem|truncatewords:25|linebreaksbr }}
+        </p>
+
+        {% if template.variaveis_disponiveis %}
+        <div class="flex flex-wrap gap-1.5">
+          {% for var in template.variaveis_disponiveis %}
+            <code class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{% templatetag openbrace %}{{ var }}{% templatetag closebrace %}</code>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="pt-2 mt-auto border-t border-gray-100">
+          <a href="{% url 'whatsapp_template_editar' template.pk %}"
+             class="inline-flex items-center gap-1.5 text-xs text-gray-600 border border-gray-300 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition-colors">
+            ✏️ Editar
+          </a>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Acesso Bloqueado{% endblock %}
+
+{% block content %}
+
+<div class="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-10">
+
+    <div class="w-full max-w-2xl">
+
+        <!-- Card principal -->
+        <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+
+            <!-- Topo visual -->
+            <div class="relative bg-gradient-to-br from-red-50 via-white to-amber-50 px-6 py-10 text-center sm:px-10">
+
+                <!-- Detalhe decorativo -->
+                <div class="absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-100 blur-3xl"></div>
+
+                <div class="relative">
+                    <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-red-100 text-red-600 shadow-sm">
+                        <i class="ti ti-lock text-4xl"></i>
+                    </div>
+
+                    <div class="mt-6 inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+                        <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                        Acesso temporariamente bloqueado
+                    </div>
+
+                    <h1 class="mt-4 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                        Acesso suspenso
+                    </h1>
+
+                    {% if motivo == 'trial_expirado' %}
+                        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
+                            Seu período de teste expirou. Para continuar usando o sistema,
+                            escolha um plano ou fale com o suporte.
+                        </p>
+                    {% else %}
+                        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
+                            Seu plano venceu ou está pendente. Renove sua assinatura para
+                            continuar acessando todos os recursos do sistema.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="px-6 py-6 sm:px-10">
+
+                <!-- Informações -->
+                <div class="grid gap-4 sm:grid-cols-2">
+
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                                <i class="ti ti-info-circle text-xl"></i>
+                            </div>
+
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-900">
+                                    O que aconteceu?
+                                </h2>
+
+                                {% if motivo == 'trial_expirado' %}
+                                    <p class="mt-1 text-sm leading-6 text-slate-500">
+                                        O período gratuito terminou e a conta precisa de um plano ativo.
+                                    </p>
+                                {% else %}
+                                    <p class="mt-1 text-sm leading-6 text-slate-500">
+                                        A assinatura não está ativa no momento ou precisa de renovação.
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                                <i class="ti ti-shield-check text-xl"></i>
+                            </div>
+
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-900">
+                                    Seus dados estão seguros
+                                </h2>
+
+                                <p class="mt-1 text-sm leading-6 text-slate-500">
+                                    Nenhuma informação foi apagada. O acesso será liberado após a regularização.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Ações -->
+                <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+
+                    <a
+                        href="mailto:contato@dnsoftware.com.br?subject=Regularização%20de%20acesso%20-%20DN%20Imob"
+                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary-600/20 transition hover:-translate-y-0.5 hover:bg-primary-700"
+                    >
+                        <i class="ti ti-mail"></i>
+                        Falar com o suporte
+                    </a>
+
+                    <a
+                        href="{% url 'logout' %}"
+                        class="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                    >
+                        <i class="ti ti-logout"></i>
+                        Sair
+                    </a>
+
+                </div>
+
+                <!-- Rodapé informativo -->
+                <div class="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
+                    <p class="text-sm leading-6 text-amber-800">
+                        Caso você acredite que isso seja um erro, entre em contato com o suporte
+                        informando o nome da sua imobiliária.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

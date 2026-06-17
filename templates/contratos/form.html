@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <div class="flex items-center gap-3">
+    <a href="{% url 'contrato_lista' %}" class="text-gray-400 hover:text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <h1 class="text-2xl font-bold text-gray-900">{{ titulo }}</h1>
+  </div>
+
+  {{ form.imoveis_data|json_script:"imoveis-data" }}
+  <script>
+  (function() {
+    var d = JSON.parse(document.getElementById('imoveis-data').textContent);
+    window._preencherImovel = function(pk) {
+      if (!pk || !d[pk]) return;
+      document.querySelector('[name="valor_aluguel"]').value = d[pk].valor;
+      document.querySelector('[name="valor_condominio"]').value = d[pk].condominio;
+      document.querySelector('[name="valor_iptu"]').value = d[pk].iptu;
+    };
+  })();
+  </script>
+
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+
+    {% if form.errors %}
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+      <p class="font-semibold mb-1">Corrija os erros:</p>
+      {% for field in form %}{% for error in field.errors %}
+        <p>• {{ field.label }}: {{ error }}</p>
+      {% endfor %}{% endfor %}
+      {% for error in form.non_field_errors %}<p>• {{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── Identificação ── #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Identificação</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Número *</label>
+          {{ form.numero }}
+          {% if form.numero.errors %}<p class="text-xs text-red-500 mt-1">{{ form.numero.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          {{ form.status }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Data de Assinatura</label>
+          {{ form.data_assinatura }}
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Imóvel *
+            <span class="text-xs font-normal text-gray-400 ml-1">— preenche valores automaticamente</span>
+          </label>
+          {{ form.imovel }}
+          {% if form.imovel.errors %}<p class="text-xs text-red-500 mt-1">{{ form.imovel.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Inquilino *</label>
+          {{ form.inquilino }}
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
+        {{ form.responsavel }}
+      </div>
+    </div>
+
+    {# ── Vigência ── #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Vigência</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Início *</label>
+          {{ form.data_inicio }}
+          {% if form.data_inicio.errors %}<p class="text-xs text-red-500 mt-1">{{ form.data_inicio.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fim *</label>
+          {{ form.data_fim }}
+          {% if form.data_fim.errors %}<p class="text-xs text-red-500 mt-1">{{ form.data_fim.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Dia de Vencimento *</label>
+          {{ form.dia_vencimento }}
+          {% if form.dia_vencimento.errors %}<p class="text-xs text-red-500 mt-1">{{ form.dia_vencimento.errors.0 }}</p>{% endif %}
+          <p class="text-xs text-gray-400 mt-1">Dia do mês em que o aluguel vence (1–28)</p>
+        </div>
+      </div>
+    </div>
+
+    {# ── Valores ── #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Valores (R$)</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Aluguel *</label>
+          {{ form.valor_aluguel }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Condomínio</label>
+          {{ form.valor_condominio }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">IPTU/mês</label>
+          {{ form.valor_iptu }}
+        </div>
+      </div>
+    </div>
+
+    {# ── Reajuste ── #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4"
+         x-data="{ indice: '{{ form.indice_reajuste.value|default:'igpm' }}' }">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Reajuste</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Índice</label>
+          <select name="indice_reajuste" x-model="indice"
+                  class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% for val, label in form.indice_reajuste.field.choices %}
+            <option value="{{ val }}" {% if form.indice_reajuste.value == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div x-show="indice === 'fixo'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Percentual Fixo (%)</label>
+          {{ form.percentual_fixo }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Periodicidade (meses)</label>
+          {{ form.periodicidade_reajuste }}
+        </div>
+      </div>
+    </div>
+
+    {# ── Garantia ── #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4"
+         x-data="{ garantia: '{{ form.tipo_garantia.value|default:'nenhuma' }}' }">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Garantia e Multa</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Garantia</label>
+          <select name="tipo_garantia" x-model="garantia"
+                  class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% for val, label in form.tipo_garantia.field.choices %}
+            <option value="{{ val }}" {% if form.tipo_garantia.value == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div x-show="garantia === 'caucao'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Valor Caução (R$)</label>
+          {{ form.valor_caucao }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Multa Rescisória (%)</label>
+          {{ form.multa_rescisao }}
+        </div>
+      </div>
+    </div>
+
+    {# ── Cláusulas e observações ── #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Cláusulas e Observações</h2>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Cláusulas Adicionais</label>
+        {{ form.clausulas_adicionais }}
+        <p class="text-xs text-gray-400 mt-1">Texto livre para cláusulas específicas deste contrato.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Observações Internas</label>
+        {{ form.observacoes }}
+      </div>
+    </div>
+
+    {% if not contrato %}
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+      <p class="font-semibold">ℹ️ Parcelas geradas automaticamente</p>
+      <p class="mt-1">Ao salvar, o sistema gerará todas as parcelas mensais do contrato com base nas datas e dia de vencimento informados.</p>
+    </div>
+    {% endif %}
+
+    <div class="flex items-center justify-between pb-8">
+      <a href="{% if contrato %}{% url 'contrato_detalhe' contrato.pk %}{% else %}{% url 'contrato_lista' %}{% endif %}"
+         class="text-sm text-gray-500 hover:text-gray-700 px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors">
+        Cancelar
+      </a>
+      <div class="flex gap-3">
+        {% if contrato %}
+        <a href="{% url 'contrato_encerrar' contrato.pk %}"
+           class="px-4 py-2 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+          Encerrar contrato
+        </a>
+        {% endif %}
+        <button type="submit"
+                class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm">
+          {{ acao }}
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

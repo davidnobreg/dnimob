@@ -1,0 +1,409 @@
+<!-- templates/components/sidebar.html -->
+
+<aside
+        x-data="{
+        sidebarOpen: true,
+        mobileOpen: false,
+        openConfig: {% if request.resolver_match.url_name in 'config_conta,config_sicredi,config_whatsapp,whatsapp_templates,usuarios_lista' %}true{% else %}false{% endif %}
+    }"
+        class="relative z-50"
+>
+    <!-- Botão mobile -->
+    <button
+            type="button"
+            class="fixed left-4 top-4 z-[70] flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg transition hover:bg-slate-800 lg:hidden"
+            @click="mobileOpen = true"
+            aria-label="Abrir menu"
+    >
+        ☰
+    </button>
+
+    <!-- Overlay mobile -->
+    <div
+            x-show="mobileOpen"
+            x-transition.opacity
+            class="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm lg:hidden"
+            @click="mobileOpen = false"
+    ></div>
+
+    <!-- Sidebar -->
+    <div
+            class="fixed left-0 top-0 z-[60] flex h-screen flex-col border-r border-slate-200 bg-white shadow-xl transition-all duration-300"
+            :class="{
+            'w-72': sidebarOpen,
+            'w-24': !sidebarOpen,
+            'translate-x-0': mobileOpen,
+            '-translate-x-full lg:translate-x-0': !mobileOpen
+        }"
+    >
+
+        <!-- Header -->
+        <div class="flex h-20 items-center justify-between border-b border-slate-100 px-4">
+            <a href="{% url 'dashboard' %}" class="flex min-w-0 items-center gap-3">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-md">
+                    {% if request.tenant.logo %}
+                        <img
+                                src="{{ request.tenant.logo.url }}"
+                                alt="Logo"
+                                class="h-full w-full object-cover"
+                        >
+                    {% else %}
+                        <span class="text-xl">🏠</span>
+                    {% endif %}
+                </div>
+
+                <div
+                        x-show="sidebarOpen"
+                        x-transition
+                        class="min-w-0"
+                >
+                    <p class="truncate text-sm font-bold text-slate-900">
+                        {{ request.tenant.nome|default:"DN Imob"|truncatechars:22 }}
+                    </p>
+                    <p class="truncate text-xs text-slate-500">
+                        Painel imobiliário
+                    </p>
+                </div>
+            </a>
+
+            <!-- Fechar mobile -->
+            <button
+                    type="button"
+                    class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 lg:hidden"
+                    @click="mobileOpen = false"
+                    aria-label="Fechar menu"
+            >
+                ✕
+            </button>
+
+            <!-- Recolher desktop -->
+            <button
+                    type="button"
+                    class="hidden rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 lg:block"
+                    @click="sidebarOpen = !sidebarOpen"
+                    aria-label="Recolher menu"
+            >
+                <span x-show="sidebarOpen">⟨</span>
+                <span x-show="!sidebarOpen">⟩</span>
+            </button>
+        </div>
+
+        <!-- Navegação -->
+        <nav class="flex-1 space-y-2 overflow-y-auto px-3 py-5">
+
+            <!-- Dashboard -->
+            <a
+                    href="{% url 'dashboard' %}"
+                    class="group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition
+                {% if request.resolver_match.url_name == 'dashboard' %}
+                    bg-blue-600 text-white shadow-md shadow-blue-600/20
+                {% else %}
+                    text-slate-600 hover:bg-blue-50 hover:text-blue-700
+                {% endif %}"
+            >
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+                    {% if request.resolver_match.url_name == 'dashboard' %}
+                        bg-white/20
+                    {% else %}
+                        bg-slate-100 group-hover:bg-blue-100
+                    {% endif %}
+                ">
+                    📊
+                </span>
+
+                <span x-show="sidebarOpen" x-transition>
+                    Dashboard
+                </span>
+            </a>
+
+            <!-- Imóveis -->
+            <a
+                    href="{% url 'imovel_lista' %}"
+                    class="group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition
+                {% if 'imovel' in request.resolver_match.url_name %}
+                    bg-blue-600 text-white shadow-md shadow-blue-600/20
+                {% else %}
+                    text-slate-600 hover:bg-blue-50 hover:text-blue-700
+                {% endif %}"
+            >
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+                    {% if 'imovel' in request.resolver_match.url_name %}
+                        bg-white/20
+                    {% else %}
+                        bg-slate-100 group-hover:bg-blue-100
+                    {% endif %}
+                ">
+                    🏘️
+                </span>
+
+                <span x-show="sidebarOpen" x-transition>
+                    Imóveis
+                </span>
+            </a>
+
+            <!-- Inquilinos -->
+            <a
+                    href="{% url 'inquilino_lista' %}"
+                    class="group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition
+                {% if 'inquilino' in request.resolver_match.url_name %}
+                    bg-blue-600 text-white shadow-md shadow-blue-600/20
+                {% else %}
+                    text-slate-600 hover:bg-blue-50 hover:text-blue-700
+                {% endif %}"
+            >
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+                    {% if 'inquilino' in request.resolver_match.url_name %}
+                        bg-white/20
+                    {% else %}
+                        bg-slate-100 group-hover:bg-blue-100
+                    {% endif %}
+                ">
+                    👤
+                </span>
+
+                <span x-show="sidebarOpen" x-transition>
+                    Inquilinos
+                </span>
+            </a>
+
+            <!-- Contratos -->
+            <a
+                    href="{% url 'contrato_lista' %}"
+                    class="group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition
+                {% if 'contrato' in request.resolver_match.url_name %}
+                    bg-blue-600 text-white shadow-md shadow-blue-600/20
+                {% else %}
+                    text-slate-600 hover:bg-blue-50 hover:text-blue-700
+                {% endif %}"
+            >
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+                    {% if 'contrato' in request.resolver_match.url_name %}
+                        bg-white/20
+                    {% else %}
+                        bg-slate-100 group-hover:bg-blue-100
+                    {% endif %}
+                ">
+                    📋
+                </span>
+
+                <span x-show="sidebarOpen" x-transition class="flex-1">
+                    Contratos
+                </span>
+
+                <!--<span
+                    x-show="sidebarOpen"
+                    class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                >
+                    Em breve
+                </span>-->
+            </a>
+
+            <!-- Financeiro -->
+            <a
+                    href="{% url 'financeiro_dashboard' %}"
+                    class="group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition
+                {% if 'financeiro' in request.resolver_match.url_name %}
+                    bg-blue-600 text-white shadow-md shadow-blue-600/20
+                {% else %}
+                    text-slate-600 hover:bg-blue-50 hover:text-blue-700
+                {% endif %}"
+            >
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+                    {% if 'financeiro' in request.resolver_match.url_name %}
+                        bg-white/20
+                    {% else %}
+                        bg-slate-100 group-hover:bg-blue-100
+                    {% endif %}
+                ">
+                    💰
+                </span>
+
+                <span x-show="sidebarOpen" x-transition>
+                    Financeiro
+                </span>
+            </a>
+
+            <!-- Relatórios -->
+            <a
+                    href="{% url 'relatorios_dashboard' %}"
+                    class="group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition
+                {% if 'relatorio' in request.resolver_match.url_name %}
+                    bg-blue-600 text-white shadow-md shadow-blue-600/20
+                {% else %}
+                    text-slate-600 hover:bg-blue-50 hover:text-blue-700
+                {% endif %}"
+            >
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+                    {% if 'relatorio' in request.resolver_match.url_name %}
+                        bg-white/20
+                    {% else %}
+                        bg-slate-100 group-hover:bg-blue-100
+                    {% endif %}
+                ">
+                    📈
+                </span>
+
+                <span x-show="sidebarOpen" x-transition>
+                    Relatórios
+                </span>
+            </a>
+
+            <!-- Separador -->
+            {% if request.user.is_staff %}
+                <div x-show="sidebarOpen" class="px-4 pt-4">
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Administração
+                    </p>
+                </div>
+
+                <!-- Configurações -->
+                <div class="space-y-1">
+                    <button
+                            type="button"
+                            class="group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:bg-blue-50 hover:text-blue-700"
+                            @click="openConfig = !openConfig; sidebarOpen = true"
+                    >
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 group-hover:bg-blue-100">
+                            ⚙️
+                        </span>
+
+                        <span x-show="sidebarOpen" x-transition class="flex-1">
+                            Configurações
+                        </span>
+
+                        <span
+                                x-show="sidebarOpen"
+                                class="transition-transform duration-300"
+                                :class="openConfig ? 'rotate-90' : ''"
+                        >
+                            ›
+                        </span>
+                    </button>
+
+                    <div
+                            x-show="openConfig && sidebarOpen"
+                            x-transition
+                            class="ml-6 space-y-1 border-l border-slate-200 pl-4"
+                    >
+                        <a
+                                href="{% url 'config_conta' %}"
+                                class="block rounded-xl px-4 py-2 text-sm transition
+                            {% if request.resolver_match.url_name == 'config_conta' %}
+                                bg-blue-50 font-semibold text-blue-700
+                            {% else %}
+                                text-slate-500 hover:bg-slate-50 hover:text-slate-800
+                            {% endif %}"
+                        >
+                            🏢 Conta
+                        </a>
+
+                        <a
+                                href="{% url 'config_sicredi' %}"
+                                class="block rounded-xl px-4 py-2 text-sm transition
+                            {% if request.resolver_match.url_name == 'config_sicredi' %}
+                                bg-blue-50 font-semibold text-blue-700
+                            {% else %}
+                                text-slate-500 hover:bg-slate-50 hover:text-slate-800
+                            {% endif %}"
+                        >
+                            🏦 Sicredi
+                        </a>
+
+                        {% if request.tenant.tem_whatsapp %}
+                            <a
+                                    href="{% url 'config_whatsapp' %}"
+                                    class="block rounded-xl px-4 py-2 text-sm transition
+                                {% if 'whatsapp' in request.resolver_match.url_name %}
+                                    bg-blue-50 font-semibold text-blue-700
+                                {% else %}
+                                    text-slate-500 hover:bg-slate-50 hover:text-slate-800
+                                {% endif %}"
+                            >
+                                💬 WhatsApp
+                            </a>
+                        {% endif %}
+
+                        <a
+                                href="{% url 'usuarios_lista' %}"
+                                class="block rounded-xl px-4 py-2 text-sm transition
+                            {% if 'usuario' in request.resolver_match.url_name %}
+                                bg-blue-50 font-semibold text-blue-700
+                            {% else %}
+                                text-slate-500 hover:bg-slate-50 hover:text-slate-800
+                            {% endif %}"
+                        >
+                            👥 Usuários
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </nav>
+
+        <!-- Footer -->
+        <div class="border-t border-slate-100 p-4">
+
+            <!-- Status do plano -->
+            <div
+                    x-show="sidebarOpen"
+                    x-transition
+                    class="mb-4 rounded-2xl bg-slate-50 p-4"
+            >
+                <div class="flex items-center justify-between gap-2">
+                    <div>
+                        <p class="text-xs font-medium text-slate-400">
+                            Plano atual
+                        </p>
+                        <p class="mt-1 text-sm font-bold text-slate-800">
+                            {{ request.tenant.plano|default:"Sem plano" }}
+                        </p>
+                    </div>
+
+                    {% with status=request.tenant.status_assinatura %}
+                        {% if status == 'trial' %}
+                            <span class="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-700">
+                                Trial
+                            </span>
+                        {% elif status == 'expirado' or status == 'trial_expirado' %}
+                            <span class="rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold text-red-700">
+                                Expirado
+                            </span>
+                        {% else %}
+                            <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                                Ativo
+                            </span>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+
+                {% with status=request.tenant.status_assinatura %}
+                    {% if status == 'trial' %}
+                        <p class="mt-3 text-xs text-slate-500">
+                            Trial expira em {{ request.tenant.trial_expira|timeuntil }}
+                        </p>
+                    {% elif status == 'expirado' or status == 'trial_expirado' %}
+                        <p class="mt-3 text-xs font-medium text-red-600">
+                            ⚠️ Sua assinatura está expirada.
+                        </p>
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Logout -->
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button
+                        type="submit"
+                        class="group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-red-50 hover:text-red-700"
+                >
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 transition group-hover:bg-red-100">
+            🚪
+        </span>
+
+                    <span x-show="sidebarOpen" x-transition>
+            Sair
+        </span>
+                </button>
+            </form>
+        </div>
+    </div>
+</aside>

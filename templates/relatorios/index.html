@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">📋 Relatórios</h1>
+    <p class="text-sm text-gray-500 mt-1">Exporte dados em PDF ou Excel</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+    {# Extrato Financeiro #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-4">
+        <div class="text-3xl">💰</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800">Extrato Financeiro</h3>
+          <p class="text-xs text-gray-500 mt-1 mb-4">Receitas e despesas por período com totais e saldo.</p>
+          <div class="flex gap-2">
+            <a href="{% url 'relatorio_extrato' %}?formato=pdf"
+               class="text-xs bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
+              📄 PDF
+            </a>
+            <a href="{% url 'relatorio_extrato' %}?formato=excel"
+               class="text-xs bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">
+              📊 Excel
+            </a>
+            <a href="{% url 'relatorio_extrato' %}"
+               class="text-xs bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors">
+              🔍 Filtrar período
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Inadimplência #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-4">
+        <div class="text-3xl">⚠️</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800">Relatório de Inadimplência</h3>
+          <p class="text-xs text-gray-500 mt-1 mb-4">Todas as parcelas em atraso com dias e valores.</p>
+          <div class="flex gap-2">
+            <a href="{% url 'relatorio_inadimplencia' %}?formato=pdf"
+               class="text-xs bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
+              📄 PDF
+            </a>
+            <a href="{% url 'relatorio_inadimplencia' %}?formato=excel"
+               class="text-xs bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">
+              📊 Excel
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Imóveis #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-4">
+        <div class="text-3xl">🏠</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800">Relatório de Imóveis</h3>
+          <p class="text-xs text-gray-500 mt-1 mb-4">Lista completa de imóveis com status e valores.</p>
+          <div class="flex gap-2">
+            <a href="{% url 'relatorio_imoveis' %}?formato=pdf"
+               class="text-xs bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
+              📄 PDF
+            </a>
+            <a href="{% url 'relatorio_imoveis' %}?formato=excel"
+               class="text-xs bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">
+              📊 Excel
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Contratos ativos #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-4">
+        <div class="text-3xl">📝</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800">Contratos Ativos</h3>
+          <p class="text-xs text-gray-500 mt-1 mb-4">Todos os contratos vigentes com datas e valores.</p>
+          <div class="flex gap-2">
+            <a href="{% url 'relatorio_contratos' %}?formato=pdf"
+               class="text-xs bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
+              📄 PDF
+            </a>
+            <a href="{% url 'relatorio_contratos' %}?formato=excel"
+               class="text-xs bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">
+              📊 Excel
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

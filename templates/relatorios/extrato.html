@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Extrato Financeiro{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">💰 Extrato Financeiro</h1>
+      <p class="text-sm text-gray-500 mt-1">{{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="?data_inicio={{ data_inicio|date:'Y-m-d' }}&data_fim={{ data_fim|date:'Y-m-d' }}&formato=pdf"
+         class="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+        📄 PDF
+      </a>
+      <a href="?data_inicio={{ data_inicio|date:'Y-m-d' }}&data_fim={{ data_fim|date:'Y-m-d' }}&formato=excel"
+         class="text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+        📊 Excel
+      </a>
+    </div>
+  </div>
+
+  {# Filtro de período #}
+  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-4 items-end">
+    <div>
+      <label class="text-xs text-gray-500 block mb-1">Data início</label>
+      <input type="date" name="data_inicio" value="{{ data_inicio|date:'Y-m-d' }}"
+             class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <div>
+      <label class="text-xs text-gray-500 block mb-1">Data fim</label>
+      <input type="date" name="data_fim" value="{{ data_fim|date:'Y-m-d' }}"
+             class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <button type="submit"
+            class="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
+      Filtrar
+    </button>
+  </form>
+
+  {# Cards de totais #}
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+      <p class="text-xs text-green-600 font-medium">Total Receitas</p>
+      <p class="text-2xl font-bold text-green-700 mt-1">R$ {{ total_receitas|floatformat:2|intcomma }}</p>
+    </div>
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+      <p class="text-xs text-red-600 font-medium">Total Despesas</p>
+      <p class="text-2xl font-bold text-red-700 mt-1">R$ {{ total_despesas|floatformat:2|intcomma }}</p>
+    </div>
+    <div class="{% if saldo >= 0 %}bg-blue-50 border-blue-200{% else %}bg-orange-50 border-orange-200{% endif %} border rounded-xl p-4">
+      <p class="text-xs {% if saldo >= 0 %}text-blue-600{% else %}text-orange-600{% endif %} font-medium">Saldo</p>
+      <p class="text-2xl font-bold {% if saldo >= 0 %}text-blue-700{% else %}text-orange-700{% endif %} mt-1">
+        R$ {{ saldo|floatformat:2|intcomma }}
+      </p>
+    </div>
+  </div>
+
+  {# Tabela #}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    {% if lancamentos %}
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Categoria</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for l in lancamentos %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ l.data|date:"d/m/Y" }}</td>
+            <td class="px-4 py-3 text-gray-800">{{ l.descricao }}</td>
+            <td class="px-4 py-3 text-gray-500 hidden md:table-cell">{{ l.categoria }}</td>
+            <td class="px-4 py-3">
+              {% if l.tipo == 'receita' %}
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Receita</span>
+              {% else %}
+                <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Despesa</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-right font-medium {% if l.tipo == 'receita' %}text-green-600{% else %}text-red-500{% endif %}">
+              R$ {{ l.valor|floatformat:2|intcomma }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="py-16 text-center text-gray-400">
+        <p class="text-4xl mb-3">📭</p>
+        <p class="font-medium">Nenhum lançamento neste período</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

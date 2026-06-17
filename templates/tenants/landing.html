@@ -1,0 +1,291 @@
+{% extends "base_public.html" %}
+
+{% block title %}Gestão imobiliária moderna{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<section class="bg-gradient-to-br from-blue-50 via-white to-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+            <!-- Texto principal -->
+            <div>
+                <span class="inline-flex items-center rounded-full bg-blue-100 px-4 py-1 text-sm font-medium text-blue-700 mb-6">
+                    Gestão imobiliária moderna
+                </span>
+
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900">
+                    Gerencie sua imobiliária com eficiência real
+                </h1>
+
+                <p class="mt-6 text-lg leading-8 text-gray-600">
+                    Contratos, cobranças, boletos Sicredi e WhatsApp automático —
+                    tudo em um só lugar. Multi-tenant, seguro e com dados totalmente isolados.
+                </p>
+
+                <div class="mt-8 flex flex-col sm:flex-row gap-4">
+                    <a href="{% url 'cadastro_imobiliaria' %}"
+                       class="inline-flex justify-center items-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+                        Começar grátis por 14 dias
+                    </a>
+
+                    <a href="#planos"
+                       class="inline-flex justify-center items-center rounded-xl border border-gray-300 bg-white px-6 py-3 text-base font-semibold text-gray-700 hover:bg-gray-50 transition">
+                        Ver planos
+                    </a>
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-4 text-sm text-gray-500">
+                    <span>Sem cartão de crédito</span>
+                    <span>•</span>
+                    <span>Cancele quando quiser</span>
+                </div>
+            </div>
+
+            <!-- Card visual -->
+            <div class="relative">
+                <div class="rounded-3xl bg-white shadow-2xl border border-gray-100 p-6">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Resumo mensal</p>
+                            <h3 class="text-2xl font-bold text-gray-900">Dashboard DN Imob</h3>
+                        </div>
+                        <div class="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-xl">
+                            📊
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="rounded-2xl bg-blue-50 p-4">
+                            <p class="text-sm text-blue-700">Contratos ativos</p>
+                            <p class="mt-2 text-3xl font-bold text-blue-900">128</p>
+                        </div>
+
+                        <div class="rounded-2xl bg-green-50 p-4">
+                            <p class="text-sm text-green-700">Pagamentos</p>
+                            <p class="mt-2 text-3xl font-bold text-green-900">94%</p>
+                        </div>
+
+                        <div class="rounded-2xl bg-yellow-50 p-4">
+                            <p class="text-sm text-yellow-700">Boletos emitidos</p>
+                            <p class="mt-2 text-3xl font-bold text-yellow-900">312</p>
+                        </div>
+
+                        <div class="rounded-2xl bg-purple-50 p-4">
+                            <p class="text-sm text-purple-700">Mensagens enviadas</p>
+                            <p class="mt-2 text-3xl font-bold text-purple-900">1.2k</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- Recursos -->
+<section class="bg-white py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="text-center max-w-3xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">
+                Tudo que sua imobiliária precisa
+            </h2>
+            <p class="mt-4 text-lg text-gray-600">
+                Automatize processos, organize contratos e acompanhe sua operação em tempo real.
+            </p>
+        </div>
+
+        <div class="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div class="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
+                    📋
+                </div>
+                <h3 class="mt-5 text-lg font-semibold text-gray-900">
+                    Contratos inteligentes
+                </h3>
+                <p class="mt-3 text-gray-600">
+                    Wizard multi-step, geração de PDF automática, reajuste por IGP-M/IPCA/INPC e distrato com multa proporcional.
+                </p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div class="h-12 w-12 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
+                    🏦
+                </div>
+                <h3 class="mt-5 text-lg font-semibold text-gray-900">
+                    Boletos Sicredi
+                </h3>
+                <p class="mt-3 text-gray-600">
+                    Registro automático via API OAuth2, webhook de baixa HMAC validado e sincronização ativa como fallback.
+                </p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div class="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center text-2xl">
+                    💬
+                </div>
+                <h3 class="mt-5 text-lg font-semibold text-gray-900">
+                    WhatsApp automático
+                </h3>
+                <p class="mt-3 text-gray-600">
+                    13 eventos automatizados — vencimento, atraso, pagamento confirmado e contratos — com templates editáveis.
+                </p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div class="h-12 w-12 rounded-xl bg-purple-100 flex items-center justify-center text-2xl">
+                    📊
+                </div>
+                <h3 class="mt-5 text-lg font-semibold text-gray-900">
+                    Dashboard financeiro
+                </h3>
+                <p class="mt-3 text-gray-600">
+                    KPIs em tempo real, inadimplência, relatórios por período e exportação em Excel e PDF.
+                </p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div class="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">
+                    🔐
+                </div>
+                <h3 class="mt-5 text-lg font-semibold text-gray-900">
+                    Multi-tenant seguro
+                </h3>
+                <p class="mt-3 text-gray-600">
+                    Schema PostgreSQL por imobiliária. Seus dados 100% isolados dos outros clientes.
+                </p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+                <div class="h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center text-2xl">
+                    ⚙️
+                </div>
+                <h3 class="mt-5 text-lg font-semibold text-gray-900">
+                    Automações Celery
+                </h3>
+                <p class="mt-3 text-gray-600">
+                    Cobranças geradas no dia 1, boletos registrados automaticamente e lembretes enviados no horário certo.
+                </p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- Planos -->
+<section id="planos" class="bg-gray-50 py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="text-center max-w-3xl mx-auto">
+            <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">
+                Planos e preços
+            </h2>
+            <p class="mt-4 text-lg text-gray-600">
+                14 dias grátis em qualquer plano. Sem compromisso.
+            </p>
+        </div>
+
+        <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-8">
+
+            <!-- Básico -->
+            <div class="rounded-3xl bg-white border border-gray-200 p-8 shadow-sm">
+                <h3 class="text-xl font-bold text-gray-900">Básico</h3>
+                <p class="mt-4 text-4xl font-bold text-gray-900">
+                    R$ 0<span class="text-base font-medium text-gray-500">/mês</span>
+                </p>
+
+                <ul class="mt-8 space-y-3 text-gray-600">
+                    <li>✅ 10 imóveis</li>
+                    <li>✅ 10 contratos</li>
+                    <li>✅ Até 2 usuários</li>
+                    <li>❌ WhatsApp automático</li>
+                    <li>✅ Boletos Sicredi</li>
+                    <li>✅ Relatórios e exportação</li>
+                </ul>
+
+                <a href="{% url 'cadastro_imobiliaria' %}"
+                   class="mt-8 block text-center rounded-xl border border-blue-600 px-5 py-3 font-semibold text-blue-600 hover:bg-blue-50">
+                    Começar grátis
+                </a>
+            </div>
+
+            <!-- Profissional -->
+            <div class="rounded-3xl bg-blue-600 p-8 shadow-xl text-white relative">
+                <span class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-yellow-300 px-4 py-1 text-sm font-semibold text-yellow-900">
+                    Mais indicado
+                </span>
+
+                <h3 class="text-xl font-bold">Profissional</h3>
+                <p class="mt-4 text-4xl font-bold">
+                    R$ 99<span class="text-base font-medium text-blue-100">/mês</span>
+                </p>
+
+                <ul class="mt-8 space-y-3 text-blue-50">
+                    <li>✅ 100 imóveis</li>
+                    <li>✅ Contratos ilimitados</li>
+                    <li>✅ Até 10 usuários</li>
+                    <li>✅ WhatsApp automático</li>
+                    <li>✅ Boletos Sicredi</li>
+                    <li>✅ Dashboard financeiro</li>
+                </ul>
+
+                <a href="{% url 'cadastro_imobiliaria' %}"
+                   class="mt-8 block text-center rounded-xl bg-white px-5 py-3 font-semibold text-blue-700 hover:bg-blue-50">
+                    Testar agora
+                </a>
+            </div>
+
+            <!-- Empresarial -->
+            <div class="rounded-3xl bg-white border border-gray-200 p-8 shadow-sm">
+                <h3 class="text-xl font-bold text-gray-900">Empresarial</h3>
+                <p class="mt-4 text-4xl font-bold text-gray-900">
+                    Sob consulta
+                </p>
+
+                <ul class="mt-8 space-y-3 text-gray-600">
+                    <li>✅ Imóveis ilimitados</li>
+                    <li>✅ Usuários ilimitados</li>
+                    <li>✅ Integrações personalizadas</li>
+                    <li>✅ Suporte prioritário</li>
+                    <li>✅ Ambiente dedicado</li>
+                    <li>✅ Consultoria de implantação</li>
+                </ul>
+
+                <a href="{% url 'cadastro_imobiliaria' %}"
+                   class="mt-8 block text-center rounded-xl border border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50">
+                    Falar com consultor
+                </a>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- CTA final -->
+<section class="bg-white py-20">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">
+            Pronto para modernizar sua imobiliária?
+        </h2>
+
+        <p class="mt-4 text-lg text-gray-600">
+            Comece agora e teste o DN Imob gratuitamente por 14 dias.
+        </p>
+
+        <div class="mt-8">
+            <a href="{% url 'cadastro_imobiliaria' %}"
+               class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+                Criar minha conta grátis
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

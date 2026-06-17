@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Lançamentos{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Lançamentos</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Controle de receitas e despesas</p>
+    </div>
+    <a href="{% url 'lancamento_criar' %}"
+       class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition">
+      + Novo Lançamento
+    </a>
+  </div>
+
+  {# Totais do filtro atual #}
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-green-600 uppercase tracking-wide font-medium">Receitas filtradas</p>
+      <p class="text-2xl font-bold text-green-600 mt-1">R$ {{ totais.receitas|floatformat:2|intcomma }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-red-500 uppercase tracking-wide font-medium">Despesas filtradas</p>
+      <p class="text-2xl font-bold text-red-500 mt-1">R$ {{ totais.despesas|floatformat:2|intcomma }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Saldo</p>
+      <p class="text-2xl font-bold mt-1 {% if totais.receitas >= totais.despesas %}text-gray-800{% else %}text-red-600{% endif %}">
+        R$ {{ totais.receitas|add:totais.despesas|floatformat:2|intcomma }}
+      </p>
+    </div>
+  </div>
+
+  {# Filtros #}
+  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {{ form_filtro.q }}
+      {{ form_filtro.tipo }}
+      {{ form_filtro.status }}
+      {{ form_filtro.categoria }}
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+      {{ form_filtro.data_ini }}
+      {{ form_filtro.data_fim }}
+      <button type="submit" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+        Filtrar
+      </button>
+    </div>
+  </form>
+
+  {# Tabela #}
+  {% if page_obj %}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Data</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Tipo</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Descrição</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Categoria</th>
+          <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Valor</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for l in page_obj %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2.5 text-gray-500 text-xs">{{ l.data|date:"d/m/Y" }}</td>
+          <td class="px-4 py-2.5">
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full
+              {% if l.tipo == 'receita' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-600{% endif %}">
+              {{ l.get_tipo_display }}
+            </span>
+          </td>
+          <td class="px-4 py-2.5 text-gray-700">{{ l.descricao|truncatechars:45 }}</td>
+          <td class="px-4 py-2.5 text-gray-500 text-xs hidden md:table-cell">{{ l.get_categoria_display }}</td>
+          <td class="px-4 py-2.5 text-right font-semibold
+            {% if l.tipo == 'receita' %}text-green-600{% else %}text-red-500{% endif %}">
+            R$ {{ l.valor|intcomma }}
+          </td>
+          <td class="px-4 py-2.5">
+            <span class="text-xs text-gray-500">{{ l.get_status_display }}</span>
+          </td>
+          <td class="px-4 py-2.5 text-right">
+            <a href="{% url 'lancamento_editar' l.pk %}" class="text-xs text-primary hover:underline">Editar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="flex justify-center gap-1">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">‹</a>
+    {% endif %}
+    <span class="px-3 py-1.5 text-sm text-gray-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="bg-white rounded-xl border border-gray-200 py-16 text-center text-gray-400 text-sm">
+    Nenhum lançamento encontrado.
+    <a href="{% url 'lancamento_criar' %}" class="block mt-2 text-primary hover:underline">Criar lançamento</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

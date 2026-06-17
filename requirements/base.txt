@@ -1,0 +1,35 @@
+# Core
+Django==5.0.14
+django-tenants==3.6.1
+psycopg2-binary==2.9.9
+django-environ==0.11.2
+
+# Auth e formulários
+django-allauth==65.3.0
+django-crispy-forms==2.3
+crispy-tailwind==1.0.3
+
+# Tarefas assíncronas
+celery[redis]==5.4.0
+django-celery-beat==2.7.0
+django-celery-results==2.5.1
+redis==5.2.0
+
+# Documentos e PDF
+WeasyPrint==62.3
+Pillow==11.0.0
+python-docx==1.1.2
+openpyxl==3.1.5
+qrcode==8.0
+reportlab==4.2.5
+
+# Utilitários
+python-dateutil==2.9.0
+requests==2.32.3
+django-storages==1.14.4
+boto3==1.35.71
+
+# Qualidade de código
+black==24.10.0
+isort==5.13.2
+flake8==7.1.1

@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{{ imovel.codigo }} — {{ imovel.get_tipo_display }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-gray-300">/</span>
+<a href="{% url 'imovel_lista' %}" class="text-gray-600 hover:text-primary-600">Imóveis</a>
+<span class="text-gray-300">/</span>
+<span class="text-gray-600">{{ imovel.codigo }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+  {# Navegação + ações #}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <a href="{% url 'imovel_lista' %}" class="text-gray-400 hover:text-gray-600">
+      <span class="inline-flex items-center gap-2 text-sm">
+        <i class="ti ti-arrow-left text-base"></i>
+        Voltar para imóveis
+      </span>
+    </a>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'imovel_editar' imovel.pk %}"
+         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+        <i class="ti ti-pencil text-base text-gray-400"></i>
+        Editar
+      </a>
+      <a href="{% url 'imovel_excluir' imovel.pk %}"
+         class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition">
+        <i class="ti ti-trash text-base"></i>
+        Excluir
+      </a>
+    </div>
+  </div>
+
+  {# Cabeçalho #}
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-sm text-gray-400">{{ imovel.codigo }}</span>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+            {% if imovel.status == 'disponivel' %}bg-green-100 text-green-700
+            {% elif imovel.status == 'alugado' %}bg-blue-100 text-blue-700
+            {% elif imovel.status == 'vendido' %}bg-purple-100 text-purple-700
+            {% elif imovel.status == 'manutencao' %}bg-yellow-100 text-yellow-700
+            {% else %}bg-gray-100 text-gray-700{% endif %}">
+            {{ imovel.get_status_display }}
+          </span>
+          <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+            {{ imovel.get_finalidade_display }}
+          </span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">
+          {{ imovel.get_tipo_display }} — {{ imovel.bairro }}
+        </h1>
+        <p class="text-gray-500 mt-0.5">{{ imovel.get_endereco_completo }}</p>
+      </div>
+    </div>
+
+    {# Valores em destaque #}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
+      {% if imovel.valor_aluguel %}
+      <div>
+        <p class="text-xs text-gray-400">Aluguel</p>
+        <p class="text-xl font-bold text-primary-600">R$ {{ imovel.valor_aluguel|intcomma }}</p>
+      </div>
+      {% endif %}
+      {% if imovel.valor_venda %}
+      <div>
+        <p class="text-xs text-gray-400">Venda</p>
+        <p class="text-xl font-bold text-gray-800">R$ {{ imovel.valor_venda|intcomma }}</p>
+      </div>
+      {% endif %}
+      {% if imovel.valor_condominio %}
+      <div>
+        <p class="text-xs text-gray-400">Condomínio</p>
+        <p class="text-lg font-semibold text-gray-700">R$ {{ imovel.valor_condominio|intcomma }}</p>
+      </div>
+      {% endif %}
+      {% if imovel.valor_iptu %}
+      <div>
+        <p class="text-xs text-gray-400">IPTU/mês</p>
+        <p class="text-lg font-semibold text-gray-700">R$ {{ imovel.valor_iptu|intcomma }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Galeria de fotos #}
+  {% if fotos %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Fotos</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {% for foto in fotos %}
+      <div class="{% if forloop.first %}md:col-span-2 md:row-span-2{% endif %}">
+        <a href="{{ foto.imagem.url }}" target="_blank" rel="noopener"
+           class="block overflow-hidden rounded-lg bg-gray-100">
+          <img src="{{ foto.imagem.url }}" alt="{{ foto.legenda|default:imovel.codigo }}"
+               loading="lazy"
+               class="w-full {% if forloop.first %}h-64{% else %}h-32{% endif %} object-cover hover:scale-105 transition">
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Características + Proprietário #}
+  <div class="grid md:grid-cols-2 gap-6">
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Características</h2>
+      <dl class="grid grid-cols-2 gap-y-3 text-sm">
+        {% if imovel.area_total %}
+        <dt class="text-gray-500">Área total</dt>
+        <dd class="font-medium">{{ imovel.area_total|floatformat:0 }} m²</dd>
+        {% endif %}
+        {% if imovel.area_construida %}
+        <dt class="text-gray-500">Área construída</dt>
+        <dd class="font-medium">{{ imovel.area_construida|floatformat:0 }} m²</dd>
+        {% endif %}
+        <dt class="text-gray-500">Quartos</dt>
+        <dd class="font-medium">{{ imovel.quartos }}</dd>
+        {% if imovel.suites %}
+        <dt class="text-gray-500">Suítes</dt>
+        <dd class="font-medium">{{ imovel.suites }}</dd>
+        {% endif %}
+        <dt class="text-gray-500">Banheiros</dt>
+        <dd class="font-medium">{{ imovel.banheiros }}</dd>
+        <dt class="text-gray-500">Vagas</dt>
+        <dd class="font-medium">{{ imovel.vagas }}</dd>
+        <dt class="text-gray-500">Mobília</dt>
+        <dd class="font-medium">{{ imovel.get_mobilia_display }}</dd>
+        <dt class="text-gray-500">Finalidade</dt>
+        <dd class="font-medium">{{ imovel.get_finalidade_display }}</dd>
+      </dl>
+
+      {# Comodidades #}
+      <div class="flex flex-wrap gap-2 pt-2">
+        {% if imovel.piscina %}<span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded-full">Piscina</span>{% endif %}
+        {% if imovel.academia %}<span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded-full">Academia</span>{% endif %}
+        {% if imovel.churrasqueira %}<span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded-full">Churrasqueira</span>{% endif %}
+        {% if imovel.portaria %}<span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded-full">Portaria 24h</span>{% endif %}
+        {% if imovel.elevador %}<span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded-full">Elevador</span>{% endif %}
+        {% if imovel.pet_friendly %}<span class="px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded-full">Pet Friendly</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Proprietário</h2>
+      <dl class="space-y-3 text-sm">
+        <dt class="text-gray-500">Nome</dt>
+        <dd class="font-medium">{{ imovel.proprietario_nome }}</dd>
+        {% if imovel.proprietario_cpf_cnpj %}
+        <dt class="text-gray-500">CPF/CNPJ</dt>
+        <dd class="font-medium font-mono">{{ imovel.proprietario_cpf_cnpj }}</dd>
+        {% endif %}
+        {% if imovel.proprietario_telefone %}
+        <dt class="text-gray-500">Telefone</dt>
+        <dd class="font-medium">
+          <a class="hover:underline" href="tel:{{ imovel.proprietario_telefone }}">{{ imovel.proprietario_telefone }}</a>
+        </dd>
+        {% endif %}
+        {% if imovel.proprietario_email %}
+        <dt class="text-gray-500">E-mail</dt>
+        <dd class="font-medium">
+          <a class="hover:underline" href="mailto:{{ imovel.proprietario_email }}">{{ imovel.proprietario_email }}</a>
+        </dd>
+        {% endif %}
+      </dl>
+
+      <div class="pt-4 border-t border-gray-100 text-xs text-gray-400 space-y-1">
+        <p>Cadastrado em {{ imovel.criado_em|date:"d/m/Y H:i" }}</p>
+        <p>Atualizado em {{ imovel.atualizado_em|date:"d/m/Y H:i" }}</p>
+        {% if imovel.responsavel %}
+        <p>Responsável: {{ imovel.responsavel.get_full_name|default:imovel.responsavel.username }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Descrição #}
+  {% if imovel.descricao %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-4">Descrição</h2>
+    <p class="text-sm text-gray-700 whitespace-pre-line">{{ imovel.descricao }}</p>
+  </div>
+  {% endif %}
+
+  {# Contratos futuros — placeholder Fase 4 #}
+  <div class="bg-white rounded-xl border border-dashed border-gray-200 p-6 text-center text-gray-400 text-sm">
+    <p>Histórico de contratos disponível na <strong>Fase 4</strong></p>
+  </div>
+
+</div>
+{% endblock %}

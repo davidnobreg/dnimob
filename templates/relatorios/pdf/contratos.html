@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8">
+<style>
+  @page { size: A4 landscape; margin: 1.5cm; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #1f2937; }
+  h1 { font-size: 15px; color: #7e3af2; margin-bottom: 2px; }
+  .sub { font-size: 8px; color: #6b7280; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #7e3af2; color: white; padding: 5px 7px; text-align: left; font-size: 8px; text-transform: uppercase; }
+  td { padding: 4px 7px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f5f3ff; }
+  .rodape { margin-top: 16px; font-size: 7px; color: #9ca3af; text-align: center; }
+</style></head>
+<body>
+  <h1>Contratos Ativos</h1>
+  <p class="sub">Total: {{ total }} contrato{{ total|pluralize }} — Gerado em {{ gerado_em|date:"d/m/Y H:i" }}</p>
+  <table>
+    <thead><tr><th>Inquilino</th><th>Imóvel</th><th>Início</th><th>Fim</th><th>Reajuste</th><th>Garantia</th><th style="text-align:right">Aluguel</th></tr></thead>
+    <tbody>
+      {% for c in contratos %}
+      <tr>
+        <td>{{ c.inquilino.nome }}</td>
+        <td>{{ c.imovel }}</td>
+        <td>{{ c.data_inicio|date:"d/m/Y" }}</td>
+        <td>{{ c.data_fim|date:"d/m/Y" }}</td>
+        <td>{{ c.get_tipo_reajuste_display }}</td>
+        <td>{{ c.get_tipo_garantia_display }}</td>
+        <td style="text-align:right">R$ {{ c.valor_aluguel|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="rodape">DN Imob</p>
+</body>
+</html>

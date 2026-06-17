@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Contratos{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Contratos</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Gestão de contratos de locação</p>
+    </div>
+    <a href="{% url 'contrato_criar' %}"
+       class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Novo Contrato
+    </a>
+  </div>
+
+  {# Cards de resumo #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wide">Total</p>
+      <p class="text-3xl font-bold text-gray-900 mt-1">{{ totais.total }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-green-600 uppercase tracking-wide font-medium">Ativos</p>
+      <p class="text-3xl font-bold text-green-600 mt-1">{{ totais.ativo }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-yellow-600 uppercase tracking-wide font-medium">Pendentes</p>
+      <p class="text-3xl font-bold text-yellow-600 mt-1">{{ totais.pendente }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-red-500 uppercase tracking-wide font-medium">Vencendo (30d)</p>
+      <p class="text-3xl font-bold text-red-500 mt-1">{{ totais.vencendo }}</p>
+    </div>
+  </div>
+
+  {# Filtros #}
+  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      {{ form_filtro.q }}
+      {{ form_filtro.status }}
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        {{ form_filtro.vencendo }} Vencendo em 30 dias
+      </label>
+      <button type="submit"
+              class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition">
+        Filtrar
+      </button>
+    </div>
+    {% if request.GET.q or request.GET.status %}
+    <a href="{% url 'contrato_lista' %}" class="mt-2 inline-block text-xs text-gray-400 hover:text-gray-600">
+      ✕ Limpar filtros
+    </a>
+    {% endif %}
+  </form>
+
+  {# Tabela #}
+  {% if page_obj %}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Contrato</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Inquilino</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Imóvel</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Vigência</th>
+          <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Aluguel</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for contrato in page_obj %}
+        <tr class="hover:bg-gray-50 transition">
+          <td class="px-4 py-3">
+            <p class="font-mono font-semibold text-gray-800">{{ contrato.numero }}</p>
+          </td>
+          <td class="px-4 py-3 hidden md:table-cell">
+            <p class="font-medium text-gray-800">{{ contrato.inquilino.nome }}</p>
+          </td>
+          <td class="px-4 py-3 hidden md:table-cell">
+            <p class="text-gray-600">{{ contrato.imovel.codigo }}</p>
+            <p class="text-xs text-gray-400">{{ contrato.imovel.bairro }}</p>
+          </td>
+          <td class="px-4 py-3">
+            <p class="text-gray-700">{{ contrato.data_inicio|date:"d/m/Y" }}</p>
+            <p class="text-xs text-gray-400">até {{ contrato.data_fim|date:"d/m/Y" }}</p>
+            {% if contrato.dias_para_vencer <= 30 and contrato.status == 'ativo' %}
+            <span class="text-xs text-red-500 font-medium">
+              ⚠ {{ contrato.dias_para_vencer }}d
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-right hidden md:table-cell">
+            <p class="font-semibold text-gray-800">R$ {{ contrato.valor_aluguel|intcomma }}</p>
+          </td>
+          <td class="px-4 py-3">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+              {% if contrato.status == 'ativo' %}bg-green-100 text-green-700
+              {% elif contrato.status == 'pendente' %}bg-yellow-100 text-yellow-700
+              {% elif contrato.status == 'rescindido' %}bg-red-100 text-red-700
+              {% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ contrato.get_status_display }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'contrato_detalhe' contrato.pk %}"
+               class="text-xs text-primary hover:underline font-medium">Ver</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="flex justify-center gap-1">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">‹</a>
+    {% endif %}
+    <span class="px-3 py-1.5 text-sm text-gray-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="bg-white rounded-xl border border-gray-200 py-20 text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <p class="text-gray-500">Nenhum contrato encontrado.</p>
+    <a href="{% url 'contrato_criar' %}" class="mt-3 inline-block text-sm text-primary hover:underline">
+      Criar o primeiro contrato
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

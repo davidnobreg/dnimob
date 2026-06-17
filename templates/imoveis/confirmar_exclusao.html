@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir Imóvel{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-gray-300">/</span>
+<a href="{% url 'imovel_lista' %}" class="text-gray-600 hover:text-primary-600">Imóveis</a>
+<span class="text-gray-300">/</span>
+<span class="text-gray-600">Excluir</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto mt-10 space-y-4">
+  <a href="{% url 'imovel_detalhe' imovel.pk %}" class="text-gray-400 hover:text-gray-600 inline-flex items-center gap-2 text-sm">
+    <i class="ti ti-arrow-left text-base"></i>
+    Voltar
+  </a>
+  <div class="bg-white rounded-xl border border-red-100 p-8 text-center shadow-sm">
+    <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+      <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+    </div>
+    <h1 class="text-xl font-bold text-gray-900 mb-2">Excluir imóvel?</h1>
+    <p class="text-gray-500 text-sm mb-1">
+      Você está prestes a excluir o imóvel <strong>{{ imovel.codigo }}</strong>:
+    </p>
+    <p class="text-gray-700 font-medium text-sm mb-6">{{ imovel.get_endereco_completo }}</p>
+    <p class="text-xs text-red-500 mb-6">Esta ação não pode ser desfeita. Todas as fotos também serão removidas.</p>
+
+    <div class="flex gap-3 justify-center">
+      <a href="{% url 'imovel_detalhe' imovel.pk %}"
+         class="px-5 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition">
+        Cancelar
+      </a>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit"
+                class="px-5 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 transition">
+          Confirmar exclusão
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
