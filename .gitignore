@@ -167,7 +167,9 @@ vite.config.js.timestamp-*
 
 .env
 .env.*
+.envDnimob
 !.env.example
+!.envDnimob.example
 
 
 # ==============================================================================
