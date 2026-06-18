@@ -20,14 +20,14 @@ services:
       - GIT_COMMIT=${GIT_COMMIT}
 
     ports:
-      - "8001:8001"
+      - "8002:8002"
 
     volumes:
       - logs:/app/logs
       - media:/app/media
 
     networks:
-      - imob_network
+      - app_network
       - npm_public
 
     deploy:
@@ -57,7 +57,7 @@ services:
       - media:/app/media
 
     networks:
-      - imob_network
+      - app_network
 
     deploy:
       replicas: 1
@@ -81,7 +81,7 @@ services:
       - celerybeat:/app/celerybeat
 
     networks:
-      - imob_network
+      - app_network
 
     deploy:
       replicas: 1
@@ -95,19 +95,19 @@ services:
   flower:
     image: davidnobrega/dnimob:latest
 
-    command: celery -A config flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme}
+    command: celery -A config flower --port=5556 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme}
 
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
 
     ports:
-      - "5555:5555"
+      - "5556:5556"
 
     volumes:
       - logs:/app/logs
 
     networks:
-      - imob_network
+      - app_network
 
     deploy:
       replicas: 1
@@ -126,7 +126,7 @@ volumes:
     external: true
 
 networks:
-  imob_network:
+  app_network:
     external: true
   npm_public:
     external: true
