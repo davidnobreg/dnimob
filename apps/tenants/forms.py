@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import Tenant, ConfigSicredi, InstanciaWhatsApp, TemplateWhatsApp, Plano
+from .models import Tenant, ConfigSicredi, InstanciaWhatsApp, TemplateWhatsApp, Plano, TipoPessoa
+from .validators import validar_cpf
 import re
 
 Usuario = get_user_model()
@@ -35,13 +36,19 @@ class CadastroImobiliariaForm(forms.Form):
         label='Nome da imobiliária',
         widget=forms.TextInput(attrs={'placeholder': 'Ex: Imobiliária Alpha', 'class': _INPUT}),
     )
-    cnpj = forms.CharField(
+    tipo_pessoa = forms.ChoiceField(
+        choices=TipoPessoa.choices,
+        initial=TipoPessoa.JURIDICA,
+        required=True,
+        widget=forms.HiddenInput(),
+    )
+    documento = forms.CharField(
         max_length=18,
         label='CNPJ',
         required=False,
         widget=forms.TextInput(attrs={
+            'id': 'id_documento',
             'placeholder': '00.000.000/0000-00',
-            'data-mask': 'cnpj',
             'class': _INPUT,
         }),
     )
@@ -115,16 +122,27 @@ class CadastroImobiliariaForm(forms.Form):
                 return False
         return True
 
-    def clean_cnpj(self):
-        cnpj = re.sub(r'\D', '', self.cleaned_data.get('cnpj', ''))
-        if not cnpj:
-            return cnpj
-        if len(cnpj) != 14 or not self._validar_cnpj(cnpj):
-            raise forms.ValidationError('CNPJ inválido. Verifique os dígitos e tente novamente.')
-        return cnpj
-
     def clean(self):
         cleaned = super().clean()
+        tipo = cleaned.get('tipo_pessoa', TipoPessoa.JURIDICA)
+        doc = re.sub(r'\D', '', cleaned.get('documento', '') or '')
+
+        if tipo == TipoPessoa.FISICA:
+            if not doc:
+                self.add_error('documento', 'CPF é obrigatório para Pessoa Física.')
+            else:
+                try:
+                    validar_cpf(doc)
+                except forms.ValidationError as e:
+                    self.add_error('documento', e)
+            cleaned['cpf'] = doc
+            cleaned['cnpj'] = ''
+        else:
+            if doc and (len(doc) != 14 or not self._validar_cnpj(doc)):
+                self.add_error('documento', 'CNPJ inválido. Verifique os dígitos e tente novamente.')
+            cleaned['cnpj'] = doc
+            cleaned['cpf'] = ''
+
         senha = cleaned.get('senha')
         senha_confirma = cleaned.get('senha_confirma')
         if senha and senha_confirma and senha != senha_confirma:
@@ -142,13 +160,14 @@ class ConfigContaForm(forms.ModelForm):
     class Meta:
         model = Tenant
         fields = [
-            'nome', 'cnpj', 'email', 'telefone',
+            'nome', 'cnpj', 'cpf', 'email', 'telefone',
             'endereco', 'cidade', 'estado', 'cep',
             'logo', 'cor_primaria', 'cor_secundaria', 'cor_acento',
         ]
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-input'}),
             'cnpj': forms.TextInput(attrs={'class': 'form-input'}),
+            'cpf': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '000.000.000-00'}),
             'email': forms.EmailInput(attrs={'class': 'form-input'}),
             'telefone': forms.TextInput(attrs={'class': 'form-input'}),
             'endereco': forms.Textarea(attrs={'class': 'form-input', 'rows': 2}),

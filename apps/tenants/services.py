@@ -149,7 +149,9 @@ def criar_tenant(dados_form: dict) -> Tenant:
     tenant = Tenant(
         schema_name=f'imob_{subdominio.replace("-", "_")}',
         nome=dados_form['nome_imobiliaria'],
+        tipo_pessoa=dados_form.get('tipo_pessoa', 'PJ'),
         cnpj=dados_form.get('cnpj', ''),
+        cpf=dados_form.get('cpf', '') or '',
         email=dados_form['email_admin'],
         telefone=dados_form.get('telefone_admin', ''),
         plano=plano,

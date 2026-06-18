@@ -37,7 +37,7 @@
   <img src="{{ tenant.logo.url }}" style="height:36px; margin-bottom:6px;">
   {% endif %}
   <h1>{{ tenant.nome }}</h1>
-  <p>CNPJ: {{ tenant.cnpj }} · {{ tenant.cidade }}/{{ tenant.estado }}</p>
+  <p>{% if tenant.tipo_pessoa == 'PF' %}CPF{% else %}CNPJ{% endif %}: {{ tenant.documento }} · {{ tenant.cidade }}/{{ tenant.estado }}</p>
 </div>
 
 <div class="titulo-recibo">Recibo de Pagamento</div>
@@ -69,7 +69,7 @@
 </div>
 
 <div class="rodape">
-  Documento gerado em {{ parcela.data_pagamento|date:"d/m/Y" }} · {{ tenant.nome }} · CNPJ {{ tenant.cnpj }}
+  Documento gerado em {{ parcela.data_pagamento|date:"d/m/Y" }} · {{ tenant.nome }} · {% if tenant.tipo_pessoa == 'PF' %}CPF{% else %}CNPJ{% endif %} {{ tenant.documento }}
 </div>
 
 </body>

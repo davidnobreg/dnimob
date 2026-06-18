@@ -67,7 +67,9 @@
                 </div>
 
                 <form method="post" novalidate class="space-y-8 px-6 py-6 sm:px-8"
-                      x-data="{ enviando: false }" @submit="enviando = true">
+                      x-data="{ enviando: false, tipoPessoa: '{% if form.data.tipo_pessoa == 'PF' %}PF{% else %}PJ{% endif %}' }"
+                      x-init="$watch('tipoPessoa', t => atualizarPlanos(t))"
+                      @submit="enviando = true">
                     {% csrf_token %}
 
                     <!-- Non-field errors -->
@@ -99,7 +101,7 @@
                         <div class="grid gap-5 md:grid-cols-2">
                             <div>
                                 <label class="mb-1.5 block text-sm font-bold text-slate-700">
-                                    {{ form.nome_imobiliaria.label }}
+                                    <span x-text="tipoPessoa === 'PF' ? 'Nome completo' : 'Nome da imobiliária'">Nome da imobiliária</span>
                                 </label>
 
                                 {{ form.nome_imobiliaria }}
@@ -112,18 +114,53 @@
                             </div>
 
                             <div>
+                                <!-- Toggle PF / PJ -->
                                 <label class="mb-1.5 block text-sm font-bold text-slate-700">
-                                    {{ form.cnpj.label }}
+                                    Tipo de pessoa
                                 </label>
-
-                                {{ form.cnpj }}
-
-                                {% if form.cnpj.errors %}
-                                    <p class="mt-1.5 text-xs font-semibold text-red-600">
-                                        {{ form.cnpj.errors.0 }}
-                                    </p>
-                                {% endif %}
+                                <div class="flex gap-2">
+                                    <button
+                                        type="button"
+                                        @click="tipoPessoa = 'PJ'"
+                                        :class="tipoPessoa === 'PJ' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:bg-blue-50'"
+                                        class="flex-1 rounded-xl px-3 py-2 text-sm font-bold transition"
+                                    >
+                                        Pessoa Jurídica
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="tipoPessoa = 'PF'"
+                                        :class="tipoPessoa === 'PF' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:bg-blue-50'"
+                                        class="flex-1 rounded-xl px-3 py-2 text-sm font-bold transition"
+                                    >
+                                        Pessoa Física
+                                    </button>
+                                </div>
+                                <input type="hidden" name="tipo_pessoa" :value="tipoPessoa">
                             </div>
+                        </div>
+
+                        <!-- CPF / CNPJ -->
+                        <div>
+                            <label class="mb-1.5 block text-sm font-bold text-slate-700">
+                                <span x-text="tipoPessoa === 'PF' ? 'CPF' : 'CNPJ'">CNPJ</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="documento"
+                                id="id_documento"
+                                :placeholder="tipoPessoa === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'"
+                                :maxlength="tipoPessoa === 'PF' ? 14 : 18"
+                                @input="mascararDoc($event.target, tipoPessoa)"
+                                x-on:x-tipo-changed="mascararDoc($el, tipoPessoa)"
+                                value="{{ form.data.documento|default:'' }}"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            >
+                            {% if form.documento.errors %}
+                                <p class="mt-1.5 text-xs font-semibold text-red-600">
+                                    {{ form.documento.errors.0 }}
+                                </p>
+                            {% endif %}
                         </div>
 
                         <div class="grid gap-5 md:grid-cols-2">
@@ -406,5 +443,32 @@
         </div>
     </div>
 </section>
+
+<script>
+const planosSicrediIds = {{ planos_sicredi_ids|safe }};
+
+function mascararDoc(input, tipo) {
+    let v = input.value.replace(/\D/g, '');
+    if (tipo === 'PF') {
+        v = v.slice(0, 11);
+        if (v.length > 9)      v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+        else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+    } else {
+        v = v.slice(0, 14);
+        if (v.length > 12)     v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+        else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+        else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})/, '$1.$2');
+    }
+    input.value = v;
+}
+
+function atualizarPlanos(tipo) {
+    // Limpar campo documento ao trocar tipo
+    const docInput = document.getElementById('id_documento');
+    if (docInput) docInput.value = '';
+}
+</script>
 
 {% endblock %}

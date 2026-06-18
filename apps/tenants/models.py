@@ -4,6 +4,11 @@ from django.utils import timezone
 import uuid
 
 
+class TipoPessoa(models.TextChoices):
+    FISICA = 'PF', 'Pessoa Física'
+    JURIDICA = 'PJ', 'Pessoa Jurídica'
+
+
 class Plano(models.Model):
     BASICO = 'basico'
     PROFISSIONAL = 'profissional'
@@ -20,6 +25,7 @@ class Plano(models.Model):
     limite_contratos = models.IntegerField(null=True, blank=True)
     limite_usuarios = models.IntegerField(null=True, blank=True)
     tem_whatsapp = models.BooleanField(default=False)
+    tem_sicredi = models.BooleanField(default=False, help_text='Plano inclui integração Sicredi (exige CNPJ/PJ)')
     preco_mensal = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     ativo = models.BooleanField(default=True)
 
@@ -36,7 +42,14 @@ class Tenant(TenantMixin):
 
     # Dados da imobiliária
     nome = models.CharField(max_length=200)
+    tipo_pessoa = models.CharField(
+        max_length=2,
+        choices=TipoPessoa.choices,
+        default=TipoPessoa.JURIDICA,
+        verbose_name='Tipo de pessoa',
+    )
     cnpj = models.CharField(max_length=18, blank=True)
+    cpf = models.CharField('CPF', max_length=14, blank=True, null=True)
     email = models.EmailField()
     telefone = models.CharField(max_length=20, blank=True)
     endereco = models.TextField(blank=True)
@@ -81,6 +94,11 @@ class Tenant(TenantMixin):
 
     def __str__(self):
         return self.nome
+
+    @property
+    def documento(self):
+        """Retorna CPF ou CNPJ conforme tipo_pessoa."""
+        return self.cpf if self.tipo_pessoa == TipoPessoa.FISICA else self.cnpj
 
     @property
     def status_assinatura(self):

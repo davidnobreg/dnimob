@@ -116,7 +116,7 @@
         <img src="{{ tenant.logo.url }}" style="height:50px; margin-bottom:8px;">
     {% endif %}
     <h1>{{ tenant.nome }}</h1>
-    <p>CNPJ: {{ tenant.cnpj }} · {{ tenant.endereco }}, {{ tenant.cidade }}/{{ tenant.estado }}</p>
+    <p>{% if tenant.tipo_pessoa == 'PF' %}CPF{% else %}CNPJ{% endif %}: {{ tenant.documento }} · {{ tenant.endereco }}, {{ tenant.cidade }}/{{ tenant.estado }}</p>
     <p style="margin-top:10px; font-size:13pt; font-weight:bold;">CONTRATO DE LOCAÇÃO RESIDENCIAL</p>
     <p>Nº {{ contrato.numero }}</p>
 </div>
@@ -144,7 +144,7 @@
         </p>
     {% endif %}
     <br>
-    <p><strong>INTERMEDIADORA:</strong> {{ tenant.nome }}, CNPJ: {{ tenant.cnpj }}</p>
+    <p><strong>INTERMEDIADORA:</strong> {{ tenant.nome }}, {% if tenant.tipo_pessoa == 'PF' %}CPF{% else %}CNPJ{% endif %}: {{ tenant.documento }}</p>
 </div>
 
 <div class="section">

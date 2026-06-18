@@ -26,7 +26,7 @@ from .forms import (
     EditarPermissoesForm,
     TemplateWhatsAppForm,
 )
-from .models import ConfigSicredi, InstanciaWhatsApp, TemplateWhatsApp, Tenant
+from .models import ConfigSicredi, InstanciaWhatsApp, Plano, TemplateWhatsApp, Tenant
 from .services import (
     EvolutionAPIError,
     criar_instancia_whatsapp,
@@ -78,7 +78,13 @@ def cadastro_imobiliaria(request):
     else:
         form = CadastroImobiliariaForm()
 
-    return render(request, 'tenants/cadastro.html', {'form': form})
+    planos_sicredi_ids = list(
+        Plano.objects.filter(tem_sicredi=True, ativo=True).values_list('id', flat=True)
+    )
+    return render(request, 'tenants/cadastro.html', {
+        'form': form,
+        'planos_sicredi_ids': planos_sicredi_ids,
+    })
 
 
 def cadastro_aguardando(request, schema):

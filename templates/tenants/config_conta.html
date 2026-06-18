@@ -49,11 +49,19 @@
             {{ form.nome }}
             {% if form.nome.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.nome.errors.0 }}</p>{% endif %}
           </div>
+          {% if form.instance.tipo_pessoa == 'PF' %}
+          <div>
+            <label for="{{ form.cpf.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">CPF</label>
+            {{ form.cpf }}
+            {% if form.cpf.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.cpf.errors.0 }}</p>{% endif %}
+          </div>
+          {% else %}
           <div>
             <label for="{{ form.cnpj.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.cnpj.label }}</label>
             {{ form.cnpj }}
             {% if form.cnpj.errors %}<p class="mt-1 text-xs font-medium text-red-600">{{ form.cnpj.errors.0 }}</p>{% endif %}
           </div>
+          {% endif %}
           <div>
             <label for="{{ form.email.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-slate-700">{{ form.email.label }}</label>
             {{ form.email }}

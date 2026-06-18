@@ -23,8 +23,9 @@ services:
       - "8002:8002"
 
     volumes:
-      - logs:/app/logs
-      - media:/app/media
+      - dnimob_logs:/app/logs
+      - dnimob_media:/app/media
+      - configuration:/app/configuration
 
     networks:
       - app_network
@@ -53,8 +54,9 @@ services:
       - SENTRY_DSN=${SENTRY_DSN}
 
     volumes:
-      - logs:/app/logs
-      - media:/app/media
+      - dnimob_logs:/app/logs
+      - dnimob_media:/app/media
+      - configuration:/app/configuration
 
     networks:
       - app_network
@@ -77,8 +79,9 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
 
     volumes:
-      - logs:/app/logs
-      - celerybeat:/app/celerybeat
+      - dnimob_logs:/app/logs
+      - dnimob_celerybeat:/app/celerybeat
+      - configuration:/app/configuration
 
     networks:
       - app_network
@@ -104,7 +107,8 @@ services:
       - "5556:5556"
 
     volumes:
-      - logs:/app/logs
+      - dnimob_logs:/app/logs
+      - configuration:/app/configuration
 
     networks:
       - app_network
@@ -118,11 +122,13 @@ services:
         condition: on-failure
 
 volumes:
-  logs:
+  dnimob_logs:
     external: true
-  media:
+  dnimob_media:
     external: true
-  celerybeat:
+  dnimob_celerybeat:
+    external: true
+  configuration:
     external: true
 
 networks:
