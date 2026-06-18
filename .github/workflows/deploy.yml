@@ -61,7 +61,7 @@ jobs:
           RESPONSE=$(curl -s -o /tmp/portainer_response.json -w "%{http_code}" -X PUT \
             -H "X-API-Key: $PORTAINER_TOKEN" \
             -H "Content-Type: application/json" \
-            "$PORTAINER_URL/api/stacks/70?endpointId=1" \
+            "https://painel.dnsoftware.com.br/api/stacks/70?endpointId=1" \
             -d "{
               \"stackFileContent\": $STACK_FILE_JSON,
               \"env\": [
