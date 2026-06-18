@@ -39,7 +39,7 @@ if DEBUG_TOOLBAR_MIDDLEWARE not in MIDDLEWARE:
 INTERNAL_IPS = [
     'localhost',
     '127.0.0.1',
-
+    '172.16.51.28',
 ]
 
 # =============================================================================

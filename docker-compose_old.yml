@@ -1,0 +1,168 @@
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-imobiliaria}
+      POSTGRES_USER:     ${DB_USER:-imob}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-senha_forte_aqui}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-imob}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Django (dev) ───────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Celery Worker ──────────────────────────────────────
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --concurrency=4
+      -Q celery,financeiro,whatsapp
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Celery Beat (agendador) ────────────────────────────
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      celery -A config beat
+      --loglevel=info
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Flower (monitor Celery) ────────────────────────────
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      celery -A config flower
+      --port=5555
+      --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-admin}
+    ports:
+      - "5555:5555"
+    env_file: .env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ── Evolution API (WhatsApp) ───────────────────────────
+  evolution:
+    image: atendai/evolution-api:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_URL:                             "http://evolution:8080"
+      AUTHENTICATION_TYPE:                    "apikey"
+      AUTHENTICATION_API_KEY:                 "${EVOLUTION_API_KEY:-chave-aqui}"
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+
+      WEBHOOK_GLOBAL_URL:                     "${SITE_BASE_URL:-http://web:8000}/whatsapp/webhook/"
+      WEBHOOK_GLOBAL_ENABLED:                 "true"
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS:       "true"
+
+      DATABASE_ENABLED:                       "true"
+      DATABASE_CONNECTION_URI:                "postgresql://${DB_USER:-imob}:${DB_PASSWORD:-senha_forte_aqui}@db:5432/evolution"
+
+      REDIS_URI:                              "redis://redis:6379/1"
+      DEL_INSTANCE:                           "false"
+
+      LOG_LEVEL:                              "ERROR"
+      LOG_COLOR:                              "true"
+    volumes:
+      - evolution_data:/evolution/instances
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Nginx (proxy reverso) ──────────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./staticfiles:/app/staticfiles:ro
+      - media_data:/app/media:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - web
+
+volumes:
+  pg_data:
+  redis_data:
+  media_data:
+  evolution_data:
