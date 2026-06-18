@@ -61,7 +61,7 @@ jobs:
           RESPONSE=$(curl -s -o /tmp/portainer_response.json -w "%{http_code}" -X PUT \
             -H "X-API-Key: $PORTAINER_TOKEN" \
             -H "Content-Type: application/json" \
-            "$PORTAINER_URL/api/stacks/${{ secrets.PORTAINER_STACK_ID }}?endpointId=${{ secrets.PORTAINER_ENDPOINT_ID }}" \
+            "$PORTAINER_URL/api/stacks/70?endpointId=${{ secrets.PORTAINER_ENDPOINT_ID }}" \
             -d "{
               \"stackFileContent\": $STACK_FILE_JSON,
               \"env\": [
