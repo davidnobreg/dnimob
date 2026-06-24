@@ -118,7 +118,7 @@ def cadastro_sucesso(request, schema):
 # Painel superadmin (schema public)
 # ---------------------------------------------------------------------------
 
-@user_passes_test(lambda u: u.is_superuser)
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
 def superadmin_dashboard(request):
     tenants = Tenant.objects.exclude(schema_name=get_public_schema_name()).order_by('-criado_em')
     context = {
