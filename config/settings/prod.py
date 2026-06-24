@@ -18,6 +18,9 @@ STATICFILES_STORAGE     = 'storages.backends.s3boto3.S3StaticStorage'
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME      = env('AWS_S3_REGION_NAME', default='sa-east-1')
 AWS_S3_CUSTOM_DOMAIN    = env('AWS_S3_CUSTOM_DOMAIN', default='')
+AWS_S3_ENDPOINT_URL  = env('AWS_S3_ENDPOINT_URL', default='')
+AWS_ACCESS_KEY_ID    = env('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
 
 # ─────────────────────────────────────────────
 # SENTRY
