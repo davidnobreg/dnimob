@@ -48,7 +48,7 @@ _DENYLIST = DEFAULT_DENYLIST + [
 sentry_sdk.init(
     dsn=env('SENTRY_DSN', default=''),
     environment=env('SENTRY_ENVIRONMENT', default='production'),
-    integrations=[DjangoIntegration(), CeleryIntegration()],
+    integrations=[DjangoIntegration(), CeleryIntegration(propagate_traces=False)],
     traces_sample_rate=env.float('SENTRY_TRACES_RATE', default=0.1),
     send_default_pii=False,
     event_scrubber=EventScrubber(denylist=_DENYLIST, recursive=True),
