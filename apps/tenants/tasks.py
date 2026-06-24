@@ -1,9 +1,9 @@
 import logging
 
+import requests
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import EmailMultiAlternatives
 
 from .models import Domain
 from .services import _criar_templates_padrao
@@ -163,14 +163,22 @@ def _enviar_email_boas_vindas(tenant, email_admin: str, senha: str):
 	remetente = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@dnsoftware.com.br')
 
 	try:
-		msg = EmailMultiAlternatives(
-			subject=assunto,
-			body=corpo_texto,
-			from_email=remetente,
-			to=[email_admin],
+		resp = requests.post(
+			'https://api.resend.com/emails',
+			headers={
+				'Authorization': f'Bearer {settings.RESEND_API_KEY}',
+				'Content-Type': 'application/json',
+			},
+			json={
+				'from': remetente,
+				'to': [email_admin],
+				'subject': assunto,
+				'text': corpo_texto,
+				'html': corpo_html,
+			},
+			timeout=15,
 		)
-		msg.attach_alternative(corpo_html, 'text/html')
-		msg.send()
+		resp.raise_for_status()
 		logger.info('E-mail de boas-vindas enviado para %s (tenant: %s)', email_admin, tenant.schema_name)
 	except Exception:
 		# Não derruba o provisionamento — e-mail é best-effort

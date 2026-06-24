@@ -29,7 +29,6 @@ AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
 # ─────────────────────────────────────────────
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.scrubber import EventScrubber, DEFAULT_DENYLIST
 
 # Expande o denylist padrão com campos sensíveis do domínio imobiliário
@@ -48,24 +47,17 @@ _DENYLIST = DEFAULT_DENYLIST + [
 sentry_sdk.init(
     dsn=env('SENTRY_DSN', default=''),
     environment=env('SENTRY_ENVIRONMENT', default='production'),
-    integrations=[DjangoIntegration(), CeleryIntegration(propagate_traces=False)],
+    integrations=[DjangoIntegration()],
     traces_sample_rate=env.float('SENTRY_TRACES_RATE', default=0.1),
     send_default_pii=False,
     event_scrubber=EventScrubber(denylist=_DENYLIST, recursive=True),
 )
 
 # ─────────────────────────────────────────────
-# EMAIL — Resend SMTP relay (sempre SMTP em prod)
-# ─────────────────────────────────────────────
-EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST          = env('EMAIL_HOST',          default='smtp.resend.com')
-EMAIL_PORT          = env.int('EMAIL_PORT',       default=465)
-EMAIL_HOST_USER     = env('EMAIL_HOST_USER',      default='resend')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD',  default='')
-EMAIL_USE_SSL       = env.bool('EMAIL_USE_SSL',   default=True)
-EMAIL_USE_TLS       = env.bool('EMAIL_USE_TLS',   default=False)
-EMAIL_TIMEOUT       = 10
+# EMAIL — Resend via HTTP API (não SMTP)
 # ATENÇÃO: DEFAULT_FROM_EMAIL deve usar domínio verificado no painel Resend
+# ─────────────────────────────────────────────
+RESEND_API_KEY = env('RESEND_API_KEY', default='')
 
 LOGGING = {
     'version': 1,
