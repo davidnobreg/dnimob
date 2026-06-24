@@ -25,7 +25,8 @@ urlpatterns = [
     path('admin-master/tenant/<int:tenant_id>/toggle/', tv.superadmin_toggle_tenant, name='superadmin_toggle_tenant'),
     # dentro do urlpatterns, antes do admin-master/
     path('admin-master/login/', auth_views.LoginView.as_view(
-        template_name='registration/login.html'
+        template_name='tenants/superadmin_login.html',
+        next_page='/admin-master/',
     ), name='superadmin_login'),
 ]
 
