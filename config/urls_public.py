@@ -7,6 +7,7 @@ from django.urls import include, path
 
 from apps.tenants import views as tv
 from apps.sicredi import views as sicredi_views
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', tv.landing, name='landing'),
@@ -22,6 +23,10 @@ urlpatterns = [
     path('admin-master/', tv.superadmin_dashboard, name='superadmin_dashboard'),
     path('admin-master/tenant/<int:tenant_id>/', tv.superadmin_tenant_detalhe, name='superadmin_tenant_detalhe'),
     path('admin-master/tenant/<int:tenant_id>/toggle/', tv.superadmin_toggle_tenant, name='superadmin_toggle_tenant'),
+    # dentro do urlpatterns, antes do admin-master/
+    path('admin-master/login/', auth_views.LoginView.as_view(
+        template_name='registration/login.html'
+    ), name='superadmin_login'),
 ]
 
 if settings.DEBUG:
