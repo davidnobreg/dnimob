@@ -7,6 +7,7 @@ Sicredi, WhatsApp e gerenciamento de usuários.
 import logging
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -74,6 +75,8 @@ def cadastro_imobiliaria(request):
                     },
                 )
                 return redirect('cadastro_aguardando', schema=tenant.schema_name)
+            except ValidationError as e:
+                messages.error(request, e.message)
             except Exception as e:
                 logger.exception('Erro ao criar tenant')
                 messages.error(request, f'Erro ao criar a conta: {e}')

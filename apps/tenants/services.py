@@ -154,9 +154,14 @@ def criar_tenant(dados_form: dict) -> Tenant:
     subdominio  = _sanitizar_subdominio(dados_form['subdominio'])
     plano       = dados_form['plano']
     base_domain = getattr(settings, 'BASE_DOMAIN', 'dnsoftware.com.br')
+    schema_name = f'imob_{subdominio.replace("-", "_")}'
+
+    if Tenant.objects.filter(schema_name=schema_name).exists():
+        from django.core.exceptions import ValidationError
+        raise ValidationError(f"Subdomínio '{subdominio}' já está em uso. Escolha outro nome.")
 
     tenant = Tenant(
-        schema_name=f'imob_{subdominio.replace("-", "_")}',
+        schema_name=schema_name,
         nome=dados_form['nome_imobiliaria'],
         tipo_pessoa=dados_form.get('tipo_pessoa', 'PJ'),
         cnpj=dados_form.get('cnpj', ''),
