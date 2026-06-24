@@ -121,16 +121,19 @@ def cadastro_sucesso(request, schema):
 @user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
 def superadmin_dashboard(request):
     tenants = Tenant.objects.exclude(schema_name=get_public_schema_name()).order_by('-criado_em')
+    total = tenants.count()
+    ativos = tenants.filter(ativo=True).count()
     context = {
         'tenants': tenants,
-        'total': tenants.count(),
-        'ativos': tenants.filter(ativo=True).count(),
+        'total': total,
+        'ativos': ativos,
         'trial': tenants.filter(trial=True).count(),
+        'inativos': total - ativos,
     }
     return render(request, 'tenants/superadmin/dashboard.html', context)
 
 
-@user_passes_test(lambda u: u.is_superuser)
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
 def superadmin_tenant_detalhe(request, tenant_id):
     tenant = get_object_or_404(Tenant, pk=tenant_id)
     with schema_context(tenant.schema_name):
@@ -141,7 +144,7 @@ def superadmin_tenant_detalhe(request, tenant_id):
     })
 
 
-@user_passes_test(lambda u: u.is_superuser)
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
 @require_POST
 def superadmin_toggle_tenant(request, tenant_id):
     tenant = get_object_or_404(Tenant, pk=tenant_id)
