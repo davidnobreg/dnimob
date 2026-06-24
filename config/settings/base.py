@@ -65,6 +65,10 @@ SHARED_APPS = [
 
     'crispy_forms',
     'crispy_tailwind',
+
+    # Celery Beat/Results vivem no schema public (scheduler centralizado)
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 # Apps em cada schema de TENANT (dados isolados por imobiliária)
@@ -81,8 +85,6 @@ TENANT_APPS = [
     'apps.whatsapp',
     'apps.relatorios',
 
-    'django_celery_beat',
-    'django_celery_results',
     'crispy_forms',
     'crispy_tailwind',
 ]
