@@ -151,6 +151,43 @@ class CadastroImobiliariaForm(forms.Form):
 
 
 # ---------------------------------------------------------------------------
+# Superadmin — criar tenant
+# ---------------------------------------------------------------------------
+
+class SuperAdminCriarTenantForm(forms.Form):
+	nome = forms.CharField(
+		max_length=200,
+		label='Nome da imobiliária',
+		widget=forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'Ex: Imobiliária Beta'}),
+	)
+	subdominio = forms.SlugField(
+		max_length=30,
+		label='Subdomínio',
+		widget=forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'imobiliaria-beta'}),
+	)
+	plano = forms.ModelChoiceField(
+		queryset=Plano.objects.filter(ativo=True),
+		label='Plano',
+		empty_label='Selecione um plano',
+		widget=forms.Select(attrs={'class': _SELECT}),
+	)
+	email_admin = forms.EmailField(
+		label='E-mail do administrador',
+		widget=forms.EmailInput(attrs={'class': _INPUT, 'placeholder': 'admin@imobiliaria.com'}),
+	)
+
+	def clean_subdominio(self):
+		subdominio = self.cleaned_data['subdominio'].lower().strip()
+		reservados = ['www', 'admin', 'api', 'mail', 'smtp', 'static', 'media', 'app']
+		if subdominio in reservados:
+			raise forms.ValidationError('Subdomínio reservado. Escolha outro.')
+		from .models import Domain
+		if Domain.objects.filter(domain__startswith=f'{subdominio}.').exists():
+			raise forms.ValidationError('Subdomínio já está em uso.')
+		return subdominio
+
+
+# ---------------------------------------------------------------------------
 # Configuração da conta (dentro do tenant)
 # ---------------------------------------------------------------------------
 

@@ -24,6 +24,7 @@ from .forms import (
     ConfigWhatsAppForm,
     ConvidarUsuarioForm,
     EditarPermissoesForm,
+    SuperAdminCriarTenantForm,
     TemplateWhatsAppForm,
 )
 from .models import ConfigSicredi, InstanciaWhatsApp, Plano, TemplateWhatsApp, Tenant
@@ -31,6 +32,7 @@ from .services import (
     EvolutionAPIError,
     criar_instancia_whatsapp,
     criar_tenant,
+    gerar_senha_temporaria,
     obter_qrcode_instancia,
     testar_credenciais_sicredi,
     verificar_status_whatsapp,
@@ -141,6 +143,7 @@ def superadmin_tenant_detalhe(request, tenant_id):
     return render(request, 'tenants/superadmin/tenant_detalhe.html', {
         'tenant': tenant,
         'usuarios': usuarios,
+        'planos': Plano.objects.filter(ativo=True),
     })
 
 
@@ -153,6 +156,50 @@ def superadmin_toggle_tenant(request, tenant_id):
     status = 'ativada' if tenant.ativo else 'desativada'
     messages.success(request, f'Imobiliária {tenant.nome} {status}.')
     return redirect('superadmin_dashboard')
+
+
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
+def superadmin_criar_tenant(request):
+    if request.method == 'POST':
+        form = SuperAdminCriarTenantForm(request.POST)
+        if form.is_valid():
+            dados = {
+                'nome_imobiliaria': form.cleaned_data['nome'],
+                'subdominio': form.cleaned_data['subdominio'],
+                'plano': form.cleaned_data['plano'],
+                'email_admin': form.cleaned_data['email_admin'],
+            }
+            senha = gerar_senha_temporaria()
+            try:
+                tenant = criar_tenant(dados)
+                from .tasks import provisionar_tenant
+                provisionar_tenant.delay(
+                    tenant.pk,
+                    {'nome': 'Administrador', 'email': dados['email_admin'], 'senha': senha},
+                )
+                messages.success(
+                    request,
+                    f'Imobiliária "{tenant.nome}" criada com sucesso. '
+                    f'Senha do admin: {senha}',
+                )
+            except Exception as e:
+                logger.exception('Erro ao criar tenant via superadmin')
+                messages.error(request, f'Erro ao criar imobiliária: {e}')
+            return redirect('superadmin_dashboard')
+    else:
+        form = SuperAdminCriarTenantForm()
+    return render(request, 'tenants/superadmin/criar_tenant.html', {'form': form})
+
+
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
+@require_POST
+def superadmin_trocar_plano(request, tenant_id):
+    tenant = get_object_or_404(Tenant, pk=tenant_id)
+    plano = get_object_or_404(Plano, pk=request.POST.get('plano_id'))
+    tenant.plano = plano
+    tenant.save()
+    messages.success(request, f'Plano de {tenant.nome} alterado para {plano}.')
+    return redirect('superadmin_tenant_detalhe', tenant_id=tenant.pk)
 
 
 # ---------------------------------------------------------------------------
