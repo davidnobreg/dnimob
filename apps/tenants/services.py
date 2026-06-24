@@ -5,6 +5,7 @@ integração Sicredi e WhatsApp via Evolution API.
 """
 
 import logging
+import re
 import secrets
 import string
 from datetime import date, timedelta
@@ -135,6 +136,14 @@ VARIAVEIS_POR_EVENTO = {
 # Criação de novo tenant (onboarding)
 # ---------------------------------------------------------------------------
 
+def _sanitizar_subdominio(valor: str) -> str:
+    valor = valor.strip().lower()
+    valor = re.sub(r'[\s_]+', '-', valor)
+    valor = re.sub(r'[^a-z0-9-]', '', valor)
+    valor = re.sub(r'-+', '-', valor)
+    return valor.strip('-')
+
+
 @transaction.atomic
 def criar_tenant(dados_form: dict) -> Tenant:
     """
@@ -142,7 +151,7 @@ def criar_tenant(dados_form: dict) -> Tenant:
     O provisionamento real (migrate_schemas + admin + templates) fica para a
     task Celery `provisionar_tenant`.
     """
-    subdominio  = dados_form['subdominio']
+    subdominio  = _sanitizar_subdominio(dados_form['subdominio'])
     plano       = dados_form['plano']
     base_domain = getattr(settings, 'BASE_DOMAIN', 'dnsoftware.com.br')
 
