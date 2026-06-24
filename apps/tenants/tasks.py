@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 
+from .models import Domain
 from .services import _criar_templates_padrao
 
 logger = logging.getLogger(__name__)
@@ -52,12 +53,12 @@ def provisionar_tenant(self, tenant_pk: int, dados_admin: dict):
 		tenant.provisionamento_status = 'erro'
 		tenant.save(update_fields=['provisionamento_status'])
 		logger.error('Falha ao provisionar tenant %s: %s', tenant_pk, exc)
-		raise self.retry(exc=exc, countdown=30)
+		raise self.retry(countdown=30, max_retries=3)
 
 
 def _enviar_email_boas_vindas(tenant, email_admin: str, senha: str):
 	"""Envia e-mail de boas-vindas ao admin da imobiliária após provisionamento."""
-	dominio = tenant.domain_set.filter(is_primary=True).values_list('domain', flat=True).first()
+	dominio = Domain.objects.filter(tenant=tenant, is_primary=True).values_list('domain', flat=True).first()
 	url_acesso = f'https://{dominio}/login/' if dominio else ''
 	nome_imob = tenant.nome
 
