@@ -11,17 +11,13 @@ RUN apt-get update && \
         gcc \
         build-essential \
         libpq-dev \
-        libcairo2 \
-        libpango-1.0-0 \
-        libpangocairo-1.0-0 \
-        libgdk-pixbuf-2.0-0 \
         libffi-dev \
         libjpeg-dev \
         libpng-dev \
-        libglib2.0-0 \
         shared-mime-info \
         fonts-dejavu \
         curl \
+        nano \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY requirements/base.txt requirements/base.txt
@@ -31,7 +27,7 @@ RUN pip install --upgrade pip && \
 
 COPY . .
 
-RUN mkdir -p /app/logs /app/media /app/staticfiles
+RUN mkdir -p /app/logs /app/media /app/staticfiles /app/static
 
 ARG GIT_COMMIT=unknown
 ENV GIT_COMMIT=${GIT_COMMIT}

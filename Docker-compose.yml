@@ -19,8 +19,8 @@ services:
       - SENTRY_DSN=${SENTRY_DSN}
       - GIT_COMMIT=${GIT_COMMIT}
 
-    ports:
-      - "8002:8002"
+    #ports:
+     # - "8002:8002"
 
     volumes:
       - dnimob_logs:/app/logs
@@ -103,8 +103,8 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
 
-    ports:
-      - "5556:5556"
+    #ports:
+      #- "5556:5556"
 
     volumes:
       - dnimob_logs:/app/logs
