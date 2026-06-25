@@ -121,6 +121,32 @@ services:
       restart_policy:
         condition: on-failure
 
+  # ── Backup PostgreSQL → Backblaze B2 ───────────────────────────
+  backup:
+    image: davidnobrega/dnimob-backup:latest
+
+    environment:
+      POSTGRES_HOST: postgres_17
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${BACKUP_AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ENDPOINT_URL: https://s3.us-east-005.backblazeb2.com
+      BACKUP_BUCKET: dnimob-backup-prod
+      AWS_DEFAULT_REGION: us-east-005
+
+    networks:
+      - app_network
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
+
 volumes:
   dnimob_logs:
     external: true

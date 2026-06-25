@@ -37,6 +37,16 @@ jobs:
           build-args: |
             GIT_COMMIT=${{ github.sha }}
 
+      - name: Build e push imagem backup
+        uses: docker/build-push-action@v5
+        with:
+          context: ./infra/backup
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/dnimob-backup:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Redeploy via API do Portainer
         env:
           DOCKER_DEFAULT_PLATFORM: linux/arm64
@@ -46,6 +56,8 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           FLOWER_USER: ${{ secrets.FLOWER_USER }}
           FLOWER_PASSWORD: ${{ secrets.FLOWER_PASSWORD }}
+          BACKUP_AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          BACKUP_AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
         run: |
           set -e
 
@@ -68,7 +80,9 @@ jobs:
                 {\"name\": \"GIT_COMMIT\",     \"value\": \"$GIT_COMMIT\"},
                 {\"name\": \"SENTRY_DSN\",      \"value\": \"$SENTRY_DSN\"},
                 {\"name\": \"FLOWER_USER\",     \"value\": \"$FLOWER_USER\"},
-                {\"name\": \"FLOWER_PASSWORD\", \"value\": \"$FLOWER_PASSWORD\"}
+                {\"name\": \"FLOWER_PASSWORD\",              \"value\": \"$FLOWER_PASSWORD\"},
+                {\"name\": \"BACKUP_AWS_ACCESS_KEY_ID\",     \"value\": \"$BACKUP_AWS_ACCESS_KEY_ID\"},
+                {\"name\": \"BACKUP_AWS_SECRET_ACCESS_KEY\", \"value\": \"$BACKUP_AWS_SECRET_ACCESS_KEY\"}
               ],
               \"pullImage\": true,
               \"prune\": true
