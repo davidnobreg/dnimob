@@ -106,8 +106,8 @@ def cadastro_status(request, schema):
 
 def login_acesso(request):
     """Tela pública: informa o subdomínio e redireciona para o login do tenant."""
-    base_domain = getattr(settings, 'BASE_DOMAIN', 'localhost:8000')
-    dev_login_url = 'http://imob_alpha.localhost:8000/login/' if settings.DEBUG else None
+    base_domain = getattr(settings, 'BASE_DOMAIN', 'dnsoftware.com.br')
+    dev_login_url = f'http://imob_alpha.{base_domain}/login/' if settings.DEBUG else None
     return render(request, 'tenants/login_public.html', {
         'base_domain': base_domain,
         'dev_login_url': dev_login_url,
