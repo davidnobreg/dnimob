@@ -44,7 +44,7 @@ rm -f "${FILEPATH}"
 
 # 5. Retenção: deletar daily/ com mais de 7 dias
 echo "[backup] Aplicando retenção (daily > 7 dias)..."
-CUTOFF=$(date -d "7 days ago" +"%Y%m%d" 2>/dev/null || date -v-7d +"%Y%m%d")
+CUTOFF=$(date -u -d "@$(($(date -u +%s) - 604800))" +"%Y%m%d")
 
 aws s3 ls "s3://${BACKUP_BUCKET}/daily/" \
 	--endpoint-url "${AWS_S3_ENDPOINT_URL}" \

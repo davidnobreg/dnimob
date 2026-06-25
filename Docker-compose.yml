@@ -126,7 +126,7 @@ services:
     image: davidnobrega/dnimob-backup:latest
 
     environment:
-      POSTGRES_HOST: postgres_17
+      POSTGRES_HOST: postgres17
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
