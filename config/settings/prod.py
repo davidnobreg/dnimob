@@ -53,12 +53,6 @@ sentry_sdk.init(
     event_scrubber=EventScrubber(denylist=_DENYLIST, recursive=True),
 )
 
-# ─────────────────────────────────────────────
-# EMAIL — Resend via HTTP API (não SMTP)
-# ATENÇÃO: DEFAULT_FROM_EMAIL deve usar domínio verificado no painel Resend
-# ─────────────────────────────────────────────
-RESEND_API_KEY = env('RESEND_API_KEY', default='')
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

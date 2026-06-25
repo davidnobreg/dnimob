@@ -258,17 +258,11 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # ─────────────────────────────────────────────
-# EMAIL
+# EMAIL — Resend HTTP API (sem SMTP, usa HTTPS 443)
 # ─────────────────────────────────────────────
-DEFAULT_FROM_EMAIL  = env('DEFAULT_FROM_EMAIL', default='noreply@dnsoftware.com.br')
-EMAIL_BACKEND       = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST          = env('EMAIL_HOST', default='')
-EMAIL_PORT          = env.int('EMAIL_PORT', default=465)
-EMAIL_HOST_USER     = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-EMAIL_USE_SSL       = env.bool('EMAIL_USE_SSL', default=True)
-EMAIL_USE_TLS       = env.bool('EMAIL_USE_TLS', default=False)
-EMAIL_TIMEOUT       = 10
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='DN Imob <noreply@dnsoftware.com.br>')
+EMAIL_BACKEND      = 'apps.core.email_backend.ResendEmailBackend'
+RESEND_API_KEY     = env('RESEND_API_KEY', default='')
 
 # ─────────────────────────────────────────────
 # SICREDI (globais — cada tenant tem ConfigSicredi no banco)
