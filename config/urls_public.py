@@ -3,6 +3,7 @@
 
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
 from django.urls import include, path
 
 from apps.tenants import views as tv
@@ -10,6 +11,7 @@ from apps.sicredi import views as sicredi_views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
     path('', tv.landing, name='landing'),
     path('cadastro/', tv.cadastro_imobiliaria, name='cadastro_imobiliaria'),
     path('cadastro/aguardando/<str:schema>/', tv.cadastro_aguardando, name='cadastro_aguardando'),
