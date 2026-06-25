@@ -3,6 +3,11 @@ from .base import *  # noqa
 
 DEBUG = False
 
+MIDDLEWARE.insert(
+    MIDDLEWARE.index('django.middleware.security.SecurityMiddleware') + 1,
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+)
+
 SECURE_BROWSER_XSS_FILTER        = True
 SECURE_CONTENT_TYPE_NOSNIFF      = True
 SECURE_HSTS_SECONDS               = 31536000
@@ -14,9 +19,11 @@ CSRF_COOKIE_SECURE                = True
 USE_X_FORWARDED_HOST              = True
 SECURE_PROXY_SSL_HEADER           = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Arquivos estáticos e mídia via S3
+# Arquivos estáticos via WhiteNoise (servidos pelo gunicorn)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Mídia (uploads) via S3
 DEFAULT_FILE_STORAGE    = 'storages.backends.s3boto3.S3Boto3Storage'
-STATICFILES_STORAGE     = 'storages.backends.s3boto3.S3StaticStorage'
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME      = env('AWS_S3_REGION_NAME', default='sa-east-1')
 AWS_S3_CUSTOM_DOMAIN    = env('AWS_S3_CUSTOM_DOMAIN', default='')
