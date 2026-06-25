@@ -50,8 +50,11 @@ class Imovel(models.Model):
     estado        = models.CharField('Estado', max_length=2)
 
     # Características
-    area_total    = models.DecimalField('Área Total (m²)', max_digits=10, decimal_places=2, null=True, blank=True)
+    area_util       = models.DecimalField('Área Útil / de Piso', max_digits=10, decimal_places=2, null=True, blank=True)
+    area_privativa  = models.DecimalField('Área Privativa', max_digits=10, decimal_places=2, null=True, blank=True)
+    area_total      = models.DecimalField('Área Total (m²)', max_digits=10, decimal_places=2, null=True, blank=True)
     area_construida = models.DecimalField('Área Construída (m²)', max_digits=10, decimal_places=2, null=True, blank=True)
+    area_comum      = models.DecimalField('Área Comum', max_digits=10, decimal_places=2, null=True, blank=True)
     quartos       = models.PositiveSmallIntegerField('Quartos', default=0)
     suites        = models.PositiveSmallIntegerField('Suítes', default=0)
     banheiros     = models.PositiveSmallIntegerField('Banheiros', default=1)
@@ -135,6 +138,10 @@ class Imovel(models.Model):
     def save(self, *args, **kwargs):
         if not self.codigo:
             self.codigo = self._gerar_codigo()
+        self.area_total = sum(
+            v for v in [self.area_util, self.area_privativa, self.area_construida, self.area_comum]
+            if v is not None
+        ) or None
         super().save(*args, **kwargs)
 
 

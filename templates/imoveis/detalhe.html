@@ -114,6 +114,14 @@
     <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
       <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Características</h2>
       <dl class="grid grid-cols-2 gap-y-3 text-sm">
+        {% if imovel.area_util %}
+        <dt class="text-gray-500">Área útil / piso</dt>
+        <dd class="font-medium">{{ imovel.area_util|floatformat:0 }} m²</dd>
+        {% endif %}
+        {% if imovel.area_privativa %}
+        <dt class="text-gray-500">Área privativa</dt>
+        <dd class="font-medium">{{ imovel.area_privativa|floatformat:0 }} m²</dd>
+        {% endif %}
         {% if imovel.area_total %}
         <dt class="text-gray-500">Área total</dt>
         <dd class="font-medium">{{ imovel.area_total|floatformat:0 }} m²</dd>
@@ -121,6 +129,10 @@
         {% if imovel.area_construida %}
         <dt class="text-gray-500">Área construída</dt>
         <dd class="font-medium">{{ imovel.area_construida|floatformat:0 }} m²</dd>
+        {% endif %}
+        {% if imovel.area_comum %}
+        <dt class="text-gray-500">Área comum</dt>
+        <dd class="font-medium">{{ imovel.area_comum|floatformat:0 }} m²</dd>
         {% endif %}
         <dt class="text-gray-500">Quartos</dt>
         <dd class="font-medium">{{ imovel.quartos }}</dd>

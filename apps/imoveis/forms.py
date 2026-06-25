@@ -31,7 +31,7 @@ class ImovelForm(forms.ModelForm):
         # Aplica classe padrão nos inputs de texto/número
         text_fields = [
             'codigo','cep','logradouro','numero','complemento','bairro',
-            'cidade','area_total','area_construida','quartos','suites',
+            'cidade','area_util','area_privativa','area_total','area_construida','area_comum','quartos','suites',
             'banheiros','vagas','valor_aluguel','valor_venda',
             'valor_condominio','valor_iptu','proprietario_nome',
             'proprietario_cpf_cnpj','proprietario_telefone','proprietario_email',
@@ -39,6 +39,14 @@ class ImovelForm(forms.ModelForm):
         for field in text_fields:
             if field in self.fields:
                 self.fields[field].widget.attrs.setdefault('class', 'form-input')
+
+        self.fields['area_total'].widget.attrs.update({
+            'readonly': True,
+            'id': 'id_area_total',
+            'class': 'form-input bg-gray-50 cursor-not-allowed text-gray-500',
+            'tabindex': '-1',
+        })
+        self.fields['area_total'].required = False
 
         # Checkboxes (comodidades)
         checkbox_fields = [

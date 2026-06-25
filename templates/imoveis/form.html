@@ -125,19 +125,41 @@
                 </div>
             </div>
 
+            {# ── Áreas ── #}
+            <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Áreas (m²)</h2>
+                <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Área Útil / de Piso</label>
+                        {{ form.area_util }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Área Privativa</label>
+                        {{ form.area_privativa }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Área Total
+                            <span class="text-xs text-gray-400 font-normal">(calculado automaticamente)</span>
+                        </label>
+                        {{ form.area_total }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Área Construída</label>
+                        {{ form.area_construida }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Área Comum</label>
+                        {{ form.area_comum }}
+                    </div>
+                </div>
+            </div>
+
             {# ── Características ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
                     Características</h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Área Total (m²)</label>
-                        {{ form.area_total }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Área Construída (m²)</label>
-                        {{ form.area_construida }}
-                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Quartos</label>
                         {{ form.quartos }}
@@ -397,6 +419,30 @@
             });
 
         });
+
+        // ── Cálculo automático de Área Total ─────────────────────────────────
+        const _areaInputs = ['area_util', 'area_privativa', 'area_construida', 'area_comum'].map(
+            n => document.querySelector(`[name="${n}"]`)
+        ).filter(Boolean);
+        const _areaTotalInput = document.getElementById('id_area_total');
+
+        function recalcularAreaTotal() {
+            if (!_areaTotalInput) return;
+            let soma = 0;
+            let temValor = false;
+            _areaInputs.forEach(function(el) {
+                const v = parseFloat(el.value.replace(',', '.'));
+                if (!isNaN(v) && v > 0) { soma += v; temValor = true; }
+            });
+            _areaTotalInput.value = temValor ? soma.toFixed(2) : '';
+        }
+
+        _areaInputs.forEach(function(el) {
+            el.addEventListener('input', recalcularAreaTotal);
+            el.addEventListener('change', recalcularAreaTotal);
+        });
+
+        recalcularAreaTotal();
 
         // ── Ações de foto via AJAX (evita form aninhado) ────────────────────
         function _fotoCSRF() {
