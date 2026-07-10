@@ -134,7 +134,7 @@ Durante a implementação dos testes, dois **bugs pré-existentes** (não relaci
 - [ ] Confirmar que o worker Celery está consumindo a fila `financeiro` (`CELERY_TASK_ROUTES`)
 - [ ] Cadastrar `cnpj`, `endereco`, `cidade`, `estado`, `cep` do `Tenant` (usados no `beneficiarioFinal` do payload) — ver limitação do `numeroEndereco` abaixo
 - [ ] Validar em sandbox antes de trocar `ambiente` para `producao`
-- [ ] (Opcional) Remover/parametrizar `SICREDI_API_URL` e `SICREDI_TOKEN_URL` em `config/settings/base.py` — não são mais usados (client.py usa `HOST` fixo); ver seção 7
+- [ ] (Opcional) Remover `SICREDI_API_URL` e `SICREDI_TOKEN_URL` de `config/settings/base.py` — código morto confirmado: `SicrediClient` hardcoda `HOST = 'https://api-parceiro.sicredi.com.br'` e monta as URLs a partir disso, nunca lê essas settings
 
 ---
 
@@ -158,7 +158,6 @@ Durante a implementação dos testes, dois **bugs pré-existentes** (não relaci
 - Job periódico (Celery Beat) pra marcar `Boleto.status='vencido'` quando `parcela.data_vencimento` passar sem pagamento (hoje só existe o status no `STATUS_CHOICES`, sem nada que o aplique).
 - Reenviar boleto automaticamente quando `Boleto.status='erro'` (hoje só reemite manual pela UI).
 - Validar/normalizar `Tenant.endereco` em campos estruturados para resolver a limitação do `numeroEndereco`.
-- Remover `client_id`/`client_secret`/`SICREDI_API_URL`/`SICREDI_TOKEN_URL` (fluxo legado `client_credentials`) se confirmado que não há mais uso.
 - Confirmar com a Sicredi (Portal do Desenvolvedor/gerente de conta) o formato oficial de assinatura do webhook, se/quando existir, e ajustar `_assinatura_valida`/header lido em `webhook_sicredi` de acordo (ver limitação na seção 6).
 
 ---
