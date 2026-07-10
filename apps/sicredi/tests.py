@@ -265,6 +265,113 @@ class BaixarBoletoTests(SicrediTestCase):
 			self.sicredi_client.baixar_boleto(boleto)
 
 
+# ── Consulta de boletos liquidados por dia ────────────────────────────────────
+
+class ConsultarLiquidadosDiaTests(SicrediTestCase):
+
+	@patch('requests.Session.get')
+	@patch('requests.Session.post')
+	def test_pagina_ate_hasnext_false_junta_itens(self, mock_post, mock_get):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_get.side_effect = [
+			_resp(200, {'items': [{'nossoNumero': '1'}], 'hasNext': True}),
+			_resp(200, {'items': [{'nossoNumero': '2'}], 'hasNext': False}),
+		]
+
+		itens = self.sicredi_client.consultar_liquidados_dia(date(2026, 7, 10))
+
+		self.assertEqual(len(itens), 2)
+		self.assertEqual(mock_get.call_count, 2)
+		self.assertEqual(mock_get.call_args_list[1].kwargs['params']['pagina'], 2)
+
+	@patch('requests.Session.get')
+	@patch('requests.Session.post')
+	def test_erro_400_levanta_api_error(self, mock_post, mock_get):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_get.return_value = _resp(400, {'message': 'dia inválido'})
+
+		with self.assertRaises(SicrediAPIError):
+			self.sicredi_client.consultar_liquidados_dia(date(2026, 7, 10))
+
+	@patch('requests.Session.get')
+	@patch('requests.Session.post')
+	def test_erro_429_mensagem_limite(self, mock_post, mock_get):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_get.return_value = _resp(429, {}, text='rate limit')
+
+		with self.assertRaises(SicrediAPIError) as ctx:
+			self.sicredi_client.consultar_liquidados_dia(date(2026, 7, 10))
+		self.assertIn('Limite', str(ctx.exception))
+
+
+# ── Reconciliação de boletos liquidados ───────────────────────────────────────
+
+class ReconciliarLiquidadosDiaTests(SicrediTestCase):
+
+	def _boleto(self, status='emitido'):
+		return Boleto.objects.create(
+			parcela=self.parcela, nosso_numero='551000177', status=status,
+		)
+
+	def _item(self):
+		return {
+			'nossoNumero': '551000177',
+			'seuNumero': 'CT0001-P1',
+			'dataPagamento': '2026-07-09',
+			'valor': '1500.00',
+			'valorLiquidado': '1500.00',
+			'tipoLiquidacao': 'PIX',
+		}
+
+	@patch('apps.sicredi.client.SicrediClient.consultar_liquidados_dia')
+	def test_boleto_pendente_vira_liquidado(self, mock_consulta):
+		self._boleto(status='emitido')
+		mock_consulta.return_value = [self._item()]
+
+		resultado = service.reconciliar_liquidados_dia(date(2026, 7, 10))
+
+		self.assertEqual(resultado, {'total': 1, 'recuperados': 1, 'nao_encontrados': 0})
+
+		self.parcela.refresh_from_db()
+		self.assertEqual(self.parcela.status, 'pago')
+
+		boleto = Boleto.objects.get(nosso_numero='551000177')
+		self.assertEqual(boleto.status, 'pago')
+		self.assertEqual(boleto.valor_pago, Decimal('1500.00'))
+
+		self.assertTrue(Lancamento.objects.filter(parcela=self.parcela, tipo='receita').exists())
+
+	@patch('apps.sicredi.client.SicrediClient.consultar_liquidados_dia')
+	def test_boleto_ja_pago_e_idempotente(self, mock_consulta):
+		boleto = self._boleto(status='pago')
+		boleto.valor_pago = Decimal('1500.00')
+		boleto.pago_em = date(2026, 7, 9)
+		boleto.save()
+		self.parcela.status = 'pago'
+		self.parcela.data_pagamento = date(2026, 7, 9)
+		self.parcela.save()
+		Lancamento.objects.get_or_create(
+			parcela=self.parcela,
+			defaults={'tipo': 'receita', 'categoria': 'aluguel', 'status': 'realizado',
+			          'descricao': 'teste', 'valor': Decimal('1500.00'), 'data': date(2026, 7, 9),
+			          'contrato': self.contrato},
+		)
+		mock_consulta.return_value = [self._item()]
+
+		resultado = service.reconciliar_liquidados_dia(date(2026, 7, 10))
+
+		self.assertEqual(resultado, {'total': 1, 'recuperados': 0, 'nao_encontrados': 0})
+		self.assertEqual(Lancamento.objects.filter(parcela=self.parcela, tipo='receita').count(), 1)
+
+	@patch('apps.sicredi.client.SicrediClient.consultar_liquidados_dia')
+	def test_nosso_numero_sem_boleto_local_nao_quebra(self, mock_consulta):
+		mock_consulta.return_value = [{**self._item(), 'nossoNumero': 'NAO-EXISTE'}]
+
+		resultado = service.reconciliar_liquidados_dia(date(2026, 7, 10))
+
+		self.assertEqual(resultado, {'total': 1, 'recuperados': 0, 'nao_encontrados': 1})
+
+
 # ── Webhook ───────────────────────────────────────────────────────────────────
 
 @override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=False)

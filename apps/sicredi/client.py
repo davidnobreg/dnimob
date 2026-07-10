@@ -82,6 +82,10 @@ class SicrediClient:
 		return f'{self._url_boletos}/{nosso_numero}/baixa'
 
 	@property
+	def _url_liquidados_dia(self):
+		return f'{HOST}{self._prefixo}/cobranca/boleto/v1/boletos/liquidados/dia'
+
+	@property
 	def _cache_key(self):
 		return f'sicredi_token_{self.schema_name}'
 
@@ -313,6 +317,56 @@ class SicrediClient:
 
 		logger.error('Sicredi baixar_boleto erro %s: %s', resp.status_code, resp.text[:300])
 		raise SicrediAPIError(f'Erro ao baixar boleto no Sicredi ({resp.status_code}).')
+
+	def consultar_liquidados_dia(self, dia, cpf_cnpj_beneficiario_final=None):
+		"""
+		Consulta os boletos liquidados no dia informado. Segue a paginação
+		internamente (via `hasNext`) e retorna a lista completa de items.
+
+		`dia`: date do Python. Aceita qualquer data retroativa (não precisa
+		ser hoje) — permite rodar reconciliação manual pra trás.
+
+		ATENÇÃO PIX fim de semana: pagamento PIX em sábado/domingo só
+		aparece nesta consulta no dia útil seguinte (regra do Sicredi).
+		Rodar pra um sábado/domingo pode retornar lista vazia mesmo com
+		pagamentos reais — não é bug desta função, é comportamento da API.
+		"""
+		itens = []
+		pagina = 1
+		while True:
+			params = {
+				'codigoBeneficiario': str(self.config.codigo_beneficiario),
+				'dia': dia.strftime('%d/%m/%Y'),
+				'pagina': pagina,
+			}
+			if cpf_cnpj_beneficiario_final:
+				params['cpfCnpjBeneficiarioFinal'] = _so_digitos(cpf_cnpj_beneficiario_final)
+
+			try:
+				resp = self.session.get(self._url_liquidados_dia, params=params, headers=self._headers_api(), timeout=30)
+			except requests.RequestException as e:
+				logger.error('Sicredi consultar_liquidados_dia conexão: %s', e)
+				raise SicrediAPIError(f'Falha de conexão com o Sicredi: {e}') from e
+
+			if resp.status_code != 200:
+				if resp.status_code in (401, 403):
+					raise SicrediAuthError('Token Sicredi inválido ou sem permissão para consultar liquidados.')
+				if resp.status_code == 429:
+					raise SicrediAPIError('Limite de requisições do Sicredi atingido. Tente novamente em instantes.')
+				msg = _extrair_erro(resp)
+				logger.error('Sicredi consultar_liquidados_dia erro %s: %s', resp.status_code, resp.text[:300])
+				raise SicrediAPIError(f'Erro ao consultar boletos liquidados no Sicredi: {msg}')
+
+			data = resp.json()
+			itens.extend(data.get('items', []) or [])
+
+			if not data.get('hasNext'):
+				break
+			pagina += 1
+
+		logger.info('Sicredi consultar_liquidados_dia schema=%s dia=%s total=%s',
+		            self.schema_name, dia.isoformat(), len(itens))
+		return itens
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

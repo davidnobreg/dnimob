@@ -107,6 +107,59 @@ def cancelar_boleto(boleto) -> tuple[bool, str]:
 	return client.baixar_boleto(boleto)
 
 
+# ── Reconciliação ativa (consulta de boletos liquidados) ──────────────────────
+
+def reconciliar_liquidados_dia(dia, cpf_cnpj_beneficiario_final=None) -> dict:
+	"""
+	Reconciliação ativa: consulta a Sicredi pelos boletos liquidados no dia
+	informado e corrige boletos que ficaram 'emitido' localmente porque o
+	webhook falhou ou não chegou. Idempotente — boleto já 'pago' não é
+	reprocessado.
+
+	Reaproveita `_registrar_liquidacao` (mesma função usada pelo webhook) —
+	não duplica a regra de negócio de marcar boleto+parcela como pagos.
+
+	Retorna {'total', 'recuperados', 'nao_encontrados'}.
+	"""
+	from apps.sicredi.models import Boleto
+
+	config = get_config_tenant()
+	if not config:
+		raise SicrediAPIError('Integração Sicredi não configurada ou inativa para esta imobiliária.')
+
+	client = SicrediClient(config, schema_name=connection.schema_name)
+	itens = client.consultar_liquidados_dia(dia, cpf_cnpj_beneficiario_final=cpf_cnpj_beneficiario_final)
+
+	recuperados = 0
+	nao_encontrados = 0
+
+	for item in itens:
+		nosso_numero = str(item.get('nossoNumero', '')).strip()
+		if not nosso_numero:
+			continue
+
+		boleto = Boleto.objects.filter(nosso_numero=nosso_numero).first()
+		if not boleto:
+			nao_encontrados += 1
+			logger.warning('Reconciliação Sicredi: boleto %s (dia=%s) não encontrado localmente', nosso_numero, dia)
+			continue
+
+		if boleto.status == 'pago':
+			continue  # já consistente — webhook processou certo
+
+		_registrar_liquidacao(nosso_numero, {
+			'valorLiquidacao': item.get('valorLiquidado'),
+			'dataPrevisaoPagamento': item.get('dataPagamento'),
+		})
+		recuperados += 1
+		logger.warning('Reconciliação Sicredi: discrepância recuperada — boleto %s estava %s, webhook não processou',
+		               nosso_numero, boleto.status)
+
+	logger.info('Reconciliação Sicredi dia=%s: total=%s recuperados=%s nao_encontrados=%s',
+	            dia, len(itens), recuperados, nao_encontrados)
+	return {'total': len(itens), 'recuperados': recuperados, 'nao_encontrados': nao_encontrados}
+
+
 # ── Webhook ───────────────────────────────────────────────────────────────────
 
 def processar_webhook(payload: dict, raw_body: bytes = b'', assinatura: str = ''):
