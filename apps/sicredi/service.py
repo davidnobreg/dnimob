@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.db import connection
 from django.utils import timezone
 from django_tenants.utils import schema_context
@@ -29,6 +30,14 @@ MOVIMENTOS_LIQUIDACAO = {
 	'LIQUIDACAO_CARTORIO',
 }
 MOVIMENTO_ESTORNO = 'ESTORNO_LIQUIDACAO_REDE'
+
+
+class WebhookAuthError(Exception):
+	"""
+	Webhook rejeitado por falha de autenticação: em produção (DEBUG=False),
+	webhook_secret não configurado para o tenant, ou assinatura ausente/inválida.
+	A view responde 401 nesse caso, em vez do 200 padrão do Sicredi.
+	"""
 
 
 # ── Config do tenant ──────────────────────────────────────────────────────────
@@ -132,9 +141,22 @@ def processar_webhook(payload: dict, raw_body: bytes = b'', assinatura: str = ''
 		logger.warning('Webhook Sicredi: beneficiario %s sem config/schema mapeado', beneficiario)
 		return
 
-	# Validação opcional: só roda se o tenant configurou um webhook_secret.
-	# Sem secret configurado, mantém o comportamento atual (aceita sempre).
-	if config.webhook_secret and not _assinatura_valida(raw_body, assinatura, config.webhook_secret):
+	# Em produção (settings.SICREDI_WEBHOOK_SECRET_REQUIRED=True, derivado de
+	# DEBUG=False — ver config/settings/base.py), webhook_secret é obrigatório:
+	# sem ele — ou com assinatura ausente/inválida — a requisição é REJEITADA
+	# (WebhookAuthError, a view responde 401), não apenas descartada em silêncio.
+	# Em dev/teste mantém o comportamento antigo: secret opcional, só valida
+	# se o tenant preencheu um; sem secret, aceita normalmente.
+	if settings.SICREDI_WEBHOOK_SECRET_REQUIRED:
+		if not config.webhook_secret:
+			logger.warning('Webhook Sicredi: producao sem webhook_secret configurado para beneficiario %s — requisição rejeitada',
+			               beneficiario)
+			raise WebhookAuthError('webhook_secret não configurado para este tenant em produção')
+		if not _assinatura_valida(raw_body, assinatura, config.webhook_secret):
+			logger.warning('Webhook Sicredi: assinatura inválida/ausente para beneficiario %s — requisição rejeitada',
+			               beneficiario)
+			raise WebhookAuthError('assinatura inválida')
+	elif config.webhook_secret and not _assinatura_valida(raw_body, assinatura, config.webhook_secret):
 		logger.warning('Webhook Sicredi: assinatura inválida/ausente para beneficiario %s — payload descartado',
 		               beneficiario)
 		return

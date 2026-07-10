@@ -103,14 +103,6 @@ class SicrediClient:
 			'password': self.config.codigo_acesso,
 			'scope': 'cobranca',
 		}
-		# DEBUG TEMPORÁRIO — remover após confirmar credenciais
-		logger.debug(
-			'[DEBUG SICREDI LOGIN] url=%s | x-api-key=%s... | username=%s | grant_type=%s',
-			self._url_token,
-			(self.config.api_key or '')[:8],
-			username,
-			data['grant_type'],
-		)
 		return self._post_token(data)
 
 	def _refresh(self, refresh_token):
@@ -130,8 +122,6 @@ class SicrediClient:
 			raise SicrediAuthError(f'Falha de conexão com o Sicredi: {e}') from e
 
 		if resp.status_code != 200:
-			# DEBUG TEMPORÁRIO — corpo completo da resposta de erro
-			logger.debug('[DEBUG SICREDI AUTH ERRO] status=%s corpo_completo=%s', resp.status_code, resp.text)
 			logger.error('Sicredi auth erro %s: %s', resp.status_code, resp.text[:300])
 			if resp.status_code in (400, 401):
 				raise SicrediAuthError('Credenciais Sicredi inválidas (x-api-key, beneficiário, cooperativa ou código de acesso).')

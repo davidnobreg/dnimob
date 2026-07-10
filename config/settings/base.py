@@ -271,6 +271,14 @@ SICREDI_API_URL = env('SICREDI_API_URL', default='https://cobranca.sicredi.com.b
 SICREDI_TOKEN_URL = env('SICREDI_TOKEN_URL', default='https://auth.sicredi.com.br/oauth/token')
 SICREDI_WEBHOOK_SECRET = env('SICREDI_WEBHOOK_SECRET', default='')
 
+# Exige ConfigSicredi.webhook_secret em produção (ver apps/sicredi/service.py::processar_webhook).
+# Derivado de DEBUG aqui, mas como setting própria — não lemos settings.DEBUG
+# direto na regra porque o test runner do Django força DEBUG=False em TODOS
+# os testes (mesmo com --settings=dev), e overridar DEBUG em teste reativa o
+# django-debug-toolbar (que não convive bem com a troca de schema do
+# webhook). dev.py redefine isso explicitamente para False.
+SICREDI_WEBHOOK_SECRET_REQUIRED = not DEBUG
+
 # ─────────────────────────────────────────────
 # EVOLUTION API (WhatsApp)
 # ─────────────────────────────────────────────

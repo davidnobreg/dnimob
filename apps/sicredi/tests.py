@@ -17,6 +17,8 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
+from django.db import connection
+from django.test import Client, override_settings
 from django_tenants.test.cases import TenantTestCase
 
 from apps.contratos.models import Contrato, Parcela
@@ -28,6 +30,7 @@ from apps.tenants.models import ConfigSicredi
 from .client import SicrediAPIError, SicrediAuthError, SicrediClient
 from .models import Boleto
 from . import service
+from .service import WebhookAuthError
 
 
 def _resp(status_code, json_data=None, text=''):
@@ -264,7 +267,17 @@ class BaixarBoletoTests(SicrediTestCase):
 
 # ── Webhook ───────────────────────────────────────────────────────────────────
 
+@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=False)
 class WebhookTests(SicrediTestCase):
+	"""
+	SICREDI_WEBHOOK_SECRET_REQUIRED=False força explicitamente o comportamento
+	de dev (webhook_secret opcional). Não dá pra usar override_settings(DEBUG=
+	True) pra isso: o test runner do Django força DEBUG=False em TODOS os
+	testes por padrão, e sobrescrever DEBUG mid-test reativa o
+	django-debug-toolbar, que crasha ao lidar com a troca de schema do
+	webhook (TypeError em SQLPanel). Sem esse override, estes testes cairiam
+	na regra de produção (secret obrigatório, ver service.py).
+	"""
 
 	def _boleto(self, status='emitido'):
 		return Boleto.objects.create(
@@ -356,11 +369,16 @@ class WebhookTests(SicrediTestCase):
 
 # ── Assinatura do webhook (HMAC best-effort) ──────────────────────────────────
 
+@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=False)
 class WebhookAssinaturaTests(SicrediTestCase):
 	"""
 	Validação best-effort: só roda quando ConfigSicredi.webhook_secret está
 	preenchido. Sicredi não documenta oficialmente esse mecanismo nesta
 	versão da API — ver _assinatura_valida em service.py.
+
+	SICREDI_WEBHOOK_SECRET_REQUIRED=False força o comportamento de dev
+	(secret opcional) — ver nota em WebhookTests sobre por que não usamos
+	override_settings(DEBUG=True) aqui.
 	"""
 
 	def _payload_liquidacao(self):
@@ -407,3 +425,188 @@ class WebhookAssinaturaTests(SicrediTestCase):
 
 		self.parcela.refresh_from_db()
 		self.assertEqual(self.parcela.status, 'pago')
+
+
+# ── Endpoint HTTP real ─────────────────────────────────────────────────────────
+
+class WebhookHTTPTestCase(SicrediTestCase):
+	"""
+	Base pros testes que batem no endpoint HTTP real via self.client (não
+	service.processar_webhook() direto).
+
+	O client de teste usa host 'testserver', que não é domínio de nenhum
+	tenant cadastrado — cai no fallback SHOW_PUBLIC_IF_NO_TENANT_FOUND e é
+	roteado pro urls_public.py, exatamente onde webhook_sicredi vive.
+
+	IMPORTANTE: o middleware do django-tenants troca a conexão pro schema
+	public antes de rotear a request. processar_webhook volta pro schema do
+	tenant via schema_context() só durante o processamento; ao fim da
+	request a conexão fica em 'public' de novo. tearDown restaura a conexão
+	pro tenant de teste, senão o setUp() do próximo teste (que cria
+	Imovel/Inquilino/Contrato/Parcela) quebra.
+	"""
+	url = '/sicredi/webhook/'
+
+	def tearDown(self):
+		connection.set_tenant(self.tenant)
+
+
+class WebhookViewHTTPTests(WebhookHTTPTestCase):
+
+	def _boleto(self, status='emitido'):
+		return Boleto.objects.create(
+			parcela=self.parcela, nosso_numero='331000155', status=status,
+		)
+
+	def test_metodo_errado_get_retorna_405(self):
+		resp = self.client.get(self.url)
+		self.assertEqual(resp.status_code, 405)
+
+	def test_json_invalido_nao_derruba_resposta(self):
+		resp = self.client.post(self.url, data=b'{isso nao e json', content_type='application/json')
+		# regra Sicredi: nunca 500, sempre 200 mesmo em erro interno de parsing
+		self.assertEqual(resp.status_code, 200)
+
+	def test_post_sem_csrf_token_nao_e_bloqueado(self):
+		# csrf_exempt: client com enforce_csrf_checks=True não deve levar 403
+		client = Client(enforce_csrf_checks=True)
+		payload = {'beneficiario': '99999', 'nossoNumero': 'X', 'movimento': 'LIQUIDACAO_PIX'}
+		resp = client.post(self.url, data=json.dumps(payload), content_type='application/json')
+		self.assertNotEqual(resp.status_code, 403)
+		self.assertEqual(resp.status_code, 200)
+
+	def test_header_x_signature_e_lido_e_validado(self):
+		self._boleto()
+		self.config.webhook_secret = 'segredo-http'
+		self.config.save()
+
+		payload = {
+			'beneficiario': '12345', 'nossoNumero': '331000155',
+			'movimento': 'LIQUIDACAO_PIX', 'valorLiquidacao': '1500.00',
+			'dataPrevisaoPagamento': [2026, 6, 16],
+		}
+		corpo = json.dumps(payload).encode()
+		assinatura = hmac.new(b'segredo-http', corpo, hashlib.sha256).hexdigest()
+
+		resp = self.client.post(self.url, data=corpo, content_type='application/json',
+		                         HTTP_X_SIGNATURE=assinatura)
+		self.assertEqual(resp.status_code, 200)
+
+		connection.set_tenant(self.tenant)
+		self.parcela.refresh_from_db()
+		self.assertEqual(self.parcela.status, 'pago')  # header lido e assinatura validada certo
+
+
+# ── webhook_secret obrigatório em produção ──────────────────────────────────────
+
+class WebhookProducaoSecretObrigatorioTests(WebhookHTTPTestCase):
+	"""
+	Regra nova: em produção (DEBUG=False), webhook_secret é obrigatório —
+	sem ele, ou com assinatura ausente/inválida, a requisição é rejeitada
+	(401). Em dev/teste (DEBUG=True) o comportamento antigo é mantido
+	(ver WebhookAssinaturaTests) — não usa override_settings.
+	"""
+
+	def _boleto(self, status='emitido'):
+		return Boleto.objects.create(
+			parcela=self.parcela, nosso_numero='441000166', status=status,
+		)
+
+	def _payload(self):
+		return {
+			'beneficiario': '12345', 'nossoNumero': '441000166',
+			'movimento': 'LIQUIDACAO_PIX', 'valorLiquidacao': '1500.00',
+			'dataPrevisaoPagamento': [2026, 6, 16],
+		}
+
+	@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=True)
+	def test_producao_sem_secret_e_rejeitado_com_401(self):
+		self._boleto()
+
+		resp = self.client.post(self.url, data=json.dumps(self._payload()), content_type='application/json')
+		self.assertEqual(resp.status_code, 401)
+
+		connection.set_tenant(self.tenant)
+		self.parcela.refresh_from_db()
+		self.assertEqual(self.parcela.status, 'pendente')  # nada processado
+
+	@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=True)
+	def test_producao_com_secret_e_assinatura_valida_e_aceito(self):
+		self._boleto()
+		self.config.webhook_secret = 'segredo-prod'
+		self.config.save()
+
+		payload = self._payload()
+		corpo = json.dumps(payload).encode()
+		assinatura = hmac.new(b'segredo-prod', corpo, hashlib.sha256).hexdigest()
+
+		resp = self.client.post(self.url, data=corpo, content_type='application/json',
+		                         HTTP_X_SIGNATURE=assinatura)
+		self.assertEqual(resp.status_code, 200)
+
+		connection.set_tenant(self.tenant)
+		self.parcela.refresh_from_db()
+		self.assertEqual(self.parcela.status, 'pago')
+
+	@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=True)
+	def test_producao_com_secret_e_assinatura_forjada_e_rejeitado_com_401(self):
+		self._boleto()
+		self.config.webhook_secret = 'segredo-prod'
+		self.config.save()
+
+		resp = self.client.post(self.url, data=json.dumps(self._payload()), content_type='application/json',
+		                         HTTP_X_SIGNATURE='assinatura-forjada')
+		self.assertEqual(resp.status_code, 401)
+
+		connection.set_tenant(self.tenant)
+		self.parcela.refresh_from_db()
+		self.assertEqual(self.parcela.status, 'pendente')
+
+	@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=False)
+	def test_dev_sem_secret_mantem_comportamento_atual_e_aceita(self):
+		# override_settings explícito na setting dedicada (não em DEBUG): o
+		# test runner do Django força DEBUG=False em todos os testes, e
+		# sobrescrever DEBUG=True mid-test reativa o django-debug-toolbar
+		# (que não convive bem com a troca de schema do webhook — crasha
+		# com TypeError em SQLPanel). SICREDI_WEBHOOK_SECRET_REQUIRED simula
+		# o dev local sem esse efeito colateral.
+		self._boleto()
+
+		resp = self.client.post(self.url, data=json.dumps(self._payload()), content_type='application/json')
+		self.assertEqual(resp.status_code, 200)
+
+		connection.set_tenant(self.tenant)
+		self.parcela.refresh_from_db()
+		self.assertEqual(self.parcela.status, 'pago')
+
+	@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=True)
+	def test_service_levanta_webhookautherror_sem_secret_em_producao(self):
+		# Nível de unidade: confirma o tipo de exceção, não só o status HTTP.
+		self._boleto()
+		with self.assertRaises(WebhookAuthError):
+			service.processar_webhook(self._payload())
+
+
+# ── Movimento desconhecido / não mapeado ────────────────────────────────────────
+
+@override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=False)
+class WebhookMovimentoDesconhecidoTests(WebhookHTTPTestCase):
+	"""
+	Movimento fora do mapeamento conhecido (MOVIMENTOS_LIQUIDACAO / ESTORNO).
+	SICREDI_WEBHOOK_SECRET_REQUIRED=False pra isolar do gate de webhook_secret
+	obrigatório (fora de escopo aqui) — ConfigSicredi de teste não tem secret
+	configurado.
+	"""
+
+	def _payload(self):
+		return {'beneficiario': '12345', 'nossoNumero': 'X999', 'movimento': 'MOVIMENTO_INEXISTENTE_XYZ'}
+
+	def test_movimento_desconhecido_e_ignorado_sem_excecao(self):
+		try:
+			service.processar_webhook(self._payload())
+		except Exception as e:  # noqa: BLE001
+			self.fail(f'processar_webhook não deveria levantar exceção para movimento desconhecido: {e}')
+
+	def test_movimento_desconhecido_via_http_retorna_200(self):
+		resp = self.client.post(self.url, data=json.dumps(self._payload()), content_type='application/json')
+		self.assertEqual(resp.status_code, 200)

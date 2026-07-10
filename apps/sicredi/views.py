@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .client import SicrediError
-from .service import gerar_boleto_parcela, cancelar_boleto, processar_webhook, get_config_tenant
+from .service import gerar_boleto_parcela, cancelar_boleto, processar_webhook, get_config_tenant, WebhookAuthError
 
 logger = logging.getLogger('apps.sicredi')
 
@@ -65,8 +65,12 @@ def webhook_sicredi(request):
 	interno (apenas loga). Sem autenticação obrigatória nesta versão da API.
 
 	A validação de assinatura (X-Signature, best-effort — ver
-	service._assinatura_valida) só é aplicada se o tenant tiver preenchido
-	ConfigSicredi.webhook_secret; sem isso, aceita o payload normalmente.
+	service._assinatura_valida) é aplicada conforme o ambiente:
+	- Produção (DEBUG=False): ConfigSicredi.webhook_secret é OBRIGATÓRIO;
+	  sem ele, ou com assinatura ausente/inválida, a requisição é rejeitada
+	  com 401 (WebhookAuthError) — foge da regra de sempre-200, pois é
+	  rejeição de autenticação, não falha de processamento do evento.
+	- Dev/teste (DEBUG=True): secret opcional, comportamento antigo mantido.
 	"""
 	if request.method != 'POST':
 		return HttpResponse(status=405)
@@ -78,6 +82,9 @@ def webhook_sicredi(request):
 		processar_webhook(payload, raw_body=raw_body, assinatura=assinatura)
 	except json.JSONDecodeError:
 		logger.warning('Webhook Sicredi: corpo não é JSON válido')
+	except WebhookAuthError:
+		logger.warning('Webhook Sicredi: requisição rejeitada (autenticação)')
+		return HttpResponse(status=401)
 	except Exception:  # noqa: BLE001 — nunca derruba a resposta (regra Sicredi)
 		logger.exception('Webhook Sicredi: erro ao processar evento')
 

@@ -8,6 +8,9 @@ from .base import *  # noqa
 
 DEBUG = True
 
+# base.py deriva isso de DEBUG antes deste override rodar — redeclarar aqui.
+SICREDI_WEBHOOK_SECRET_REQUIRED = False
+
 ALLOWED_HOSTS = ['*']
 
 # =============================================================================
