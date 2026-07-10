@@ -36,6 +36,7 @@ AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
 # ─────────────────────────────────────────────
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.scrubber import EventScrubber, DEFAULT_DENYLIST
 
 # Expande o denylist padrão com campos sensíveis do domínio imobiliário
@@ -55,6 +56,7 @@ sentry_sdk.init(
     dsn=env('SENTRY_DSN', default=''),
     environment=env('SENTRY_ENVIRONMENT', default='production'),
     integrations=[DjangoIntegration()],
+    disabled_integrations=[CeleryIntegration],
     traces_sample_rate=env.float('SENTRY_TRACES_RATE', default=0.1),
     send_default_pii=False,
     event_scrubber=EventScrubber(denylist=_DENYLIST, recursive=True),
