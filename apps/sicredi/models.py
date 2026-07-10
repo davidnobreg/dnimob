@@ -19,7 +19,6 @@ class Boleto(models.Model):
     codigo_barras  = models.CharField('Código de Barras', max_length=50, blank=True)
     txid           = models.CharField('TXID (PIX)', max_length=50, blank=True)
     qr_code        = models.TextField('QR Code (PIX)', blank=True)
-    url_boleto     = models.URLField('URL do Boleto', blank=True)
     status         = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='emitido')
     valor_pago     = models.DecimalField('Valor Pago', max_digits=12, decimal_places=2, null=True, blank=True)
     pago_em        = models.DateField('Pago em', null=True, blank=True)
