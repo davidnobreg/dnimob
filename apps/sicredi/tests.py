@@ -127,6 +127,17 @@ class AutenticacaoTests(SicrediTestCase):
 		self.assertEqual(mock_post.call_count, 1)
 
 	@patch('requests.Session.post')
+	def test_login_envia_cooperativa_posto_codigobeneficiario_no_body(self, mock_post):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+
+		self.sicredi_client.autenticar()
+
+		body = mock_post.call_args.kwargs['data']
+		self.assertEqual(body['cooperativa'], '6789')
+		self.assertEqual(body['posto'], '03')
+		self.assertEqual(body['codigoBeneficiario'], '12345')
+
+	@patch('requests.Session.post')
 	def test_login_401_levanta_sicredi_auth_error(self, mock_post):
 		mock_post.return_value = _resp(401, {}, text='invalid_grant')
 

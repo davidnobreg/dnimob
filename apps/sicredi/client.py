@@ -106,6 +106,9 @@ class SicrediClient:
 			'username': username,
 			'password': self.config.codigo_acesso,
 			'scope': 'cobranca',
+			'cooperativa': str(self.config.cooperativa),
+			'posto': str(self.config.posto),
+			'codigoBeneficiario': str(self.config.codigo_beneficiario),
 		}
 		return self._post_token(data)
 
