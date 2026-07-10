@@ -1,5 +1,5 @@
 # ==============================================================================
-# GLOT - .gitignore
+# DN Imob - .gitignore
 # Projeto Django + Tailwind CSS
 # ==============================================================================
 
@@ -109,31 +109,9 @@ configuration/
 staticfiles/
 logs/
 
-# IMPORTANTE:
-# No projeto GLOT, os arquivos CSS/JS editáveis ficam em:
-# base/static/
-#
-# A pasta static/ é usada como destino do collectstatic:
+# static/ é usada como destino do collectstatic:
 # python manage.py collectstatic
-#
-# Por isso, em regra, static/ não deve ser editada manualmente.
-
-# Se em produção você usa static/ apenas como saída do collectstatic,
-# mantenha esta linha ativa:
 static/
-!base/static/
-base/static/*
-!base/static/css/
-base/static/css/*
-!base/static/css/tailwind.input.css
-!base/static/css/tailwind.css
-
-# documentos: estáticos-fonte do app são versionados (bundle TipTap vendorizado
-# + JS/CSS do editor). O collectstatic os copia para static/ na build/deploy.
-!documentos/static/
-
-# Se algum dia você decidir versionar static/ manualmente,
-# comente a linha acima.
 
 
 # ==============================================================================
@@ -146,19 +124,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
-
-
-# ==============================================================================
-# Tailwind / Frontend build cache
-# ==============================================================================
-
-.cache/
-.parcel-cache/
-.next/
-.nuxt/
-.svelte-kit/
-vite.config.ts.timestamp-*
-vite.config.js.timestamp-*
 
 
 # ==============================================================================
@@ -187,45 +152,6 @@ poetry.lock
 
 celerybeat-schedule
 celerybeat.pid
-
-
-# ==============================================================================
-# Jupyter / IPython
-# ==============================================================================
-
-.ipynb_checkpoints/
-profile_default/
-ipython_config.py
-
-
-# ==============================================================================
-# Sphinx / Documentação buildada
-# ==============================================================================
-
-docs/_build/
-
-
-# ==============================================================================
-# Flask / Webassets
-# ==============================================================================
-
-instance/
-.webassets-cache
-
-
-# ==============================================================================
-# Scrapy
-# ==============================================================================
-
-.scrapy/
-
-
-# ==============================================================================
-# PyInstaller
-# ==============================================================================
-
-*.manifest
-*.spec
 
 
 # ==============================================================================
@@ -274,11 +200,7 @@ CLAUDE.local.md
 
 
 # ==============================================================================
-# Temporários do projeto
+# Ferramentas / skills
 # ==============================================================================
 
-_backup/
-proposta_corrigida.html
-proposta_fragment*.html
-corrigir_editor_v2.md
-documentos/instrucoes_integracao.py
+graphify-out/
