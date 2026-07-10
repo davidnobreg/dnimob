@@ -13,17 +13,17 @@ Usuario = get_user_model()
 
 _INPUT = (
     'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm '
-    'text-slate-900 placeholder-slate-400 transition '
-    'focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+    'text-slate-900 placeholder-slate-400 transition-all duration-200 '
+    'focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15'
 )
 _SELECT = (
     'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm '
-    'text-slate-900 transition '
-    'focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+    'text-slate-900 transition-all duration-200 '
+    'focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15'
 )
 _SLUG = (
     'min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-slate-900 '
-    'placeholder-slate-400 focus:outline-none'
+    'placeholder-slate-400 transition-all duration-200 focus:outline-none'
 )
 
 

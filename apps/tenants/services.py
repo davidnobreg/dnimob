@@ -145,7 +145,7 @@ def _sanitizar_subdominio(valor: str) -> str:
 
 
 @transaction.atomic
-def criar_tenant(dados_form: dict) -> Tenant:
+def criar_tenant(dados_form: dict, aceite_termos_em=None, aceite_termos_ip=None, aceite_termos_user_agent=None) -> Tenant:
     """
     Cria registro do tenant + domain SEM criar schema/migrations.
     O provisionamento real (migrate_schemas + admin + templates) fica para a
@@ -172,6 +172,9 @@ def criar_tenant(dados_form: dict) -> Tenant:
         trial=True,
         trial_expira=date.today() + timedelta(days=14),
         provisionamento_status='pendente',
+        aceite_termos_em=aceite_termos_em,
+        aceite_termos_ip=aceite_termos_ip,
+        aceite_termos_user_agent=aceite_termos_user_agent,
     )
     # auto_create_schema=False no nível de instância — pula o migrate_schemas
     tenant.auto_create_schema = False

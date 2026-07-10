@@ -18,6 +18,8 @@ urlpatterns = [
     path('cadastro/status/<str:schema>/', tv.cadastro_status, name='cadastro_status'),
     path('cadastro/sucesso/<str:schema>/', tv.cadastro_sucesso, name='cadastro_sucesso'),
     path('login/', tv.login_acesso, name='login_publico'),
+    path('termos/', tv.termos_uso, name='termos_uso'),
+    path('privacidade/', tv.politica_privacidade, name='politica_privacidade'),
 
     # Webhook Sicredi — público, sem tenant (identifica o tenant pelo beneficiario)
     path('sicredi/webhook/', sicredi_views.webhook_sicredi, name='sicredi_webhook'),

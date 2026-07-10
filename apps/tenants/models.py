@@ -28,6 +28,7 @@ class Plano(models.Model):
     tem_sicredi = models.BooleanField(default=False, help_text='Plano inclui integração Sicredi (exige CNPJ/PJ)')
     preco_mensal = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     ativo = models.BooleanField(default=True)
+    destaque = models.BooleanField(default=False, help_text='Exibido como "Mais indicado" na landing page')
 
     class Meta:
         verbose_name = 'Plano'
@@ -69,6 +70,11 @@ class Tenant(TenantMixin):
     trial = models.BooleanField(default=True)
     trial_expira = models.DateField(null=True, blank=True)
     assinatura_expira = models.DateField(null=True, blank=True)
+
+    # Aceite de Termos de Uso e Política de Privacidade
+    aceite_termos_em = models.DateTimeField('Aceite dos termos em', null=True, blank=True)
+    aceite_termos_ip = models.GenericIPAddressField('IP do aceite', null=True, blank=True)
+    aceite_termos_user_agent = models.CharField('User-Agent do aceite', max_length=500, null=True, blank=True)
 
     # Metadados
     criado_em = models.DateTimeField(auto_now_add=True)

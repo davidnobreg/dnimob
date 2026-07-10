@@ -13,8 +13,8 @@ from .models import (
 
 @admin.register(Plano)
 class PlanoAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'preco_mensal', 'limite_imoveis', 'limite_usuarios', 'tem_whatsapp', 'ativo']
-    list_editable = ['preco_mensal', 'ativo']
+    list_display = ['nome', 'preco_mensal', 'limite_imoveis', 'limite_usuarios', 'tem_whatsapp', 'destaque', 'ativo']
+    list_editable = ['preco_mensal', 'destaque', 'ativo']
 
 
 class DomainInline(admin.TabularInline):

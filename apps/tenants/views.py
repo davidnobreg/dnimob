@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.http import require_POST
@@ -47,6 +48,14 @@ def is_admin(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
 
 
+def obter_ip_cliente(request):
+    """IP real do cliente — atrás de proxy (Cloudflare/NPM), usa o primeiro da X-Forwarded-For."""
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
 # ---------------------------------------------------------------------------
 # Landing page — cadastro de nova imobiliária
 # ---------------------------------------------------------------------------
@@ -64,7 +73,12 @@ def cadastro_imobiliaria(request):
         form = CadastroImobiliariaForm(request.POST)
         if form.is_valid():
             try:
-                tenant = criar_tenant(form.cleaned_data)
+                tenant = criar_tenant(
+                    form.cleaned_data,
+                    aceite_termos_em=timezone.now(),
+                    aceite_termos_ip=obter_ip_cliente(request),
+                    aceite_termos_user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                )
                 from .tasks import provisionar_tenant
                 provisionar_tenant.delay(
                     tenant.pk,
@@ -102,6 +116,16 @@ def cadastro_status(request, schema):
     """AJAX — retorna status do provisionamento para polling do JS."""
     tenant = get_object_or_404(Tenant, schema_name=schema)
     return JsonResponse({'status': tenant.provisionamento_status})
+
+
+def termos_uso(request):
+    """Termos de Uso — página pública estática."""
+    return render(request, 'tenants/termos.html')
+
+
+def politica_privacidade(request):
+    """Política de Privacidade — página pública estática."""
+    return render(request, 'tenants/privacidade.html')
 
 
 def login_acesso(request):

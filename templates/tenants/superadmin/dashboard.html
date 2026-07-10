@@ -1,163 +1,167 @@
-{% extends "base_public.html" %}
-{% block title %}Superadmin — DN Imob{% endblock %}
+{% extends "base_admin.html" %}
+{% block title %}Painel Master — DN Imob{% endblock %}
 
 {% block content %}
 <div class="flex min-h-screen bg-slate-50">
 
-  <!-- Sidebar -->
-  <aside class="w-56 bg-slate-900 flex-shrink-0 flex flex-col">
-    <div class="px-5 py-6 border-b border-slate-700">
-      <span class="text-white font-bold text-lg">⚡ DN Imob</span>
-      <p class="text-slate-400 text-xs mt-0.5">Painel Master</p>
-    </div>
-    <nav class="flex-1 px-3 py-4 space-y-1">
-      <a href="{% url 'superadmin_dashboard' %}"
-         class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-slate-700 text-white text-sm font-medium">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>
-        Dashboard
-      </a>
-      <a href="{% url 'admin:index' %}"
-         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white text-sm font-medium transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        Django Admin
-      </a>
-    </nav>
-  </aside>
+  {% include "components/superadmin_sidebar.html" with ativo="dashboard" %}
 
   <!-- Main -->
-  <main class="flex-1 p-8 overflow-auto">
+  <main class="flex-1 overflow-auto">
 
-    {% if messages %}
-    <div class="mb-6 space-y-2">
-      {% for msg in messages %}
-      <div class="px-4 py-3 rounded-lg text-sm font-medium
-        {% if msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200
-        {% elif msg.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
-        {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
-        {{ msg }}
+    <!-- Header — gradiente estilo hero da landing -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-900 px-8 py-10">
+      <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        <div class="animate-blob absolute -top-20 -left-10 h-72 w-72 rounded-full bg-blue-400/30 mix-blend-screen blur-3xl"></div>
+        <div class="animate-blob animation-delay-2000 absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-indigo-400/30 mix-blend-screen blur-3xl"></div>
       </div>
-      {% endfor %}
-    </div>
-    {% endif %}
 
-    <!-- Header -->
-    <div class="mb-8 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800">Painel Master</h1>
-        <p class="text-slate-500 text-sm mt-1">Gerencie todas as imobiliárias da plataforma</p>
-      </div>
-      <a href="{% url 'superadmin_criar_tenant' %}"
-         class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-        + Nova imobiliária
-      </a>
-    </div>
-
-    <!-- KPIs -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <p class="text-4xl font-bold text-slate-800">{{ total }}</p>
-        <p class="text-sm text-slate-500 mt-1">Total de tenants</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <p class="text-4xl font-bold text-emerald-600">{{ ativos }}</p>
-        <p class="text-sm text-slate-500 mt-1">Tenants ativos</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <p class="text-4xl font-bold text-amber-500">{{ trial }}</p>
-        <p class="text-sm text-slate-500 mt-1">Em trial</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <p class="text-4xl font-bold text-red-500">{{ inativos|default:"0" }}</p>
-        <p class="text-sm text-slate-500 mt-1">Inativos</p>
+      <div class="relative flex items-center justify-between gap-4" data-aos="fade-up" data-aos-duration="600">
+        <div>
+          <span class="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-50 ring-1 ring-white/20 mb-3">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse-dot"></span>
+            Painel Master
+          </span>
+          <h1 class="font-display text-2xl sm:text-3xl font-bold text-white">Todas as imobiliárias</h1>
+          <p class="text-blue-100 text-sm mt-1">Gerencie todas as imobiliárias da plataforma</p>
+        </div>
+        <a href="{% url 'superadmin_criar_tenant' %}"
+           class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-blue-700 shadow-lg shadow-blue-950/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+          + Nova imobiliária
+        </a>
       </div>
     </div>
 
-    <!-- Tabela -->
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-        <h2 class="text-base font-semibold text-slate-800">Imobiliárias</h2>
-        <input type="search" id="filtroTenants" placeholder="Filtrar..."
-               class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+    <div class="p-8">
+
+      {% if messages %}
+      <div class="mb-6 space-y-2">
+        {% for msg in messages %}
+        <div class="px-4 py-3 rounded-lg text-sm font-medium
+          {% if msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+          {% elif msg.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
+          {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+          {{ msg }}
+        </div>
+        {% endfor %}
       </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 text-sm" id="tabelaTenants">
-          <thead class="bg-slate-50">
-            <tr>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Imobiliária</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Subdomínio</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Plano</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Trial expira</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Criado em</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Ações</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            {% for tenant in tenants %}
-            <tr class="hover:bg-slate-50 transition-colors">
-              <td class="px-5 py-3.5">
-                <p class="font-medium text-slate-800">{{ tenant.nome }}</p>
-                <p class="text-xs text-slate-400">{{ tenant.email }}</p>
-              </td>
-              <td class="px-5 py-3.5">
-                <a href="http://{{ tenant.get_primary_domain.domain }}" target="_blank"
-                   class="text-blue-600 hover:underline">{{ tenant.schema_name }}</a>
-              </td>
-              <td class="px-5 py-3.5">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                  {{ tenant.plano|default:"—" }}
-                </span>
-              </td>
-              <td class="px-5 py-3.5">
-                {% if tenant.ativo %}
-                  {% if tenant.trial %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Trial</span>
-                  {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Ativo</span>
-                  {% endif %}
-                {% else %}
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Inativo</span>
-                {% endif %}
-              </td>
-              <td class="px-5 py-3.5 text-slate-600">{{ tenant.trial_expira|date:"d/m/Y"|default:"—" }}</td>
-              <td class="px-5 py-3.5 text-slate-600">{{ tenant.criado_em|date:"d/m/Y" }}</td>
-              <td class="px-5 py-3.5">
-                <div class="flex items-center gap-2">
-                  <a href="{% url 'superadmin_tenant_detalhe' tenant.pk %}"
-                     class="border border-slate-300 text-slate-600 hover:bg-slate-50 rounded px-3 py-1 text-xs font-medium transition-colors">Ver</a>
-                  <form method="post" action="{% url 'superadmin_toggle_tenant' tenant.pk %}" style="display:inline">
-                    {% csrf_token %}
-                    {% if tenant.ativo %}
-                      <button type="submit"
-                              class="bg-red-500 hover:bg-red-600 text-white rounded px-3 py-1 text-xs font-medium transition-colors">Desativar</button>
+      {% endif %}
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div data-aos="fade-up" data-aos-delay="0" class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-blue-200">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold text-slate-800">{{ total }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white text-lg shadow-md shadow-slate-500/20 transition-transform duration-300 group-hover:scale-110">🏢</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Total de tenants</p>
+        </div>
+        <div data-aos="fade-up" data-aos-delay="75" class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-emerald-200">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold text-emerald-600">{{ ativos }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center text-white text-lg shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110">✓</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Tenants ativos</p>
+        </div>
+        <div data-aos="fade-up" data-aos-delay="150" class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-amber-200">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold text-amber-500">{{ trial }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white text-lg shadow-md shadow-amber-400/20 transition-transform duration-300 group-hover:scale-110">⏳</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Em trial</p>
+        </div>
+        <div data-aos="fade-up" data-aos-delay="225" class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-red-200">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold text-red-500">{{ inativos|default:"0" }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center text-white text-lg shadow-md shadow-red-400/20 transition-transform duration-300 group-hover:scale-110">✕</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Inativos</p>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" data-aos="fade-up" data-aos-delay="0">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+          <h2 class="font-display text-base font-bold text-slate-800">Imobiliárias</h2>
+          <input type="search" id="filtroTenants" placeholder="Filtrar..."
+                 class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-slate-700 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 w-48">
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm" id="tabelaTenants">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Imobiliária</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Subdomínio</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Plano</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Trial expira</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Criado em</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for tenant in tenants %}
+              <tr class="hover:bg-blue-50/40 transition-colors">
+                <td class="px-5 py-3.5">
+                  <p class="font-medium text-slate-800">{{ tenant.nome }}</p>
+                  <p class="text-xs text-slate-400">{{ tenant.email }}</p>
+                </td>
+                <td class="px-5 py-3.5">
+                  <a href="http://{{ tenant.get_primary_domain.domain }}" target="_blank"
+                     class="text-blue-600 hover:underline">{{ tenant.schema_name }}</a>
+                </td>
+                <td class="px-5 py-3.5">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                    {{ tenant.plano|default:"—" }}
+                  </span>
+                </td>
+                <td class="px-5 py-3.5">
+                  {% if tenant.ativo %}
+                    {% if tenant.trial %}
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Trial</span>
                     {% else %}
-                      <button type="submit"
-                              class="bg-emerald-500 hover:bg-emerald-600 text-white rounded px-3 py-1 text-xs font-medium transition-colors">Ativar</button>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Ativo</span>
                     {% endif %}
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="7" class="px-5 py-10 text-center text-slate-400">Nenhuma imobiliária cadastrada ainda.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                  {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Inativo</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-slate-600">{{ tenant.trial_expira|date:"d/m/Y"|default:"—" }}</td>
+                <td class="px-5 py-3.5 text-slate-600">{{ tenant.criado_em|date:"d/m/Y" }}</td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <a href="{% url 'superadmin_tenant_detalhe' tenant.pk %}"
+                       class="border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg px-3 py-1 text-xs font-medium transition-colors">Ver</a>
+                    <form method="post" action="{% url 'superadmin_toggle_tenant' tenant.pk %}" style="display:inline">
+                      {% csrf_token %}
+                      {% if tenant.ativo %}
+                        <button type="submit"
+                                class="bg-red-500 hover:bg-red-600 text-white rounded-lg px-3 py-1 text-xs font-medium transition-colors">Desativar</button>
+                      {% else %}
+                        <button type="submit"
+                                class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-3 py-1 text-xs font-medium transition-colors">Ativar</button>
+                      {% endif %}
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="px-5 py-10 text-center text-slate-400">Nenhuma imobiliária cadastrada ainda.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
+    </div>
   </main>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
 document.getElementById('filtroTenants').addEventListener('input', function() {
   const q = this.value.toLowerCase();

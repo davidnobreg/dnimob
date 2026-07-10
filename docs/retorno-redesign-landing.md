@@ -1,3 +1,133 @@
+---
+date: 2026-07-10
+projeto: dnimob
+tags: [implementacao, landing-page, design, ui]
+---
+
+# Retorno — Redesign Visual da Landing Page
+
+Redesign puramente visual, sem lógica nova. Direção: SaaS moderno e ousado,
+base azul intensificada, movimento via AOS + CSS. Nada commitado ainda.
+
+---
+
+## Status
+
+| Item | Status |
+|---|---|
+| Fonte de display (Google Fonts) | ✅ Space Grotesk |
+| Gradientes reais no hero/CTA/plano destaque | ✅ |
+| Scroll-reveal com stagger (AOS via CDN) | ✅ |
+| Hover nos cards (scale + shadow lift) | ✅ |
+| Blob decorativo animado (CSS puro) | ✅ |
+| Composição assimétrica no hero | ✅ |
+| `{% for plano in planos %}` / `{% if plano.destaque %}` | ✅ intactos |
+| `cadastro.html`/`termos.html`/`privacidade.html` | ✅ não tocados |
+| Backend/model/view/rota | ✅ não tocados |
+| Testes `apps.tenants` (sanity, template renderiza) | ✅ 10/10 OK |
+| Migration pendente aplicada no banco dev | ✅ (`0009`, a pedido) |
+| Commit | ❌ não feito |
+
+---
+
+## Fonte escolhida: Space Grotesk
+
+Pareada com a Inter já usada no corpo (mantida sem alteração pro texto
+corrido). Motivo: é geométrica com personalidade — terminais quadrados,
+aberturas largas —, comum em identidade de SaaS moderno (Vercel, Linear,
+Notion-adjacent), sem virar "fonte de moda" ilegível. Contrasta bem com a
+Inter (mais neutra) em vez de duas fontes parecidas competindo.
+
+Carregada via Google Fonts, junto com a Inter já existente:
+
+```diff
+     <link
+-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
++        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+         rel="stylesheet"
+     >
+```
+
+E registrada no `tailwind.config` inline (`base_public.html`) como
+`font-display`, usada só em headlines/títulos (`h1`, `h2`, `h3`, preços):
+
+```diff
+                     fontFamily: {
+                         sans: ['Inter', 'system-ui', 'sans-serif'],
++                        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
+                     },
+```
+
+Único trecho tocado em `base_public.html` — cabeçalho (`<head>`), como
+combinado. Resto do arquivo intacto.
+
+---
+
+## AOS (Animate On Scroll) via CDN — confere com Tailwind CDN
+
+Carregado 100% escopado em `landing.html` (não em `base_public.html`), via
+`{% block extra_head %}` (CSS) e `{% block extra_js %}` (JS + init) —
+blocos que já existiam vazios no `base_public.html`, feitos pra isso:
+
+```html
+<!-- extra_head -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer">
+
+<!-- extra_js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    AOS.init({ duration: 700, easing: 'ease-out-cubic', once: true, offset: 60 });
+</script>
+```
+
+Sem conflito: AOS não usa classes Tailwind, só `data-aos="..."` nos
+elementos + CSS/JS próprios carregados via `cdnjs.cloudflare.com` (host
+diferente do `cdn.tailwindcss.com`, sem colisão de namespace). Confirmado
+via `python manage.py test apps.tenants` — a view `landing()` renderiza o
+template inteiro (com os dois `{% block %}` novos) sem erro nas 10 asserções
+que já existiam, incluindo as que checam conteúdo renderizado.
+
+**Nota:** os testes automatizados aqui só garantem que o template renderiza
+sem quebrar (Django template engine) — não testam JS/CSS visual real, que só
+roda no browser. Validação visual de fato depende de abrir no navegador
+(pedido explicitamente adiado pra depois do print).
+
+---
+
+## Diff completo — `templates/base_public.html`
+
+```diff
+diff --git a/templates/base_public.html b/templates/base_public.html
+index 4fb6b44..8a528bd 100644
+--- a/templates/base_public.html
++++ b/templates/base_public.html
+@@ -38,6 +38,7 @@
+                     },
+                     fontFamily: {
+                         sans: ['Inter', 'system-ui', 'sans-serif'],
++                        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
+                     },
+                     boxShadow: {
+                         soft: '0 18px 45px rgba(15, 23, 42, 0.08)',
+@@ -55,7 +56,7 @@
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ 
+     <link
+-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
++        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+         rel="stylesheet"
+     >
+```
+
+---
+
+## `templates/tenants/landing.html` — arquivo completo (reescrito)
+
+O diff textual ficaria confuso porque o arquivo já tinha mudanças
+acumuladas de rodadas anteriores (não commitadas) — segue o arquivo inteiro
+na versão atual:
+
+```html
 {% extends "base_public.html" %}
 
 {% block title %}Gestão imobiliária moderna{% endblock %}
@@ -157,7 +287,7 @@
                     Contratos inteligentes
                 </h3>
                 <p class="mt-3 text-gray-600">
-                    Contratos gerados em PDF automaticamente, com reajuste por IGP-M, IPCA, INPC ou percentual fixo, e cálculo de multa na rescisão sem planilha.
+                    Wizard multi-step, geração de PDF automática, reajuste por IGP-M/IPCA/INPC e distrato com multa proporcional.
                 </p>
             </div>
 
@@ -166,10 +296,10 @@
                     🏦
                 </div>
                 <h3 class="mt-5 text-lg font-semibold text-gray-900">
-                    Boletos automáticos
+                    Boletos Sicredi
                 </h3>
                 <p class="mt-3 text-gray-600">
-                    Emissão de boletos direto no sistema, com baixa automática assim que o inquilino paga — sem conferência manual.
+                    Registro automático via API OAuth2, webhook de baixa HMAC validado e sincronização ativa como fallback.
                 </p>
             </div>
 
@@ -178,10 +308,10 @@
                     💬
                 </div>
                 <h3 class="mt-5 text-lg font-semibold text-gray-900">
-                    Cobrança pelo WhatsApp
+                    WhatsApp automático
                 </h3>
                 <p class="mt-3 text-gray-600">
-                    Lembrete de vencimento, cobrança de atraso e confirmação de pagamento enviados direto pro WhatsApp do inquilino, com mensagens que você personaliza.
+                    13 eventos automatizados — vencimento, atraso, pagamento confirmado e contratos — com templates editáveis.
                 </p>
             </div>
 
@@ -190,10 +320,10 @@
                     📊
                 </div>
                 <h3 class="mt-5 text-lg font-semibold text-gray-900">
-                    Financeiro em tempo real
+                    Dashboard financeiro
                 </h3>
                 <p class="mt-3 text-gray-600">
-                    Acompanhe receitas e inadimplência conforme acontece, com relatórios por período prontos pra exportar em Excel e PDF.
+                    KPIs em tempo real, inadimplência, relatórios por período e exportação em Excel e PDF.
                 </p>
             </div>
 
@@ -202,10 +332,10 @@
                     🔐
                 </div>
                 <h3 class="mt-5 text-lg font-semibold text-gray-900">
-                    Seus dados, só seus
+                    Multi-tenant seguro
                 </h3>
                 <p class="mt-3 text-gray-600">
-                    Cada imobiliária tem seu próprio ambiente, totalmente separado dos demais clientes — ninguém mais enxerga seus dados.
+                    Schema PostgreSQL por imobiliária. Seus dados 100% isolados dos outros clientes.
                 </p>
             </div>
 
@@ -214,10 +344,10 @@
                     ⚙️
                 </div>
                 <h3 class="mt-5 text-lg font-semibold text-gray-900">
-                    Automação de cobranças
+                    Automações Celery
                 </h3>
                 <p class="mt-3 text-gray-600">
-                    Cobrança do mês gerada sozinha todo dia 1, sem você precisar lançar nada na mão.
+                    Cobranças geradas no dia 1, boletos registrados automaticamente e lembretes enviados no horário certo.
                 </p>
             </div>
 
@@ -349,3 +479,79 @@
     });
 </script>
 {% endblock %}
+```
+
+---
+
+## Descrição visual (sem print — pedido explicitamente adiado)
+
+**Hero:** fundo com gradiente diagonal azul-royal → indigo escuro
+(`from-blue-700 via-blue-600 to-indigo-900`), três blobs desfocados
+(`blur-3xl`) flutuando em loop lento atrás do conteúdo (`mix-blend-screen`,
+opacidade baixa, não competem com o texto). Layout quebra a simetria:
+12 colunas, texto ocupa 6 à esquerda ancorado, card do dashboard ocupa 6 à
+direita mas sai da grid (`lg:-mr-6`), levemente rotacionado (`-rotate-2`) e
+flutuando (`animate-float-slow`), com um segundo cartãozinho menor
+("WhatsApp automático · 13 eventos ativos") ancorado no canto inferior
+esquerdo do card principal, sobrepondo, quebrando o alinhamento óbvio.
+Headline em Space Grotesk, 5xl→7xl, parte do texto ("com eficiência real")
+em gradiente ciano→branco via `bg-clip-text`. Badge superior com dot verde
+pulsante (`animate-pulse-dot`) simulando "sistema ativo". CTA primário
+branco sólido com seta que desliza no hover; CTA secundário translúcido
+(glassmorphism leve, `bg-white/5 backdrop-blur-sm`).
+
+**Planos:** fundo suave gradiente cinza→azul bem sutil (não mais
+branco/cinza uniforme), um blur decorativo atrás do card do meio. Cards com
+`hover:scale-105 hover:shadow-2xl transition-all duration-300` — sobem e
+ganham peso visual ao passar o mouse. O card com `plano.destaque=True`
+ganha gradiente azul→indigo cheio (em vez de azul chapado), anel de destaque
+(`ring-2 ring-blue-400/50`) e a etiqueta "Mais indicado" agora em gradiente
+dourado. Cada card entra com `fade-up` escalonado via AOS
+(`data-aos-delay` cresce por posição no loop — 0ms, 100ms, 200ms...), então
+os cards aparecem em sequência ao rolar até a seção, não todos de uma vez.
+
+**Recursos e CTA final:** mesma lógica — ícones dos 6 cards de recursos
+ganharam gradientes individuais (antes eram fundo sólido de cor pastel),
+hover com leve elevação + ícone escalando; seção CTA final repete o
+tratamento do hero (gradiente azul escuro + blobs), fechando o loop visual
+da página.
+
+---
+
+## Migration aplicada no banco dev (a pedido, durante esta rodada)
+
+```bash
+python manage.py migrate_schemas --schema=public --settings=config.settings.dev
+# Applying tenants.0009_plano_destaque_tenant_aceite_termos_user_agent... OK
+```
+
+Confirmado via `information_schema.columns`: `tenants_plano.destaque` e
+`tenants_tenant.aceite_termos_user_agent` existem no schema `public`.
+
+---
+
+## Testes
+
+```
+python manage.py test apps.tenants --settings=config.settings.dev
+
+Found 10 test(s).
+..........
+Ran 10 tests in 0.277s
+
+OK
+```
+
+Mesmos 10 testes de antes — nenhum novo teste pedido pra esta rodada (visual
+puro). Servem como sanity check de que o template continua renderizando sem
+erro de sintaxe Django após o redesign.
+
+---
+
+## O que NÃO foi mexido
+
+- Contexto/lógica de `views.py` — `landing()` continua igual.
+- `{% for plano in planos %}` e `{% if plano.destaque %}` — só estilo em volta.
+- `cadastro.html`, `termos.html`, `privacidade.html`.
+- Resto de `base_public.html` fora do `<head>` (header, footer, nav).
+- Nenhuma dependência nova via npm — Tailwind e AOS seguem via CDN puro.
