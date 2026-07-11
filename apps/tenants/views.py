@@ -145,6 +145,25 @@ def cadastro_sucesso(request, schema):
 
 
 # ---------------------------------------------------------------------------
+# Acesso bloqueado (schema tenant) — destino do PlanoAcessoMiddleware quando
+# tenant.acesso_permitido é False. Rota fica na whitelist do próprio
+# middleware (URLS_LIBERADAS), então não pode entrar em loop de redirect.
+# ---------------------------------------------------------------------------
+
+def acesso_bloqueado(request):
+    tenant = request.tenant
+    if not tenant.ativo:
+        motivo = 'suspenso'
+    elif tenant.status_assinatura == 'trial_expirado':
+        motivo = 'trial_expirado'
+    elif tenant.status_assinatura == 'expirado':
+        motivo = 'assinatura_expirada'
+    else:
+        motivo = 'bloqueado'
+    return render(request, 'tenants/acesso_bloqueado.html', {'tenant': tenant, 'motivo': motivo})
+
+
+# ---------------------------------------------------------------------------
 # Painel superadmin (schema public)
 # ---------------------------------------------------------------------------
 

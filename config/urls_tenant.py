@@ -27,6 +27,11 @@ urlpatterns = [
     # path('', tv.dashboard, name='home'),
     path('', tv.dashboard, name='dashboard'),
 
+    # Acesso bloqueado (trial vencido, assinatura expirada ou conta suspensa)
+    # — path bate com URLS_LIBERADAS do PlanoAcessoMiddleware, então escapa
+    # da checagem de acesso_permitido (evita loop de redirect).
+    path('acesso-bloqueado/', tv.acesso_bloqueado, name='acesso_bloqueado'),
+
     path('imoveis/', include('apps.imoveis.urls')),
     path('inquilinos/', include('apps.inquilinos.urls')),
     path('contratos/', include('apps.contratos.urls')),

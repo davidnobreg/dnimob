@@ -4,6 +4,7 @@ apps/tenants/tests.py
 Testes do app tenants (schema public — SHARED_APPS, TestCase comum,
 sem TenantTestCase, já que Plano/Tenant/Domain vivem no schema public).
 """
+from datetime import date, timedelta
 from unittest.mock import patch
 
 from django import forms
@@ -11,7 +12,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory, TestCase, override_settings
-from django.urls import resolve
+from django.urls import resolve, reverse
 from django_tenants.test.cases import TenantTestCase
 
 from .forms import ConfigSicrediForm
@@ -184,6 +185,67 @@ class ConfigSicrediFormMascaramentoTests(TestCase):
         form = ConfigSicrediForm()
         self.assertNotIsInstance(form.fields['webhook_secret'].widget, forms.PasswordInput)
         self.assertIn('readonly', form.fields['webhook_secret'].widget.attrs)
+
+
+class AcessoBloqueadoTests(TenantTestCase):
+    """
+    Regressão do bug: PlanoAcessoMiddleware redirecionava para a URL name
+    'acesso_bloqueado', que não existia -- NoReverseMatch (erro 500) em vez
+    de mostrar uma tela de bloqueio.
+    """
+
+    def setUp(self):
+        Usuario = get_user_model()
+        self.user = Usuario.objects.create_user(username='user-teste', password='senha123')
+        self.client.login(username='user-teste', password='senha123')
+
+    def test_trial_expirado_redireciona_para_acesso_bloqueado(self):
+        self.tenant.trial = True
+        self.tenant.trial_expira = date.today() - timedelta(days=1)
+        self.tenant.save()
+
+        resp = self.client.get(reverse('dashboard'), HTTP_HOST=self.domain.domain)
+
+        self.assertRedirects(
+            resp, reverse('acesso_bloqueado'), fetch_redirect_response=False,
+        )
+
+    def test_tenant_suspenso_redireciona_para_acesso_bloqueado(self):
+        self.tenant.ativo = False
+        self.tenant.save()
+
+        resp = self.client.get(reverse('dashboard'), HTTP_HOST=self.domain.domain)
+
+        self.assertRedirects(
+            resp, reverse('acesso_bloqueado'), fetch_redirect_response=False,
+        )
+
+    def test_rota_acesso_bloqueado_nao_entra_em_loop_com_tenant_bloqueado(self):
+        self.tenant.trial = True
+        self.tenant.trial_expira = date.today() - timedelta(days=1)
+        self.tenant.save()
+
+        resp = self.client.get(reverse('acesso_bloqueado'), HTTP_HOST=self.domain.domain)
+
+        self.assertEqual(resp.status_code, 200)
+
+    def test_mensagem_reflete_trial_expirado(self):
+        self.tenant.trial = True
+        self.tenant.trial_expira = date.today() - timedelta(days=1)
+        self.tenant.save()
+
+        resp = self.client.get(reverse('acesso_bloqueado'), HTTP_HOST=self.domain.domain)
+
+        self.assertIn('período de teste expirou', resp.content.decode())
+
+    def test_tenant_com_acesso_permitido_nao_e_bloqueado(self):
+        self.tenant.trial = True
+        self.tenant.trial_expira = date.today() + timedelta(days=5)
+        self.tenant.save()
+
+        resp = self.client.get(reverse('dashboard'), HTTP_HOST=self.domain.domain)
+
+        self.assertEqual(resp.status_code, 200)
 
 
 class ConfigSicrediWebhookSecretTests(TenantTestCase):
