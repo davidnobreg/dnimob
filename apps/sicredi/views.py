@@ -58,16 +58,17 @@ def boleto_cancelar(request, parcela_pk):
 # ── Webhook público (chamado pelo Sicredi) ────────────────────────────────────
 
 @csrf_exempt
-def webhook_sicredi(request):
+def webhook_sicredi(request, secret):
 	"""
 	Endpoint público de eventos do Sicredi. Roda no schema public.
 	Regra do Sicredi: responder SEMPRE HTTP 200 em até 10s, mesmo em erro
-	interno (apenas loga). Sem autenticação obrigatória nesta versão da API.
+	interno (apenas loga). A Sicredi não envia nenhum header de autenticação
+	nesta versão da API — por isso o secret vai embutido no path da própria
+	URL cadastrada no portal deles (ver `config_sicredi` pra URL exibida).
 
-	A validação de assinatura (X-Signature, best-effort — ver
-	service._assinatura_valida) é aplicada conforme o ambiente:
+	A validação do `secret` é aplicada conforme o ambiente:
 	- Produção (DEBUG=False): ConfigSicredi.webhook_secret é OBRIGATÓRIO;
-	  sem ele, ou com assinatura ausente/inválida, a requisição é rejeitada
+	  sem ele, ou com secret da URL não batendo, a requisição é rejeitada
 	  com 401 (WebhookAuthError) — foge da regra de sempre-200, pois é
 	  rejeição de autenticação, não falha de processamento do evento.
 	- Dev/teste (DEBUG=True): secret opcional, comportamento antigo mantido.
@@ -76,10 +77,8 @@ def webhook_sicredi(request):
 		return HttpResponse(status=405)
 
 	try:
-		raw_body = request.body or b'{}'
-		payload = json.loads(raw_body)
-		assinatura = request.headers.get('X-Signature', '')
-		processar_webhook(payload, raw_body=raw_body, assinatura=assinatura)
+		payload = json.loads(request.body or b'{}')
+		processar_webhook(payload, secret=secret)
 	except json.JSONDecodeError:
 		logger.warning('Webhook Sicredi: corpo não é JSON válido')
 	except WebhookAuthError:

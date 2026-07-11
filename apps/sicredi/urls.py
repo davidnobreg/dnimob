@@ -8,4 +8,4 @@ urlpatterns = [
 ]
 
 # ── O webhook vai no urls_public.py (schema public) ──────────────────────────
-# path('sicredi/webhook/', sicredi_views.webhook_sicredi, name='sicredi_webhook'),
+# path('sicredi/webhook/<str:secret>/', sicredi_views.webhook_sicredi, name='sicredi_webhook'),

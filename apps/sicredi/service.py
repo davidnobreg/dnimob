@@ -5,9 +5,8 @@ Camada de negócio da integração Sicredi.
 Orquestra o SicrediClient (client.py) e o processamento de webhook.
 Não fala HTTP direto — isso é responsabilidade do client.
 """
-import hashlib
-import hmac
 import logging
+import secrets
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -35,8 +34,9 @@ MOVIMENTO_ESTORNO = 'ESTORNO_LIQUIDACAO_REDE'
 class WebhookAuthError(Exception):
 	"""
 	Webhook rejeitado por falha de autenticação: em produção (DEBUG=False),
-	webhook_secret não configurado para o tenant, ou assinatura ausente/inválida.
-	A view responde 401 nesse caso, em vez do 200 padrão do Sicredi.
+	webhook_secret não configurado para o tenant, ou secret da URL não bate
+	com o do tenant. A view responde 401 nesse caso, em vez do 200 padrão
+	do Sicredi.
 	"""
 
 
@@ -162,7 +162,7 @@ def reconciliar_liquidados_dia(dia, cpf_cnpj_beneficiario_final=None) -> dict:
 
 # ── Webhook ───────────────────────────────────────────────────────────────────
 
-def processar_webhook(payload: dict, raw_body: bytes = b'', assinatura: str = ''):
+def processar_webhook(payload: dict, secret: str = ''):
 	"""
 	Processa um evento de movimentação recebido do Sicredi.
 
@@ -170,10 +170,9 @@ def processar_webhook(payload: dict, raw_body: bytes = b'', assinatura: str = ''
 	entra no schema correto e atualiza o Boleto + a Parcela. Os signals já
 	existentes (financeiro + whatsapp) cuidam de Lancamento e confirmação.
 
-	`raw_body`/`assinatura` são usados para a validação HMAC best-effort
-	(ver `_assinatura_valida`) — a Sicredi não documenta oficialmente
-	assinatura de webhook nesta versão da API, então isso é defesa em
-	profundidade opcional, não um requisito confirmado pelo banco.
+	`secret` vem do path da URL do webhook (não de header) — a Sicredi não
+	envia nenhum header de autenticação nesta versão da API, então o segredo
+	precisa estar embutido na própria URL cadastrada no portal deles.
 	"""
 	from apps.tenants.models import ConfigSicredi
 
@@ -196,21 +195,21 @@ def processar_webhook(payload: dict, raw_body: bytes = b'', assinatura: str = ''
 
 	# Em produção (settings.SICREDI_WEBHOOK_SECRET_REQUIRED=True, derivado de
 	# DEBUG=False — ver config/settings/base.py), webhook_secret é obrigatório:
-	# sem ele — ou com assinatura ausente/inválida — a requisição é REJEITADA
+	# sem ele — ou com secret da URL não batendo — a requisição é REJEITADA
 	# (WebhookAuthError, a view responde 401), não apenas descartada em silêncio.
 	# Em dev/teste mantém o comportamento antigo: secret opcional, só valida
-	# se o tenant preencheu um; sem secret, aceita normalmente.
+	# se o tenant tiver um configurado; sem secret, aceita normalmente.
 	if settings.SICREDI_WEBHOOK_SECRET_REQUIRED:
 		if not config.webhook_secret:
 			logger.warning('Webhook Sicredi: producao sem webhook_secret configurado para beneficiario %s — requisição rejeitada',
 			               beneficiario)
 			raise WebhookAuthError('webhook_secret não configurado para este tenant em produção')
-		if not _assinatura_valida(raw_body, assinatura, config.webhook_secret):
-			logger.warning('Webhook Sicredi: assinatura inválida/ausente para beneficiario %s — requisição rejeitada',
+		if not secrets.compare_digest(secret, config.webhook_secret):
+			logger.warning('Webhook Sicredi: secret da URL não confere para beneficiario %s — requisição rejeitada',
 			               beneficiario)
-			raise WebhookAuthError('assinatura inválida')
-	elif config.webhook_secret and not _assinatura_valida(raw_body, assinatura, config.webhook_secret):
-		logger.warning('Webhook Sicredi: assinatura inválida/ausente para beneficiario %s — payload descartado',
+			raise WebhookAuthError('secret inválido')
+	elif config.webhook_secret and not secrets.compare_digest(secret, config.webhook_secret):
+		logger.warning('Webhook Sicredi: secret da URL não confere para beneficiario %s — payload descartado',
 		               beneficiario)
 		return
 
@@ -285,27 +284,6 @@ def _registrar_estorno(nosso_numero, payload):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _assinatura_valida(raw_body: bytes, assinatura: str, secret: str) -> bool:
-	"""
-	Valida assinatura HMAC-SHA256 do corpo bruto do webhook.
-
-	BEST-EFFORT: a Sicredi não documenta oficialmente um header de
-	assinatura para o webhook de cobrança nesta versão da API (v3.9.1).
-	Esta validação é defesa em profundidade — só roda quando o tenant
-	preenche `ConfigSicredi.webhook_secret` manualmente. Formato assumido:
-	header com hex digest de HMAC-SHA256(secret, corpo_bruto), aceitando
-	opcionalmente o prefixo "sha256=" (convenção comum em outros provedores,
-	ex. GitHub/Stripe). Ajustar aqui se a Sicredi formalizar o mecanismo.
-	"""
-	if not assinatura or not raw_body:
-		return False
-	recebida = assinatura.strip()
-	if recebida.startswith('sha256='):
-		recebida = recebida[len('sha256='):]
-	esperada = hmac.new(secret.encode('utf-8'), raw_body, hashlib.sha256).hexdigest()
-	return hmac.compare_digest(esperada, recebida)
-
 
 def _to_decimal(valor):
 	try:

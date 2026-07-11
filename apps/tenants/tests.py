@@ -6,11 +6,17 @@ sem TenantTestCase, já que Plano/Tenant/Domain vivem no schema public).
 """
 from unittest.mock import patch
 
+from django import forms
+from django.contrib.auth import get_user_model
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import resolve
+from django_tenants.test.cases import TenantTestCase
 
-from .models import Plano, Tenant
-from .views import landing
+from .forms import ConfigSicrediForm
+from .models import ConfigSicredi, Plano, Tenant
+from .views import config_sicredi, landing
 
 
 @override_settings(ROOT_URLCONF='config.urls_public')
@@ -157,3 +163,92 @@ class TermosPrivacidadeRotasTests(TestCase):
         request = RequestFactory().get('/privacidade/')
         response = match.func(request)
         self.assertEqual(response.status_code, 200)
+
+
+class ConfigSicrediFormMascaramentoTests(TestCase):
+
+    def test_api_key_usa_password_input(self):
+        form = ConfigSicrediForm()
+        self.assertIsInstance(form.fields['api_key'].widget, forms.PasswordInput)
+
+    def test_codigo_acesso_continua_password_input(self):
+        form = ConfigSicrediForm()
+        self.assertIsInstance(form.fields['codigo_acesso'].widget, forms.PasswordInput)
+
+    def test_password_inputs_mantem_render_value_true(self):
+        form = ConfigSicrediForm()
+        for nome in ('api_key', 'codigo_acesso'):
+            self.assertTrue(form.fields[nome].widget.render_value)
+
+    def test_webhook_secret_e_readonly_nao_password(self):
+        form = ConfigSicrediForm()
+        self.assertNotIsInstance(form.fields['webhook_secret'].widget, forms.PasswordInput)
+        self.assertIn('readonly', form.fields['webhook_secret'].widget.attrs)
+
+
+class ConfigSicrediWebhookSecretTests(TenantTestCase):
+    """
+    Regressão da troca de mecanismo de auth do webhook (HMAC/X-Signature,
+    que a Sicredi nunca envia, -> secret embutido no path da URL): o secret
+    passa a ser gerado automaticamente, e a URL exibida na tela precisa
+    mostrar o path/host corretos.
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        Usuario = get_user_model()
+        self.user = Usuario.objects.create_user(
+            username='admin-teste', password='senha123', is_staff=True,
+        )
+
+    def _request(self, method='get', data=None):
+        request = getattr(self.factory, method)('/configuracoes/sicredi/', data=data or {})
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        request.user = self.user
+        request.tenant = self.tenant
+        request._messages = FallbackStorage(request)
+        return request
+
+    def test_gera_webhook_secret_automaticamente_no_primeiro_save(self):
+        request = self._request('post', {
+            'api_key': 'key-teste', 'codigo_acesso': 'acesso-teste',
+            'codigo_beneficiario': '12345', 'cooperativa': '1234', 'posto': '01',
+            'conta': '', 'beneficiario': 'Imobiliaria Teste', 'ambiente': 'sandbox',
+            'webhook_secret': '',
+        })
+
+        config_sicredi(request)
+
+        config = ConfigSicredi.objects.get(schema_name=self.tenant.schema_name)
+        self.assertTrue(config.webhook_secret)
+        self.assertGreaterEqual(len(config.webhook_secret), 32)
+
+    def test_nao_regenera_secret_se_ja_existir(self):
+        ConfigSicredi.objects.create(
+            schema_name=self.tenant.schema_name, cooperativa='1234', posto='01',
+            beneficiario='Imobiliaria Teste', webhook_secret='secret-existente',
+        )
+
+        request = self._request('post', {
+            'api_key': 'key-teste', 'codigo_acesso': 'acesso-teste',
+            'codigo_beneficiario': '12345', 'cooperativa': '1234', 'posto': '01',
+            'conta': '', 'beneficiario': 'Imobiliaria Teste', 'ambiente': 'sandbox',
+            'webhook_secret': 'secret-existente',
+        })
+
+        config_sicredi(request)
+
+        config = ConfigSicredi.objects.get(schema_name=self.tenant.schema_name)
+        self.assertEqual(config.webhook_secret, 'secret-existente')
+
+    def test_url_webhook_exibida_contem_secret_e_path_correto(self):
+        ConfigSicredi.objects.create(
+            schema_name=self.tenant.schema_name, cooperativa='1234', posto='01',
+            beneficiario='Imobiliaria Teste', webhook_secret='secret-fixo-teste',
+        )
+
+        response = config_sicredi(self._request('get'))
+        conteudo = response.content.decode()
+
+        self.assertIn('/sicredi/webhook/secret-fixo-teste/', conteudo)

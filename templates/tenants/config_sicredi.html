@@ -308,6 +308,16 @@
                                         {{ form.webhook_secret.errors.0 }}
                                     </p>
                                 {% endif %}
+
+                                {% if config %}
+                                    <form method="post" action="{% url 'regenerar_webhook_secret_sicredi' %}"
+                                          onsubmit="return confirm('Isso invalida a URL de webhook atual — você vai precisar atualizar a URL cadastrada no portal do Sicredi com o novo secret. Continuar?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="mt-1.5 text-xs font-bold text-blue-600 hover:text-blue-700">
+                                            Gerar novo secret
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -319,19 +329,27 @@
                                         URL do webhook para configurar no Sicredi
                                     </p>
 
-                                    <code
-                                        id="webhookUrl"
-                                        class="mt-2 block overflow-x-auto rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-700 ring-1 ring-blue-100"
-                                    >https://{{ request.get_host }}/webhook/sicredi/baixa/</code>
+                                    {% if webhook_url %}
+                                        <code
+                                            id="webhookUrl"
+                                            class="mt-2 block overflow-x-auto rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-700 ring-1 ring-blue-100"
+                                        >{{ webhook_url }}</code>
+                                    {% else %}
+                                        <p class="mt-2 text-sm text-blue-700">
+                                            Salve as configurações para gerar a URL do webhook.
+                                        </p>
+                                    {% endif %}
                                 </div>
 
-                                <button
-                                    type="button"
-                                    @click="copiarWebhook()"
-                                    class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
-                                >
-                                    <span x-text="copiado ? 'Copiado!' : 'Copiar URL'"></span>
-                                </button>
+                                {% if webhook_url %}
+                                    <button
+                                        type="button"
+                                        @click="copiarWebhook()"
+                                        class="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
+                                    >
+                                        <span x-text="copiado ? 'Copiado!' : 'Copiar URL'"></span>
+                                    </button>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

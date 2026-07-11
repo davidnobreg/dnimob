@@ -21,8 +21,10 @@ urlpatterns = [
     path('termos/', tv.termos_uso, name='termos_uso'),
     path('privacidade/', tv.politica_privacidade, name='politica_privacidade'),
 
-    # Webhook Sicredi — público, sem tenant (identifica o tenant pelo beneficiario)
-    path('sicredi/webhook/', sicredi_views.webhook_sicredi, name='sicredi_webhook'),
+    # Webhook Sicredi — público, sem tenant (identifica o tenant pelo beneficiario
+    # no payload; o <str:secret> autentica a chamada, já que a Sicredi não envia
+    # nenhum header de autenticação nesta versão da API)
+    path('sicredi/webhook/<str:secret>/', sicredi_views.webhook_sicredi, name='sicredi_webhook'),
 
     path('admin-master/', tv.superadmin_dashboard, name='superadmin_dashboard'),
     path('admin-master/criar/', tv.superadmin_criar_tenant, name='superadmin_criar_tenant'),

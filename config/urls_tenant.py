@@ -41,6 +41,11 @@ urlpatterns = [
     # Configurações Sicredi
     path('configuracoes/sicredi/', tv.config_sicredi, name='config_sicredi'),
     path('configuracoes/sicredi/testar/', tv.testar_sicredi, name='testar_sicredi'),
+    path(
+        'configuracoes/sicredi/webhook-secret/regenerar/',
+        tv.regenerar_webhook_secret_sicredi,
+        name='regenerar_webhook_secret_sicredi',
+    ),
 
     # Configurações WhatsApp
     path('configuracoes/whatsapp/', tv.config_whatsapp, name='config_whatsapp'),

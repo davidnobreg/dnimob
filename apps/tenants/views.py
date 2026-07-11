@@ -5,6 +5,7 @@ Sicredi, WhatsApp e gerenciamento de usuários.
 """
 
 import logging
+import secrets
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -253,6 +254,13 @@ def config_conta(request):
 # Configuração Sicredi
 # ---------------------------------------------------------------------------
 
+def _webhook_url(request, config):
+    if not config or not config.webhook_secret:
+        return ''
+    base_domain = getattr(settings, 'TENANT_BASE_DOMAIN', 'dnsoftware.com.br')
+    return f'{request.scheme}://{base_domain}/sicredi/webhook/{config.webhook_secret}/'
+
+
 @login_required
 @user_passes_test(is_admin)
 def config_sicredi(request):
@@ -264,12 +272,16 @@ def config_sicredi(request):
             config = form.save(commit=False)
             config.schema_name = schema  # vínculo do tenant (roteamento do webhook)
             config.ativo = False  # só ativa após testar
+            if not config.webhook_secret:
+                config.webhook_secret = secrets.token_urlsafe(32)
             config.save()
             messages.success(request, 'Configurações Sicredi salvas. Clique em "Testar conexão" para validar.')
             return redirect('config_sicredi')
     else:
         form = ConfigSicrediForm(instance=config)
-    return render(request, 'tenants/config_sicredi.html', {'form': form, 'config': config})
+    return render(request, 'tenants/config_sicredi.html', {
+        'form': form, 'config': config, 'webhook_url': _webhook_url(request, config),
+    })
 
 
 @login_required
@@ -284,6 +296,25 @@ def testar_sicredi(request):
         config.ativo = True
         config.save()
     return JsonResponse({'ok': ok, 'msg': msg})
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_POST
+def regenerar_webhook_secret_sicredi(request):
+    config = ConfigSicredi.objects.filter(schema_name=request.tenant.schema_name).first()
+    if not config:
+        messages.error(request, 'Salve as configurações Sicredi antes de gerar um webhook secret.')
+        return redirect('config_sicredi')
+
+    config.webhook_secret = secrets.token_urlsafe(32)
+    config.save(update_fields=['webhook_secret', 'atualizado_em'])
+    messages.warning(
+        request,
+        'Novo webhook secret gerado. A URL antiga parou de funcionar — '
+        'atualize a URL do webhook no portal do Sicredi com o novo valor abaixo.',
+    )
+    return redirect('config_sicredi')
 
 
 # ---------------------------------------------------------------------------

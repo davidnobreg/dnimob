@@ -231,10 +231,25 @@ class ConfigContaForm(forms.ModelForm):
 # ---------------------------------------------------------------------------
 
 class ConfigSicrediForm(forms.ModelForm):
+    api_key = forms.CharField(
+        label='x-api-key',
+        widget=forms.PasswordInput(render_value=True, attrs={'class': 'form-input'}),
+        help_text='client_id do Portal do Desenvolvedor Sicredi (header x-api-key)',
+        required=False,
+    )
     codigo_acesso = forms.CharField(
         label='Código de acesso',
         widget=forms.PasswordInput(render_value=True, attrs={'class': 'form-input'}),
         help_text='Código de acesso gerado no Internet Banking (senha do token). Mantido em sigilo.',
+        required=False,
+    )
+    webhook_secret = forms.CharField(
+        label='Webhook secret',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input bg-slate-50 text-slate-500',
+            'readonly': 'readonly',
+        }),
+        help_text='Gerado automaticamente ao salvar. Já vem embutido na URL do webhook abaixo — não precisa digitar.',
         required=False,
     )
 
@@ -246,20 +261,17 @@ class ConfigSicrediForm(forms.ModelForm):
             'beneficiario', 'ambiente', 'webhook_secret',
         ]
         widgets = {
-            'api_key':              forms.TextInput(attrs={'class': 'form-input'}),
             'codigo_beneficiario':  forms.TextInput(attrs={'class': 'form-input'}),
             'cooperativa':          forms.TextInput(attrs={'class': 'form-input'}),
             'posto':                forms.TextInput(attrs={'class': 'form-input'}),
             'conta':                forms.TextInput(attrs={'class': 'form-input'}),
             'beneficiario':         forms.TextInput(attrs={'class': 'form-input'}),
             'ambiente':             forms.Select(attrs={'class': 'form-select'}),
-            'webhook_secret':       forms.TextInput(attrs={'class': 'form-input'}),
         }
         help_texts = {
             'cooperativa': 'Código de 4 dígitos fornecido pelo Sicredi',
             'posto': 'Código de 2 dígitos do posto de atendimento',
             'conta': 'Número da conta sem dígito verificador',
-            'webhook_secret': 'Secret compartilhado com o Sicredi para validar webhooks HMAC',
         }
 
 
