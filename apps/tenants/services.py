@@ -115,6 +115,22 @@ TEMPLATES_PADRAO = {
     ),
 }
 
+
+def renderizar_template(evento: str, contexto: dict) -> str | None:
+    """
+    Busca o template ativo do evento no tenant atual e substitui as variáveis.
+    Retorna None se não houver template para o evento ou se estiver desativado.
+    """
+    try:
+        template = TemplateWhatsApp.objects.get(evento=evento, ativo=True)
+    except TemplateWhatsApp.DoesNotExist:
+        return None
+    try:
+        return template.mensagem.format(**contexto)
+    except (KeyError, IndexError):
+        logger.warning('Variável ausente ao renderizar template "%s"; enviando sem substituição.', evento)
+        return template.mensagem
+
 VARIAVEIS_POR_EVENTO = {
     'boas_vindas':           ['nome_inquilino', 'nome_imobiliaria', 'endereco_imovel'],
     'boleto_gerado':         ['nome_inquilino', 'valor', 'mes_referencia', 'data_vencimento', 'codigo_barras'],
@@ -153,7 +169,7 @@ def criar_tenant(dados_form: dict, aceite_termos_em=None, aceite_termos_ip=None,
     """
     subdominio  = _sanitizar_subdominio(dados_form['subdominio'])
     plano       = dados_form['plano']
-    base_domain = getattr(settings, 'BASE_DOMAIN', 'dnsoftware.com.br')
+    base_domain = getattr(settings, 'TENANT_BASE_DOMAIN', 'dnsoftware.com.br')
     schema_name = f'imob_{subdominio.replace("-", "_")}'
 
     if Tenant.objects.filter(schema_name=schema_name).exists():
@@ -369,6 +385,9 @@ def obter_qrcode_instancia(tenant_schema: str, nome_instancia: str) -> dict:
     try:
         data      = client.obter_qrcode(nome_instancia)
         qr_base64 = data.get('base64', '')
+        if qr_base64.startswith('data:'):
+            qr_base64 = qr_base64.split(',', 1)[-1]
+        data['base64'] = qr_base64
         with schema_context(tenant_schema):
             InstanciaWhatsApp.objects.filter(nome_instancia=nome_instancia).update(
                 qr_code=qr_base64,

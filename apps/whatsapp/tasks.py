@@ -43,7 +43,7 @@ def _enviar_lembretes_tenant(data_alvo: date):
 
     parcelas = Parcela.objects.filter(
         data_vencimento=data_alvo,
-        status=Parcela.Status.PENDENTE,
+        status='pendente',
     ).select_related('contrato__inquilino', 'contrato__imovel')
 
     for parcela in parcelas:
@@ -63,9 +63,9 @@ def _enviar_lembretes_tenant(data_alvo: date):
 def verificar_vencidas():
     """
     Roda diariamente.
-    Envia cobrança para parcelas vencidas há 1, 3 e 7 dias.
+    Envia cobrança para parcelas vencidas há 3, 7 e 15 dias.
     """
-    DIAS_PARA_COBRAR = [1, 3, 7]
+    DIAS_PARA_COBRAR = [3, 7, 15]
     hoje = date.today()
 
     TenantModel = get_tenant_model()
@@ -85,7 +85,7 @@ def _enviar_cobrancas_tenant(data_venc: date):
 
     parcelas = Parcela.objects.filter(
         data_vencimento=data_venc,
-        status=Parcela.Status.ATRASADO,
+        status='atrasado',
     ).select_related('contrato__inquilino', 'contrato__imovel')
 
     for parcela in parcelas:

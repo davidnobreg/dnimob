@@ -4,6 +4,7 @@ Usa InstanciaWhatsApp do tenant para obter credenciais.
 """
 import logging
 import requests
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -148,13 +149,15 @@ def notificar_contrato_criado(contrato) -> bool:
     numero = _formatar_numero(contrato.inquilino.telefone or '')
     if not numero or len(numero) < 12:
         return False
-    texto = (
-        f'Olá, {contrato.inquilino.nome}! 👋\n\n'
-        f'Seu contrato de locação do imóvel *{contrato.imovel}* foi criado com sucesso.\n'
-        f'📅 Vigência: {contrato.data_inicio.strftime("%d/%m/%Y")} a {contrato.data_fim.strftime("%d/%m/%Y")}\n'
-        f'💰 Aluguel: R$ {contrato.valor_aluguel:,.2f}\n\n'
-        f'Qualquer dúvida, entre em contato conosco. 🏠'
-    )
+
+    from apps.tenants.services import renderizar_template
+    texto = renderizar_template('contrato_enviado', {
+        'nome_inquilino': contrato.inquilino.nome,
+        'endereco_imovel': str(contrato.imovel),
+    })
+    if not texto:
+        return False
+
     return enviar_mensagem(
         numero=numero, mensagem=texto, evento='contrato_criado',
         nome_contato=contrato.inquilino.nome, contrato_id=contrato.pk,
@@ -165,13 +168,23 @@ def notificar_lembrete_vencimento(parcela) -> bool:
     numero = _formatar_numero(parcela.contrato.inquilino.telefone or '')
     if not numero or len(numero) < 12:
         return False
-    texto = (
-        f'Olá, {parcela.contrato.inquilino.nome}! 😊\n\n'
-        f'Lembrete: o boleto referente ao mês *{parcela.competencia}* '
-        f'vence em *{parcela.data_vencimento.strftime("%d/%m/%Y")}*.\n'
-        f'💰 Valor: R$ {parcela.valor_total:,.2f}\n\n'
-        f'Pague em dia e evite multas! 🙏'
-    )
+
+    try:
+        codigo_barras = parcela.boleto.codigo_barras
+    except ObjectDoesNotExist:
+        codigo_barras = ''
+
+    from apps.tenants.services import renderizar_template
+    texto = renderizar_template('vence_amanha', {
+        'nome_inquilino': parcela.contrato.inquilino.nome,
+        'valor': f'{parcela.valor_total:,.2f}',
+        'data_vencimento': parcela.data_vencimento.strftime('%d/%m/%Y'),
+        'codigo_barras': codigo_barras,
+        'mes_referencia': parcela.competencia,
+    })
+    if not texto:
+        return False
+
     return enviar_mensagem(
         numero=numero, mensagem=texto, evento='parcela_lembrete',
         nome_contato=parcela.contrato.inquilino.nome,
@@ -183,14 +196,22 @@ def notificar_parcela_vencida(parcela) -> bool:
     numero = _formatar_numero(parcela.contrato.inquilino.telefone or '')
     if not numero or len(numero) < 12:
         return False
+
     dias = (timezone.now().date() - parcela.data_vencimento).days
-    texto = (
-        f'Olá, {parcela.contrato.inquilino.nome}.\n\n'
-        f'⚠️ Seu boleto referente ao mês *{parcela.competencia}* '
-        f'está vencido há *{dias} dia(s)*.\n'
-        f'💰 Valor atualizado: R$ {parcela.valor_total:,.2f}\n\n'
-        f'Regularize o quanto antes para evitar maiores encargos.'
-    )
+    evento_template = f'atraso_{dias}' if dias in (3, 7, 15) else 'atraso_3'
+
+    from apps.tenants.services import renderizar_template
+    texto = renderizar_template(evento_template, {
+        'nome_inquilino': parcela.contrato.inquilino.nome,
+        'valor': f'{(parcela.valor_total - parcela.valor_multa):,.2f}',
+        'encargos': f'{parcela.valor_multa:,.2f}',
+        'valor_com_encargos': f'{parcela.valor_total:,.2f}',
+        'data_vencimento': parcela.data_vencimento.strftime('%d/%m/%Y'),
+        'endereco_imovel': str(parcela.contrato.imovel),
+    })
+    if not texto:
+        return False
+
     return enviar_mensagem(
         numero=numero, mensagem=texto, evento='parcela_vencida',
         nome_contato=parcela.contrato.inquilino.nome,
@@ -202,14 +223,16 @@ def notificar_pagamento_confirmado(parcela) -> bool:
     numero = _formatar_numero(parcela.contrato.inquilino.telefone or '')
     if not numero or len(numero) < 12:
         return False
-    texto = (
-        f'✅ Pagamento confirmado!\n\n'
-        f'Olá, {parcela.contrato.inquilino.nome}!\n'
-        f'Recebemos o pagamento referente ao mês *{parcela.competencia}*.\n'
-        f'💰 Valor: R$ {parcela.valor_pago:,.2f}\n'
-        f'📅 Data: {parcela.data_pagamento.strftime("%d/%m/%Y")}\n\n'
-        f'Obrigado! 🏠'
-    )
+
+    from apps.tenants.services import renderizar_template
+    texto = renderizar_template('pagamento_confirmado', {
+        'nome_inquilino': parcela.contrato.inquilino.nome,
+        'valor': f'{parcela.valor_total:,.2f}',
+        'mes_referencia': parcela.competencia,
+    })
+    if not texto:
+        return False
+
     return enviar_mensagem(
         numero=numero, mensagem=texto, evento='pagamento_confirmado',
         nome_contato=parcela.contrato.inquilino.nome,
