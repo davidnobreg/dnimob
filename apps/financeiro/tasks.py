@@ -172,9 +172,21 @@ def _marcar_inadimplencias():
 
 # ── WhatsApp ──────────────────────────────────────────────────────────────────
 
+def _ja_enviou_hoje(evento, parcela_id) -> bool:
+	from apps.whatsapp.models import LogMensagem
+
+	return LogMensagem.objects.filter(
+		evento=evento,
+		parcela_id=parcela_id,
+		enviado_em__date=date.today(),
+		status=LogMensagem.Status.ENVIADO,
+	).exists()
+
+
 def _avisar_vencimento_amanha():
 	"""Envia lembrete de vencimento para parcelas que vencem amanhã."""
 	from apps.contratos.models import Parcela
+	from apps.whatsapp.models import LogMensagem
 	from apps.whatsapp.services import notificar_lembrete_vencimento
 
 	amanha = date.today() + timedelta(days=1)
@@ -184,6 +196,8 @@ def _avisar_vencimento_amanha():
 	).select_related('contrato__inquilino', 'contrato__imovel')
 
 	for parcela in parcelas:
+		if _ja_enviou_hoje(LogMensagem.Evento.PARCELA_LEMBRETE, parcela.pk):
+			continue
 		try:
 			notificar_lembrete_vencimento(parcela)
 		except Exception:
@@ -193,7 +207,8 @@ def _avisar_vencimento_amanha():
 def _avisar_vencimento_hoje():
 	"""Envia lembrete de vencimento para parcelas que vencem hoje."""
 	from apps.contratos.models import Parcela
-	from apps.whatsapp.services import notificar_lembrete_vencimento
+	from apps.whatsapp.models import LogMensagem
+	from apps.whatsapp.services import notificar_vencimento_hoje
 
 	hoje = date.today()
 	parcelas = Parcela.objects.filter(
@@ -202,26 +217,37 @@ def _avisar_vencimento_hoje():
 	).select_related('contrato__inquilino', 'contrato__imovel')
 
 	for parcela in parcelas:
+		if _ja_enviou_hoje(LogMensagem.Evento.PARCELA_LEMBRETE, parcela.pk):
+			continue
 		try:
-			notificar_lembrete_vencimento(parcela)
+			notificar_vencimento_hoje(parcela)
 		except Exception:
 			logger.exception('Erro ao notificar vencimento hoje para parcela %s', parcela.pk)
 
 
 def _cobrar_inadimplentes():
-	"""Envia cobrança por WhatsApp para parcelas com status 'atrasado'."""
+	"""Envia cobrança por WhatsApp para parcelas vencidas há 3, 7 ou 15 dias."""
 	from apps.contratos.models import Parcela
+	from apps.whatsapp.models import LogMensagem
 	from apps.whatsapp.services import notificar_parcela_vencida
 
-	parcelas = Parcela.objects.filter(
-		status='atrasado',
-	).select_related('contrato__inquilino', 'contrato__imovel')
+	DIAS_PARA_COBRAR = [3, 7, 15]
+	hoje = date.today()
 
-	for parcela in parcelas:
-		try:
-			notificar_parcela_vencida(parcela)
-		except Exception:
-			logger.exception('Erro ao cobrar inadimplente para parcela %s', parcela.pk)
+	for dias in DIAS_PARA_COBRAR:
+		data_alvo = hoje - timedelta(days=dias)
+		parcelas = Parcela.objects.filter(
+			data_vencimento=data_alvo,
+			status='atrasado',
+		).select_related('contrato__inquilino', 'contrato__imovel')
+
+		for parcela in parcelas:
+			if _ja_enviou_hoje(LogMensagem.Evento.PARCELA_VENCIDA, parcela.pk):
+				continue
+			try:
+				notificar_parcela_vencida(parcela)
+			except Exception:
+				logger.exception('Erro ao cobrar inadimplente para parcela %s', parcela.pk)
 
 
 def _avisar_contratos_vencendo():

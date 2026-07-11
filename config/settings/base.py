@@ -236,14 +236,6 @@ CELERY_BEAT_SCHEDULE = {
         'args': ['task_avisar_contratos_vencendo'],
         'schedule': crontab(hour='9', minute='30'),
     },
-    'whatsapp-lembretes-diarios': {
-        'task': 'whatsapp.verificar_lembretes',
-        'schedule': crontab(hour=8, minute=0),
-    },
-    'whatsapp-vencidas-diarios': {
-        'task': 'whatsapp.verificar_vencidas',
-        'schedule': crontab(hour=9, minute=0),
-    },
     # ── Backup ───────────────────────────────────
     'backup-diario': {
         'task': 'apps.core.tasks.executar_backup',

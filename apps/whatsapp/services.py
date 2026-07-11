@@ -192,10 +192,40 @@ def notificar_lembrete_vencimento(parcela) -> bool:
     )
 
 
+def notificar_vencimento_hoje(parcela) -> bool:
+    numero = _formatar_numero(parcela.contrato.inquilino.telefone or '')
+    if not numero or len(numero) < 12:
+        return False
+
+    try:
+        codigo_barras = parcela.boleto.codigo_barras
+    except ObjectDoesNotExist:
+        codigo_barras = ''
+
+    from apps.tenants.services import renderizar_template
+    texto = renderizar_template('vence_hoje', {
+        'nome_inquilino': parcela.contrato.inquilino.nome,
+        'valor': f'{parcela.valor_total:,.2f}',
+        'data_vencimento': parcela.data_vencimento.strftime('%d/%m/%Y'),
+        'codigo_barras': codigo_barras,
+        'mes_referencia': parcela.competencia,
+    })
+    if not texto:
+        return False
+
+    return enviar_mensagem(
+        numero=numero, mensagem=texto, evento='parcela_lembrete',
+        nome_contato=parcela.contrato.inquilino.nome,
+        contrato_id=parcela.contrato_id, parcela_id=parcela.pk,
+    )
+
+
 def notificar_parcela_vencida(parcela) -> bool:
     numero = _formatar_numero(parcela.contrato.inquilino.telefone or '')
     if not numero or len(numero) < 12:
         return False
+
+    from django.db import connection
 
     dias = (timezone.now().date() - parcela.data_vencimento).days
     evento_template = f'atraso_{dias}' if dias in (3, 7, 15) else 'atraso_3'
@@ -203,6 +233,7 @@ def notificar_parcela_vencida(parcela) -> bool:
     from apps.tenants.services import renderizar_template
     texto = renderizar_template(evento_template, {
         'nome_inquilino': parcela.contrato.inquilino.nome,
+        'nome_imobiliaria': connection.tenant.nome,
         'valor': f'{(parcela.valor_total - parcela.valor_multa):,.2f}',
         'encargos': f'{parcela.valor_multa:,.2f}',
         'valor_com_encargos': f'{parcela.valor_total:,.2f}',

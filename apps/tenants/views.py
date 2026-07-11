@@ -369,7 +369,7 @@ DISPARO_POR_EVENTO = {
     'distrato_enviado':     {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
     'boleto_gerado':        {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
     'vence_amanha':         {'wired': True,  'descricao': 'Diariamente, para boletos que vencem no dia seguinte.'},
-    'vence_hoje':           {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+    'vence_hoje':           {'wired': True,  'descricao': 'Diariamente, para boletos que vencem no próprio dia.'},
     'atraso_3':             {'wired': True,  'descricao': 'Diariamente, para boletos vencidos há 3 dias.'},
     'atraso_7':             {'wired': True,  'descricao': 'Diariamente, para boletos vencidos há 7 dias.'},
     'atraso_15':            {'wired': True,  'descricao': 'Diariamente, para boletos vencidos há 15 dias.'},

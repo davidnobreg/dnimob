@@ -1,103 +1,18 @@
 """
-Tasks Celery para envios WhatsApp agendados.
+Tasks Celery para envios WhatsApp.
 
-Celery Beat executa `verificar_lembretes` e `verificar_vencidas`
-diariamente (configure em CELERY_BEAT_SCHEDULE no settings).
+Os agendamentos diários (lembrete de vencimento, cobrança de atraso) vivem
+em apps.financeiro.tasks (disparar_todos_tenants) — não duplicar aqui.
 
 Tasks assíncronas (`task_contrato_criado`, `task_pagamento_confirmado`)
 são disparadas por signals.
 """
 import logging
-from datetime import date, timedelta
 
 from celery import shared_task
-from django.utils import timezone
-from django_tenants.utils import get_tenant_model, schema_context
+from django_tenants.utils import schema_context
 
 logger = logging.getLogger(__name__)
-
-
-# ─── Agendadas via Celery Beat ────────────────────────────────────────────────
-
-@shared_task(name='whatsapp.verificar_lembretes')
-def verificar_lembretes():
-    """
-    Roda diariamente.
-    Envia lembrete para parcelas que vencem em DIAS_ANTECEDENCIA dias.
-    """
-    DIAS_ANTECEDENCIA = 3
-    data_alvo = date.today() + timedelta(days=DIAS_ANTECEDENCIA)
-
-    TenantModel = get_tenant_model()
-    tenants = TenantModel.objects.exclude(schema_name='public')
-
-    for tenant in tenants:
-        with schema_context(tenant.schema_name):
-            _enviar_lembretes_tenant(data_alvo)
-
-
-def _enviar_lembretes_tenant(data_alvo: date):
-    from apps.contratos.models import Parcela
-    from apps.whatsapp.models import LogMensagem
-    from apps.whatsapp.services import notificar_lembrete_vencimento
-
-    parcelas = Parcela.objects.filter(
-        data_vencimento=data_alvo,
-        status='pendente',
-    ).select_related('contrato__inquilino', 'contrato__imovel')
-
-    for parcela in parcelas:
-        # Evita reenvio se já enviou lembrete para esta parcela hoje
-        ja_enviou = LogMensagem.objects.filter(
-            evento=LogMensagem.Evento.PARCELA_LEMBRETE,
-            parcela_id=parcela.pk,
-            enviado_em__date=date.today(),
-            status=LogMensagem.Status.ENVIADO,
-        ).exists()
-
-        if not ja_enviou:
-            notificar_lembrete_vencimento(parcela)
-
-
-@shared_task(name='whatsapp.verificar_vencidas')
-def verificar_vencidas():
-    """
-    Roda diariamente.
-    Envia cobrança para parcelas vencidas há 3, 7 e 15 dias.
-    """
-    DIAS_PARA_COBRAR = [3, 7, 15]
-    hoje = date.today()
-
-    TenantModel = get_tenant_model()
-    tenants = TenantModel.objects.exclude(schema_name='public')
-
-    for tenant in tenants:
-        with schema_context(tenant.schema_name):
-            for dias in DIAS_PARA_COBRAR:
-                data_alvo = hoje - timedelta(days=dias)
-                _enviar_cobrancas_tenant(data_alvo)
-
-
-def _enviar_cobrancas_tenant(data_venc: date):
-    from apps.contratos.models import Parcela
-    from apps.whatsapp.models import LogMensagem
-    from apps.whatsapp.services import notificar_parcela_vencida
-
-    parcelas = Parcela.objects.filter(
-        data_vencimento=data_venc,
-        status='atrasado',
-    ).select_related('contrato__inquilino', 'contrato__imovel')
-
-    for parcela in parcelas:
-        ja_enviou_hoje = LogMensagem.objects.filter(
-            evento=LogMensagem.Evento.PARCELA_VENCIDA,
-            parcela_id=parcela.pk,
-            enviado_em__date=date.today(),
-            status=LogMensagem.Status.ENVIADO,
-        ).exists()
-
-        if not ja_enviou_hoje:
-            notificar_parcela_vencida(parcela)
 
 
 # ─── Disparadas por signals ────────────────────────────────────────────────────
