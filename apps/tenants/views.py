@@ -397,11 +397,23 @@ def whatsapp_templates(request):
     grupos = [
         {
             'titulo': titulo,
-            'templates': [templates_por_evento[evento] for evento in eventos if evento in templates_por_evento],
+            'templates': [
+                {
+                    'template': templates_por_evento[evento],
+                    'disparo': DISPARO_POR_EVENTO.get(evento, {'wired': False, 'descricao': ''}),
+                }
+                for evento in eventos if evento in templates_por_evento
+            ],
         }
         for titulo, eventos in GRUPOS_TEMPLATES_WHATSAPP
     ]
-    return render(request, 'tenants/config_templates_whatsapp.html', {'grupos': grupos})
+    total = sum(len(g['templates']) for g in grupos)
+    ativos = sum(1 for g in grupos for t in g['templates'] if t['template'].ativo)
+    return render(request, 'tenants/config_templates_whatsapp.html', {
+        'grupos': grupos,
+        'total': total,
+        'ativos': ativos,
+    })
 
 
 def _grupo_do_evento(evento):

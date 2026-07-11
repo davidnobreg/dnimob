@@ -5,11 +5,31 @@
 <div class="space-y-8">
 
   {# Cabeçalho #}
-  <div class="flex items-center justify-between">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">🗂️ Templates de Mensagens</h1>
-      <p class="text-sm text-gray-500 mt-1">Personalize os 13 eventos automáticos de WhatsApp da sua imobiliária.</p>
+      <p class="text-sm text-gray-500 mt-1">Personalize os {{ total }} eventos automáticos de WhatsApp da sua imobiliária.</p>
     </div>
+    <div class="flex items-center gap-4 shrink-0">
+      <div class="text-center">
+        <p class="text-2xl font-bold text-gray-900">{{ total }}</p>
+        <p class="text-xs text-gray-500">eventos</p>
+      </div>
+      <div class="w-px h-8 bg-gray-200"></div>
+      <div class="text-center">
+        <p class="text-2xl font-bold text-green-600">{{ ativos }}</p>
+        <p class="text-xs text-gray-500">ativos</p>
+      </div>
+    </div>
+  </div>
+
+  {# Nota sobre novos eventos #}
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+    <span class="text-xl shrink-0">💡</span>
+    <p class="text-sm text-blue-800">
+      Os eventos disponíveis são fixos — cada um já vem ligado (ou não) a um gatilho automático do sistema.
+      Precisa de um evento novo de WhatsApp? <span class="font-semibold">Fale com o suporte</span> pra configurarmos.
+    </p>
   </div>
 
   {% for grupo in grupos %}
@@ -19,12 +39,13 @@
     </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {% for template in grupo.templates %}
-      <div class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
+      {% for item in grupo.templates %}
+      {% with template=item.template disparo=item.disparo %}
+      <div class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:border-gray-300 transition-colors">
 
         <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-semibold text-gray-800 text-sm">{{ template.get_evento_display }}</h3>
+          <div class="min-w-0">
+            <h3 class="font-semibold text-gray-800 text-sm truncate">{{ template.get_evento_display }}</h3>
             <span class="text-xs font-mono text-gray-400">{{ template.evento }}</span>
           </div>
           {% if template.ativo %}
@@ -37,6 +58,16 @@
             </span>
           {% endif %}
         </div>
+
+        {% if disparo.wired %}
+          <span class="inline-flex items-center gap-1.5 self-start text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Disparo automático
+          </span>
+        {% else %}
+          <span class="inline-flex items-center gap-1.5 self-start text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sem gatilho ainda
+          </span>
+        {% endif %}
 
         <p class="text-sm text-gray-500 leading-relaxed">
           {{ template.mensagem|truncatewords:25|linebreaksbr }}
@@ -58,6 +89,7 @@
         </div>
 
       </div>
+      {% endwith %}
       {% endfor %}
     </div>
   </div>
