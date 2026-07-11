@@ -289,6 +289,7 @@ class TemplateWhatsAppForm(forms.ModelForm):
         model = TemplateWhatsApp
         fields = ['ativo', 'mensagem']
         widgets = {
+            'ativo': forms.CheckboxInput(attrs={'class': 'sr-only peer'}),
             'mensagem': forms.Textarea(attrs={
                 'rows': 6,
                 'placeholder': 'Olá {nome_inquilino}, seu boleto referente ao imóvel {endereco_imovel} vence em {data_vencimento}...',

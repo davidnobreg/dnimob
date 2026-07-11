@@ -359,6 +359,36 @@ GRUPOS_TEMPLATES_WHATSAPP = [
     ('✅ Pagamento', ['pagamento_confirmado', 'recibo_pagamento']),
 ]
 
+# Quando cada evento dispara de verdade no sistema. `wired=False` = evento
+# ainda sem gatilho no código (template existe mas nunca é enviado).
+DISPARO_POR_EVENTO = {
+    'boas_vindas':          {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+    'contrato_enviado':     {'wired': True,  'descricao': 'Ao criar um novo contrato (signal → task_contrato_criado).'},
+    'contrato_60dias':      {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+    'contrato_30dias':      {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+    'distrato_enviado':     {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+    'boleto_gerado':        {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+    'vence_amanha':         {'wired': True,  'descricao': 'Diariamente, para boletos que vencem no dia seguinte.'},
+    'vence_hoje':           {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+    'atraso_3':             {'wired': True,  'descricao': 'Diariamente, para boletos vencidos há 3 dias.'},
+    'atraso_7':             {'wired': True,  'descricao': 'Diariamente, para boletos vencidos há 7 dias.'},
+    'atraso_15':            {'wired': True,  'descricao': 'Diariamente, para boletos vencidos há 15 dias.'},
+    'pagamento_confirmado': {'wired': True,  'descricao': 'Ao registrar o pagamento de uma parcela (signal → task_pagamento_confirmado).'},
+    'recibo_pagamento':     {'wired': False, 'descricao': 'Ainda sem gatilho automático no código.'},
+}
+
+EXEMPLOS_VARIAVEIS = {
+    'nome_inquilino':           'Maria Silva',
+    'endereco_imovel':          'Rua das Flores, 123 — Centro',
+    'valor':                    '1.500,00',
+    'mes_referencia':           '03/2026',
+    'data_vencimento':          '10/03/2026',
+    'data_vencimento_contrato': '15/09/2026',
+    'codigo_barras':            '00190.00009 03388.020128 12345.678901 1 90910000150000',
+    'encargos':                 '60,00',
+    'valor_com_encargos':       '1.560,00',
+}
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -374,6 +404,13 @@ def whatsapp_templates(request):
     return render(request, 'tenants/config_templates_whatsapp.html', {'grupos': grupos})
 
 
+def _grupo_do_evento(evento):
+    for titulo, eventos in GRUPOS_TEMPLATES_WHATSAPP:
+        if evento in eventos:
+            return titulo
+    return ''
+
+
 @login_required
 @user_passes_test(is_admin)
 def whatsapp_template_editar(request, template_id):
@@ -386,9 +423,14 @@ def whatsapp_template_editar(request, template_id):
             return redirect('whatsapp_templates')
     else:
         form = TemplateWhatsAppForm(instance=template)
+    disparo = DISPARO_POR_EVENTO.get(template.evento, {'wired': False, 'descricao': ''})
+    exemplos = {**EXEMPLOS_VARIAVEIS, 'nome_imobiliaria': request.tenant.nome}
     return render(request, 'tenants/config_template_editar.html', {
         'form': form,
         'template': template,
+        'grupo_titulo': _grupo_do_evento(template.evento),
+        'disparo': disparo,
+        'exemplos': exemplos,
     })
 
 
