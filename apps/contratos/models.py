@@ -29,6 +29,13 @@ class Contrato(models.Model):
         ('nenhuma',     'Sem Garantia'),
     ]
 
+    MESMO_MES = 'mesmo_mes'
+    MES_ANTERIOR = 'mes_anterior'
+    REGRA_COMPETENCIA_CHOICES = [
+        (MESMO_MES,    'Mesmo mês do vencimento'),
+        (MES_ANTERIOR, 'Mês anterior ao vencimento'),
+    ]
+
     # Partes
     imovel    = models.ForeignKey('imoveis.Imovel',    on_delete=models.PROTECT, related_name='contratos', verbose_name='Imóvel')
     inquilino = models.ForeignKey('inquilinos.Inquilino', on_delete=models.PROTECT, related_name='contratos', verbose_name='Inquilino')
@@ -48,6 +55,8 @@ class Contrato(models.Model):
     valor_condominio = models.DecimalField('Condomínio (R$)', max_digits=10, decimal_places=2, default=0)
     valor_iptu     = models.DecimalField('IPTU Mensal (R$)', max_digits=10, decimal_places=2, default=0)
     dia_vencimento = models.PositiveSmallIntegerField('Dia de Vencimento', default=10)
+    regra_competencia = models.CharField('Regra de Competência', max_length=15,
+                                          choices=REGRA_COMPETENCIA_CHOICES, default=MESMO_MES)
 
     # Reajuste
     indice_reajuste = models.CharField('Índice de Reajuste', max_length=10, choices=REAJUSTE_CHOICES, default='igpm')
@@ -107,6 +116,13 @@ class Contrato(models.Model):
         }
         return cores.get(self.status, 'gray')
 
+    def calcular_competencia(self, data_vencimento):
+        """Retorna a competência (MM/YYYY) de uma parcela, conforme regra_competencia."""
+        ref = data_vencimento
+        if self.regra_competencia == self.MES_ANTERIOR:
+            ref = ref - relativedelta(months=1)
+        return ref.strftime('%m/%Y')
+
     def gerar_parcelas(self):
         """Gera os objetos Parcela para todo o período do contrato."""
         from dateutil.relativedelta import relativedelta
@@ -120,6 +136,7 @@ class Contrato(models.Model):
                 contrato=self,
                 numero=mes,
                 data_vencimento=data,
+                competencia=self.calcular_competencia(data),
                 valor=self.valor_aluguel,
                 valor_condominio=self.valor_condominio,
                 valor_iptu=self.valor_iptu,
@@ -149,6 +166,7 @@ class Contrato(models.Model):
                     contrato=self,
                     numero=mes,
                     data_vencimento=data,
+                    competencia=self.calcular_competencia(data),
                     valor=self.valor_aluguel,
                     valor_condominio=self.valor_condominio,
                     valor_iptu=self.valor_iptu,
@@ -170,6 +188,7 @@ class Parcela(models.Model):
     contrato        = models.ForeignKey(Contrato, on_delete=models.CASCADE, related_name='parcelas')
     numero          = models.PositiveSmallIntegerField('Nº Parcela')
     data_vencimento = models.DateField('Vencimento')
+    competencia     = models.CharField('Competência', max_length=7, blank=True, default='')
     data_pagamento  = models.DateField('Data de Pagamento', null=True, blank=True)
     valor           = models.DecimalField('Aluguel (R$)', max_digits=12, decimal_places=2)
     valor_condominio = models.DecimalField('Condomínio (R$)', max_digits=10, decimal_places=2, default=0)

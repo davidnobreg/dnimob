@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, patch
 from django.core.cache import cache
 from django.db import connection
 from django.test import Client, override_settings
+from django.urls import reverse
 from django_tenants.test.cases import TenantTestCase
 
 from apps.contratos.models import Contrato, Parcela
@@ -31,12 +32,13 @@ from . import service
 from .service import WebhookAuthError
 
 
-def _resp(status_code, json_data=None, text=''):
+def _resp(status_code, json_data=None, text='', content=None):
 	"""Cria uma resposta fake de requests.Response."""
 	resp = MagicMock()
 	resp.status_code = status_code
 	resp.text = text or str(json_data or '')
 	resp.json.return_value = json_data if json_data is not None else {}
+	resp.content = content if content is not None else resp.text.encode()
 	return resp
 
 
@@ -183,7 +185,16 @@ class CriarBoletoTests(SicrediTestCase):
 		self.assertEqual(payload_enviado['codigoBeneficiario'], '12345')
 		self.assertEqual(payload_enviado['valor'], 1500.0)
 		self.assertEqual(payload_enviado['pagador']['documento'], '02738306006')
-		self.assertEqual(payload_enviado['seuNumero'], 'CT0001-P1')
+		self.assertEqual(payload_enviado['seuNumero'], str(self.parcela.pk).zfill(10))
+		self.assertLessEqual(len(payload_enviado['seuNumero']), 10)
+
+	def test_seu_numero_nunca_excede_10_caracteres_mesmo_com_pk_alto(self):
+		self.parcela.pk = 999999999999
+		seu_numero, payload = self.sicredi_client._montar_payload(self.parcela)
+
+		self.assertLessEqual(len(seu_numero), 10)
+		self.assertLessEqual(len(payload['seuNumero']), 10)
+		self.assertEqual(seu_numero, payload['seuNumero'])
 
 	@patch('requests.Session.post')
 	def test_criar_boleto_erro_generico_levanta_api_error(self, mock_post):
@@ -206,6 +217,245 @@ class CriarBoletoTests(SicrediTestCase):
 
 		with self.assertRaises(SicrediAuthError):
 			self.sicredi_client.criar_boleto(self.parcela)
+
+	@patch('requests.Session.post')
+	def test_criar_boleto_201_sem_nosso_numero_nao_salva_e_levanta_erro_claro(self, mock_post):
+		mock_post.side_effect = [_resp(200, TOKEN_PAYLOAD), _resp(201, {'linhaDigitavel': 'x'})]
+
+		with self.assertRaises(SicrediAPIError) as ctx:
+			self.sicredi_client.criar_boleto(self.parcela)
+
+		self.assertIn('nossoNumero', str(ctx.exception))
+		self.assertFalse(Boleto.objects.filter(parcela=self.parcela).exists())
+
+	@patch('requests.Session.post')
+	def test_criar_boleto_201_com_nosso_numero_continua_normal(self, mock_post):
+		mock_post.side_effect = [_resp(200, TOKEN_PAYLOAD), _resp(201, {'nossoNumero': '251006142', 'linhaDigitavel': 'x'})]
+
+		boleto = self.sicredi_client.criar_boleto(self.parcela)
+
+		self.assertEqual(boleto.nosso_numero, '251006142')
+		self.assertEqual(boleto.status, 'emitido')
+
+	@patch('apps.sicredi.client.logger')
+	@patch('requests.Session.post')
+	def test_reemissao_loga_warning_com_nosso_numero_antigo_e_novo(self, mock_post, mock_logger):
+		Boleto.objects.create(parcela=self.parcela, nosso_numero='111111111', status='erro')
+		mock_post.side_effect = [_resp(200, TOKEN_PAYLOAD), _resp(201, {'nossoNumero': '222222222', 'linhaDigitavel': 'x'})]
+
+		boleto = self.sicredi_client.criar_boleto(self.parcela)
+
+		self.assertEqual(boleto.nosso_numero, '222222222')
+		avisos = [str(call.args) for call in mock_logger.warning.call_args_list]
+		self.assertTrue(any('111111111' in a and '222222222' in a for a in avisos))
+
+
+# ── Geração de boletos em lote ────────────────────────────────────────────────
+
+class GerarBoletosLoteTests(SicrediTestCase):
+
+	def _add_parcelas(self, quantidade, status='pendente'):
+		parcelas = [self.parcela]
+		for n in range(2, quantidade + 1):
+			parcelas.append(Parcela.objects.create(
+				contrato=self.contrato, numero=n,
+				data_vencimento=date.today() + timedelta(days=10 * n),
+				valor=Decimal('1500.00'), status=status,
+			))
+		return parcelas
+
+	@patch('requests.Session.post')
+	def test_gera_boleto_pra_cada_parcela_pendente_sem_boleto(self, mock_post):
+		self._add_parcelas(3)
+		mock_post.side_effect = [
+			_resp(200, TOKEN_PAYLOAD),
+			_resp(201, {'nossoNumero': '1001', 'linhaDigitavel': 'x'}),
+			_resp(201, {'nossoNumero': '1002', 'linhaDigitavel': 'x'}),
+			_resp(201, {'nossoNumero': '1003', 'linhaDigitavel': 'x'}),
+		]
+
+		resultado = service.gerar_boletos_lote(self.contrato)
+
+		self.assertEqual(resultado['gerados'], 3)
+		self.assertEqual(resultado['falhas'], [])
+		self.assertEqual(Boleto.objects.filter(parcela__contrato=self.contrato, status='emitido').count(), 3)
+
+	@patch('requests.Session.post')
+	def test_pula_parcela_que_ja_tem_boleto_emitido(self, mock_post):
+		parcelas = self._add_parcelas(2)
+		Boleto.objects.create(parcela=parcelas[1], nosso_numero='999', status='emitido')
+		mock_post.side_effect = [
+			_resp(200, TOKEN_PAYLOAD),
+			_resp(201, {'nossoNumero': '1001', 'linhaDigitavel': 'x'}),
+		]
+
+		resultado = service.gerar_boletos_lote(self.contrato)
+
+		self.assertEqual(resultado['gerados'], 1)
+		self.assertEqual(mock_post.call_count, 2)  # 1 auth + 1 criação — não reprocessou a que já tinha boleto
+
+	@patch('requests.Session.post')
+	def test_falha_em_uma_parcela_nao_impede_as_demais(self, mock_post):
+		self._add_parcelas(2)
+		mock_post.side_effect = [
+			_resp(200, TOKEN_PAYLOAD),
+			_resp(400, {'message': 'dados inválidos'}),
+			_resp(201, {'nossoNumero': '1002', 'linhaDigitavel': 'x'}),
+		]
+
+		resultado = service.gerar_boletos_lote(self.contrato)
+
+		self.assertEqual(resultado['gerados'], 1)
+		self.assertEqual(len(resultado['falhas']), 1)
+		self.assertIn('dados inválidos', resultado['falhas'][0][1])
+
+	@patch('requests.Session.post')
+	def test_erro_auth_interrompe_o_lote_inteiro(self, mock_post):
+		self._add_parcelas(2)
+		mock_post.side_effect = [_resp(401, {}, text='unauthorized')]
+
+		resultado = service.gerar_boletos_lote(self.contrato)
+
+		self.assertEqual(resultado['gerados'], 0)
+		self.assertEqual(len(resultado['falhas']), 1)
+
+
+class BoletosGerarLoteViewTests(SicrediTestCase):
+
+	def setUp(self):
+		super().setUp()
+		from django.contrib.auth import get_user_model
+		self.user = get_user_model().objects.create_user(username='admin', password='senha123', is_staff=True)
+
+	@patch('requests.Session.post')
+	def test_view_gera_lote_e_redireciona_com_sucesso(self, mock_post):
+		self.client.login(username='admin', password='senha123')
+		mock_post.side_effect = [_resp(200, TOKEN_PAYLOAD), _resp(201, {'nossoNumero': '1001', 'linhaDigitavel': 'x'})]
+
+		resp = self.client.post(
+			reverse('boletos_gerar_lote', args=[self.contrato.pk]),
+			HTTP_HOST=self.domain.domain,
+		)
+
+		self.assertRedirects(resp, reverse('contrato_detalhe', args=[self.contrato.pk]), fetch_redirect_response=False)
+		self.assertTrue(Boleto.objects.filter(parcela=self.parcela, status='emitido').exists())
+
+	def test_view_sem_config_sicredi_mostra_erro(self):
+		self.config.ativo = False
+		self.config.save()
+		self.client.login(username='admin', password='senha123')
+
+		resp = self.client.post(
+			reverse('boletos_gerar_lote', args=[self.contrato.pk]),
+			HTTP_HOST=self.domain.domain,
+		)
+
+		self.assertRedirects(resp, reverse('contrato_detalhe', args=[self.contrato.pk]), fetch_redirect_response=False)
+		self.assertFalse(Boleto.objects.filter(parcela=self.parcela).exists())
+
+
+# ── Impressão de boleto ──────────────────────────────────────────────────────
+
+class ImprimirBoletoClientTests(SicrediTestCase):
+
+	def _boleto(self, **kwargs):
+		defaults = dict(parcela=self.parcela, nosso_numero='251006142',
+		                 linha_digitavel='74891125110061420512803153351030188640000009990',
+		                 status='emitido')
+		defaults.update(kwargs)
+		return Boleto.objects.create(**defaults)
+
+	@patch('requests.Session.get')
+	@patch('requests.Session.post')
+	def test_imprimir_boleto_retorna_bytes_do_pdf(self, mock_post, mock_get):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_get.return_value = _resp(200, content=b'%PDF-1.4 conteudo fake')
+
+		pdf = self.sicredi_client.imprimir_boleto('74891125110061420512803153351030188640000009990')
+
+		self.assertEqual(pdf, b'%PDF-1.4 conteudo fake')
+		params_enviados = mock_get.call_args.kwargs['params']
+		self.assertEqual(params_enviados['linhaDigitavel'], '74891125110061420512803153351030188640000009990')
+
+	@patch('requests.Session.get')
+	@patch('requests.Session.post')
+	def test_imprimir_boleto_aceita_201_sandbox_retorna_pdf(self, mock_post, mock_get):
+		"""
+		Bug real de sandbox: este endpoint responde 201 (não 200) com o PDF
+		no corpo. Confirmado batendo na API real do Sicredi em 2026-07-11.
+		"""
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_get.return_value = _resp(201, content=b'%PDF-1.4 conteudo fake')
+
+		pdf = self.sicredi_client.imprimir_boleto('74891125110061420512803153351030188640000009990')
+
+		self.assertEqual(pdf, b'%PDF-1.4 conteudo fake')
+
+	@patch('requests.Session.get')
+	@patch('requests.Session.post')
+	def test_imprimir_boleto_erro_generico_levanta_api_error(self, mock_post, mock_get):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_get.return_value = _resp(400, {'message': 'linha digitável inválida'})
+
+		with self.assertRaises(SicrediAPIError):
+			self.sicredi_client.imprimir_boleto('linha-invalida')
+
+	@patch('requests.Session.get')
+	@patch('requests.Session.post')
+	def test_imprimir_boleto_401_levanta_auth_error(self, mock_post, mock_get):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_get.return_value = _resp(401, {}, text='unauthorized')
+
+		with self.assertRaises(SicrediAuthError):
+			self.sicredi_client.imprimir_boleto('qualquer-linha')
+
+	def test_service_sem_linha_digitavel_levanta_api_error(self):
+		boleto = self._boleto(linha_digitavel='')
+
+		with self.assertRaises(SicrediAPIError):
+			service.imprimir_boleto(boleto)
+
+
+class BoletoPdfViewTests(SicrediTestCase):
+
+	def setUp(self):
+		super().setUp()
+		from django.contrib.auth import get_user_model
+		self.user = get_user_model().objects.create_user(username='tester', password='senha123')
+		self.client_http = Client()
+		self.client_http.login(username='tester', password='senha123')
+
+	def _boleto(self, **kwargs):
+		defaults = dict(parcela=self.parcela, nosso_numero='251006142',
+		                 linha_digitavel='74891125110061420512803153351030188640000009990',
+		                 status='emitido')
+		defaults.update(kwargs)
+		return Boleto.objects.create(**defaults)
+
+	@patch('apps.sicredi.views.imprimir_boleto')
+	def test_boleto_pdf_retorna_response_pdf(self, mock_imprimir):
+		mock_imprimir.return_value = b'%PDF-1.4 conteudo fake'
+		self._boleto()
+
+		resp = self.client_http.get(f'/sicredi/boleto/{self.parcela.pk}/pdf/', HTTP_HOST=self.domain.domain)
+
+		self.assertEqual(resp.status_code, 200)
+		self.assertEqual(resp['Content-Type'], 'application/pdf')
+		self.assertEqual(resp.content, b'%PDF-1.4 conteudo fake')
+
+	def test_boleto_pdf_sem_boleto_redireciona_com_erro(self):
+		resp = self.client_http.get(f'/sicredi/boleto/{self.parcela.pk}/pdf/', HTTP_HOST=self.domain.domain)
+
+		self.assertEqual(resp.status_code, 302)
+
+	@patch('apps.sicredi.views.imprimir_boleto')
+	def test_boleto_pdf_erro_sicredi_redireciona_com_mensagem(self, mock_imprimir):
+		mock_imprimir.side_effect = SicrediAPIError('Boleto sem linha digitável — não é possível imprimir.')
+		self._boleto(linha_digitavel='')
+
+		resp = self.client_http.get(f'/sicredi/boleto/{self.parcela.pk}/pdf/', HTTP_HOST=self.domain.domain)
+
+		self.assertEqual(resp.status_code, 302)
 
 	@patch('requests.Session.post')
 	def test_gerar_boleto_parcela_sem_config_ativa_levanta_erro(self, mock_post):
@@ -272,6 +522,18 @@ class BaixarBoletoTests(SicrediTestCase):
 
 		with self.assertRaises(SicrediAPIError):
 			self.sicredi_client.baixar_boleto(boleto)
+
+	@patch('requests.Session.patch')
+	@patch('requests.Session.post')
+	def test_baixa_400_extrai_mensagem_real_do_erro(self, mock_post, mock_patch):
+		mock_post.return_value = _resp(200, TOKEN_PAYLOAD)
+		mock_patch.return_value = _resp(400, {'message': 'nossoNumero inválido ou inexistente'})
+		boleto = self._boleto()
+
+		with self.assertRaises(SicrediAPIError) as ctx:
+			self.sicredi_client.baixar_boleto(boleto)
+		self.assertIn('nossoNumero inválido ou inexistente', str(ctx.exception))
+		self.assertNotIn('(400)', str(ctx.exception))
 
 
 # ── Consulta de boletos liquidados por dia ────────────────────────────────────

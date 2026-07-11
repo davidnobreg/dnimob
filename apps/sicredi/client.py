@@ -86,6 +86,10 @@ class SicrediClient:
 		return f'{HOST}{self._prefixo}/cobranca/boleto/v1/boletos/liquidados/dia'
 
 	@property
+	def _url_boleto_pdf(self):
+		return f'{HOST}{self._prefixo}/cobranca/boleto/v1/boletos/pdf'
+
+	@property
 	def _cache_key(self):
 		return f'sicredi_token_{self.schema_name}'
 
@@ -226,7 +230,9 @@ class SicrediClient:
 	def _montar_payload(self, parcela):
 		contrato = parcela.contrato
 		inquilino = contrato.inquilino
-		seu_numero = f'CT{contrato.numero}-P{parcela.numero}'[:30]
+		# Sicredi limita seuNumero a 10 caracteres — pk da parcela é único e
+		# curto o bastante (zero-padded pra manter tamanho fixo).
+		seu_numero = str(parcela.pk).zfill(10)[-10:]
 		return seu_numero, {
 			'tipoCobranca': 'NORMAL',
 			'codigoBeneficiario': str(self.config.codigo_beneficiario),
@@ -267,11 +273,24 @@ class SicrediClient:
 			raise SicrediAPIError(f'Erro ao cadastrar boleto no Sicredi: {msg}')
 
 		data = resp.json()
+		novo_nosso_numero = data.get('nossoNumero') or ''
+		if not novo_nosso_numero:
+			logger.error('Sicredi criar_boleto: resposta %s sem nossoNumero. corpo=%s',
+			             resp.status_code, resp.text[:500])
+			raise SicrediAPIError(
+				f'Sicredi retornou sucesso mas sem nossoNumero na resposta — resposta: {resp.text[:300]}'
+			)
+
+		boleto_anterior = Boleto.objects.filter(parcela=parcela).first()
+		if boleto_anterior and boleto_anterior.nosso_numero and boleto_anterior.nosso_numero != novo_nosso_numero:
+			logger.warning('Reemissão de boleto: parcela %s, nosso_numero antigo=%s substituído por novo=%s',
+			                parcela.pk, boleto_anterior.nosso_numero, novo_nosso_numero)
+
 		boleto, _ = Boleto.objects.update_or_create(
 			parcela=parcela,
 			defaults={
 				'seu_numero': seu_numero,
-				'nosso_numero': data.get('nossoNumero', '') or '',
+				'nosso_numero': novo_nosso_numero,
 				'linha_digitavel': data.get('linhaDigitavel', '') or '',
 				'codigo_barras': data.get('codigoBarras', '') or '',
 				'txid': data.get('txid', '') or '',
@@ -318,8 +337,9 @@ class SicrediClient:
 		if resp.status_code in (401, 403):
 			raise SicrediAuthError('Token Sicredi inválido ou sem permissão para baixar boleto.')
 
+		msg = _extrair_erro(resp)
 		logger.error('Sicredi baixar_boleto erro %s: %s', resp.status_code, resp.text[:300])
-		raise SicrediAPIError(f'Erro ao baixar boleto no Sicredi ({resp.status_code}).')
+		raise SicrediAPIError(f'Erro ao baixar boleto no Sicredi: {msg}')
 
 	def consultar_liquidados_dia(self, dia, cpf_cnpj_beneficiario_final=None):
 		"""
@@ -370,6 +390,36 @@ class SicrediClient:
 		logger.info('Sicredi consultar_liquidados_dia schema=%s dia=%s total=%s',
 		            self.schema_name, dia.isoformat(), len(itens))
 		return itens
+
+	def imprimir_boleto(self, linha_digitavel):
+		"""
+		Busca o PDF de impressão do boleto no Sicredi a partir da linha
+		digitável. Retorna os bytes do PDF. Lança SicrediAPIError em falha.
+		"""
+		logger.info('Sicredi imprimir_boleto schema=%s', self.schema_name)
+		try:
+			resp = self.session.get(
+				self._url_boleto_pdf,
+				params={'linhaDigitavel': linha_digitavel},
+				headers=self._headers_api(),
+				timeout=30,
+			)
+		except requests.RequestException as e:
+			logger.error('Sicredi imprimir_boleto conexão: %s', e)
+			raise SicrediAPIError(f'Falha de conexão com o Sicredi: {e}') from e
+
+		# Sicredi responde 201 (não 200) neste endpoint mesmo sendo um GET —
+		# confirmado em sandbox: 201 com o PDF como corpo binário.
+		if resp.status_code not in (200, 201):
+			if resp.status_code in (401, 403):
+				raise SicrediAuthError('Token Sicredi inválido ou sem permissão para imprimir boleto.')
+			if resp.status_code == 429:
+				raise SicrediAPIError('Limite de requisições do Sicredi atingido. Tente novamente em instantes.')
+			msg = _extrair_erro(resp)
+			logger.error('Sicredi imprimir_boleto erro %s: %s', resp.status_code, resp.text[:300])
+			raise SicrediAPIError(f'Erro ao obter PDF do boleto no Sicredi: {msg}')
+
+		return resp.content
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -6,14 +6,14 @@
 {% block content %}
 <div class="space-y-6">
 
-  <div class="flex items-center justify-between">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Contratos</h1>
       <p class="text-sm text-gray-500 mt-0.5">Gestão de contratos de locação</p>
     </div>
     <a href="{% url 'contrato_criar' %}"
-       class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+       class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary-600 to-indigo-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary-600/25 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary-600/30 active:translate-y-0">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
       Novo Contrato
@@ -22,26 +22,26 @@
 
   {# Cards de resumo #}
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
-      <p class="text-xs text-gray-500 uppercase tracking-wide">Total</p>
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+      <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Total</p>
       <p class="text-3xl font-bold text-gray-900 mt-1">{{ totais.total }}</p>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
       <p class="text-xs text-green-600 uppercase tracking-wide font-medium">Ativos</p>
       <p class="text-3xl font-bold text-green-600 mt-1">{{ totais.ativo }}</p>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
       <p class="text-xs text-yellow-600 uppercase tracking-wide font-medium">Pendentes</p>
       <p class="text-3xl font-bold text-yellow-600 mt-1">{{ totais.pendente }}</p>
     </div>
-    <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
       <p class="text-xs text-red-500 uppercase tracking-wide font-medium">Vencendo (30d)</p>
       <p class="text-3xl font-bold text-red-500 mt-1">{{ totais.vencendo }}</p>
     </div>
   </div>
 
   {# Filtros #}
-  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4">
+  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
       {{ form_filtro.q }}
       {{ form_filtro.status }}
@@ -49,12 +49,15 @@
         {{ form_filtro.vencendo }} Vencendo em 30 dias
       </label>
       <button type="submit"
-              class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition">
+              class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-primary-700 hover:shadow-md">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+        </svg>
         Filtrar
       </button>
     </div>
     {% if request.GET.q or request.GET.status %}
-    <a href="{% url 'contrato_lista' %}" class="mt-2 inline-block text-xs text-gray-400 hover:text-gray-600">
+    <a href="{% url 'contrato_lista' %}" class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-600">
       ✕ Limpar filtros
     </a>
     {% endif %}
@@ -62,22 +65,23 @@
 
   {# Tabela #}
   {% if page_obj %}
-  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead class="bg-gray-50 border-b border-gray-200">
         <tr>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Contrato</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Inquilino</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Imóvel</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Vigência</th>
-          <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Aluguel</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contrato</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Inquilino</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Imóvel</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Vigência</th>
+          <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Aluguel</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
           <th class="px-4 py-3"></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for contrato in page_obj %}
-        <tr class="hover:bg-gray-50 transition">
+        <tr class="hover:bg-gray-50 transition-colors">
           <td class="px-4 py-3">
             <p class="font-mono font-semibold text-gray-800">{{ contrato.numero }}</p>
           </td>
@@ -92,7 +96,7 @@
             <p class="text-gray-700">{{ contrato.data_inicio|date:"d/m/Y" }}</p>
             <p class="text-xs text-gray-400">até {{ contrato.data_fim|date:"d/m/Y" }}</p>
             {% if contrato.dias_para_vencer <= 30 and contrato.status == 'ativo' %}
-            <span class="text-xs text-red-500 font-medium">
+            <span class="inline-flex items-center gap-1 mt-0.5 text-xs text-red-600 font-semibold">
               ⚠ {{ contrato.dias_para_vencer }}d
             </span>
             {% endif %}
@@ -101,45 +105,68 @@
             <p class="font-semibold text-gray-800">R$ {{ contrato.valor_aluguel|intcomma }}</p>
           </td>
           <td class="px-4 py-3">
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
               {% if contrato.status == 'ativo' %}bg-green-100 text-green-700
               {% elif contrato.status == 'pendente' %}bg-yellow-100 text-yellow-700
               {% elif contrato.status == 'rescindido' %}bg-red-100 text-red-700
               {% else %}bg-gray-100 text-gray-600{% endif %}">
+              <span class="w-1.5 h-1.5 rounded-full
+                {% if contrato.status == 'ativo' %}bg-green-500
+                {% elif contrato.status == 'pendente' %}bg-yellow-400
+                {% elif contrato.status == 'rescindido' %}bg-red-500
+                {% else %}bg-gray-400{% endif %}"></span>
               {{ contrato.get_status_display }}
             </span>
           </td>
-          <td class="px-4 py-3 text-right">
-            <a href="{% url 'contrato_detalhe' contrato.pk %}"
-               class="text-xs text-primary hover:underline font-medium">Ver</a>
+          <td class="px-4 py-3">
+            <div class="flex items-center justify-end gap-2">
+              <a href="{% url 'contrato_editar' contrato.pk %}"
+                 title="Editar contrato"
+                 class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-400 hover:text-primary-700 hover:border-primary-300 hover:bg-primary-50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </a>
+              <a href="{% url 'contrato_detalhe' contrato.pk %}"
+                 class="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-primary-700 hover:shadow-md">
+                Ver
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+              </a>
+            </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
 
   {% if page_obj.has_other_pages %}
-  <div class="flex justify-center gap-1">
+  <div class="flex justify-center gap-2">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">‹</a>
+    <a href="?page={{ page_obj.previous_page_number }}"
+       class="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 text-gray-600 bg-white hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 transition-colors">‹ Anterior</a>
     {% endif %}
-    <span class="px-3 py-1.5 text-sm text-gray-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    <span class="px-4 py-2 text-sm font-medium text-gray-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">›</a>
+    <a href="?page={{ page_obj.next_page_number }}"
+       class="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 text-gray-600 bg-white hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 transition-colors">Próxima ›</a>
     {% endif %}
   </div>
   {% endif %}
 
   {% else %}
-  <div class="bg-white rounded-xl border border-gray-200 py-20 text-center">
+  <div class="bg-white rounded-xl border border-gray-200 py-20 text-center shadow-sm">
     <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
     </svg>
     <p class="text-gray-500">Nenhum contrato encontrado.</p>
-    <a href="{% url 'contrato_criar' %}" class="mt-3 inline-block text-sm text-primary hover:underline">
-      Criar o primeiro contrato
+    <a href="{% url 'contrato_criar' %}"
+       class="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary-600 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary-600/25 transition hover:-translate-y-0.5 hover:shadow-xl">
+      + Criar o primeiro contrato
     </a>
   </div>
   {% endif %}

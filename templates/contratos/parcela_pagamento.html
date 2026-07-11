@@ -6,32 +6,55 @@
 {% block content %}
 <div class="max-w-lg mx-auto space-y-6">
 
+  {# Navegação #}
   <div class="flex items-center gap-3">
     <a href="{% url 'contrato_detalhe' parcela.contrato.pk %}" class="text-gray-400 hover:text-gray-600">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
       </svg>
     </a>
-    <h1 class="text-2xl font-bold text-gray-900">Registrar Pagamento</h1>
+    <span class="text-sm text-gray-400">Contratos</span>
+    <span class="text-sm text-gray-300">/</span>
+    <span class="text-sm text-gray-500 font-mono">{{ parcela.contrato.numero }}</span>
+    <span class="text-sm text-gray-300">/</span>
+    <span class="text-sm text-gray-600 font-medium">Parcela {{ parcela.numero }}</span>
   </div>
 
-  <div class="bg-white rounded-xl border border-gray-200 p-5 text-sm space-y-2">
-    <p class="text-gray-500">Contrato: <span class="font-mono font-semibold text-gray-800">{{ parcela.contrato.numero }}</span></p>
-    <p class="text-gray-500">Inquilino: <span class="font-semibold text-gray-800">{{ parcela.contrato.inquilino.nome }}</span></p>
-    <p class="text-gray-500">Parcela: <span class="font-semibold text-gray-800">{{ parcela.numero }}</span> de {{ parcela.contrato.parcelas.count }}</p>
-    <p class="text-gray-500">Vencimento: <span class="font-semibold {% if parcela.esta_atrasada %}text-red-600{% else %}text-gray-800{% endif %}">
-      {{ parcela.data_vencimento|date:"d/m/Y" }}
-      {% if parcela.esta_atrasada %} ⚠ Atrasada{% endif %}
-    </span></p>
-    <p class="text-gray-500">Valor base: <span class="font-bold text-gray-800">R$ {{ parcela.valor|intcomma }}</span></p>
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Registrar Pagamento</h1>
+    <p class="text-sm text-gray-500 mt-1">Confirme os valores recebidos pra baixar esta parcela.</p>
+  </div>
+
+  {# Resumo da parcela #}
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <dl class="grid grid-cols-2 gap-y-3 text-sm">
+      <dt class="text-gray-500">Inquilino</dt>
+      <dd class="font-semibold text-gray-800 text-right">{{ parcela.contrato.inquilino.nome }}</dd>
+      <dt class="text-gray-500">Parcela</dt>
+      <dd class="font-semibold text-gray-800 text-right">{{ parcela.numero }} de {{ parcela.contrato.parcelas.count }}</dd>
+      <dt class="text-gray-500">Vencimento</dt>
+      <dd class="text-right">
+        <span class="font-semibold {% if parcela.esta_atrasada %}text-red-600{% else %}text-gray-800{% endif %}">
+          {{ parcela.data_vencimento|date:"d/m/Y" }}
+        </span>
+        {% if parcela.esta_atrasada %}
+        <span class="inline-flex items-center gap-1 ml-1 text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span> Atrasada
+        </span>
+        {% endif %}
+      </dd>
+      <dt class="text-gray-500 pt-2 border-t border-gray-100">Valor base</dt>
+      <dd class="font-bold text-gray-900 text-right text-base pt-2 border-t border-gray-100">R$ {{ parcela.valor|intcomma }}</dd>
+    </dl>
   </div>
 
   <form method="post" class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
     {% csrf_token %}
 
     {% if form.errors %}
-    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-sm text-red-800">
+      <span class="text-red-500 text-xl">⚠️</span>
+      <div>{% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
     </div>
     {% endif %}
 
@@ -65,10 +88,15 @@
 
     <div class="flex items-center justify-between pt-2">
       <a href="{% url 'contrato_detalhe' parcela.contrato.pk %}"
-         class="text-sm text-gray-500 hover:text-gray-700">Cancelar</a>
+         class="text-sm text-gray-500 hover:text-red-600 px-4 py-2.5 rounded-xl hover:bg-red-50 transition-colors">
+        Cancelar
+      </a>
       <button type="submit"
-              class="px-6 py-2 text-sm font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 transition">
-        ✓ Confirmar Recebimento
+              class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-xl bg-green-600 text-white shadow-sm shadow-green-600/20 hover:bg-green-700 hover:shadow-md transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Confirmar Recebimento
       </button>
     </div>
   </form>
