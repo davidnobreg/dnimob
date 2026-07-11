@@ -212,9 +212,8 @@ def parcela_registrar_pagamento(request, pk):
 def parcela_estornar(request, pk):
     parcela = get_object_or_404(Parcela, pk=pk)
     if request.method == 'POST':
-        parcela.status = 'pendente'
-        parcela.data_pagamento = None
-        parcela.save(update_fields=['status', 'data_pagamento'])
+        from .services import estornar_parcela
+        estornar_parcela(parcela, motivo='manual')
         messages.warning(request, f'Pagamento da parcela {parcela.numero} estornado.')
     return redirect('contrato_detalhe', pk=parcela.contrato.pk)
 
