@@ -9,7 +9,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .client import SicrediError
-from .service import gerar_boleto_parcela, cancelar_boleto, processar_webhook, get_config_tenant, WebhookAuthError
+from .service import (
+	gerar_boleto_parcela, gerar_boletos_lote, cancelar_boleto, imprimir_boleto,
+	imprimir_carne_contrato, processar_webhook, get_config_tenant, WebhookAuthError,
+)
 
 logger = logging.getLogger('apps.sicredi')
 
@@ -53,6 +56,67 @@ def boleto_cancelar(request, parcela_pk):
 		messages.error(request, f'Erro ao baixar boleto: {e}')
 
 	return redirect('contrato_detalhe', pk=parcela.contrato.pk)
+
+
+@login_required
+def boleto_pdf(request, parcela_pk):
+	from apps.contratos.models import Parcela
+	parcela = get_object_or_404(Parcela, pk=parcela_pk)
+
+	boleto = getattr(parcela, 'boleto', None)
+	if not boleto:
+		messages.error(request, 'Esta parcela não possui boleto emitido.')
+		return redirect('contrato_detalhe', pk=parcela.contrato.pk)
+
+	try:
+		pdf_bytes = imprimir_boleto(boleto)
+	except SicrediError as e:
+		messages.error(request, f'Erro ao imprimir boleto: {e}')
+		return redirect('contrato_detalhe', pk=parcela.contrato.pk)
+
+	response = HttpResponse(pdf_bytes, content_type='application/pdf')
+	response['Content-Disposition'] = f'inline; filename="boleto-{boleto.nosso_numero}.pdf"'
+	return response
+
+
+@login_required
+def boletos_carne(request, contrato_pk):
+	from apps.contratos.models import Contrato
+	contrato = get_object_or_404(Contrato, pk=contrato_pk)
+
+	try:
+		pdf_bytes = imprimir_carne_contrato(contrato)
+	except SicrediError as e:
+		messages.error(request, f'Erro ao gerar carnê: {e}')
+		return redirect('contrato_detalhe', pk=contrato.pk)
+
+	response = HttpResponse(pdf_bytes, content_type='application/pdf')
+	response['Content-Disposition'] = f'inline; filename="carne-contrato-{contrato.pk}.pdf"'
+	return response
+
+
+@login_required
+@require_POST
+def boletos_gerar_lote(request, contrato_pk):
+	from apps.contratos.models import Contrato
+	contrato = get_object_or_404(Contrato, pk=contrato_pk)
+
+	if not get_config_tenant():
+		messages.error(request, 'Integração Sicredi não configurada/ativa. Acesse Configurações → Sicredi.')
+		return redirect('contrato_detalhe', pk=contrato.pk)
+
+	resultado = gerar_boletos_lote(contrato)
+	gerados, falhas = resultado['gerados'], resultado['falhas']
+
+	if gerados:
+		messages.success(request, f'{gerados} boleto(s) gerado(s) com sucesso.')
+	if falhas:
+		detalhe = '; '.join(f'parcela {p.numero}: {msg}' for p, msg in falhas)
+		messages.error(request, f'{len(falhas)} parcela(s) falharam: {detalhe}')
+	if not gerados and not falhas:
+		messages.warning(request, 'Nenhuma parcela pendente sem boleto encontrada.')
+
+	return redirect('contrato_detalhe', pk=contrato.pk)
 
 
 # ── Webhook público (chamado pelo Sicredi) ────────────────────────────────────
