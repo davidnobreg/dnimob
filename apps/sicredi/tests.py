@@ -18,6 +18,7 @@ from django.core.cache import cache
 from django.db import connection
 from django.test import Client, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 
 from apps.contratos.models import Contrato, Parcela
@@ -687,7 +688,10 @@ class WebhookTests(SicrediTestCase):
 
 	def test_webhook_estorno_mesmo_dia_reverte_pagamento(self):
 		boleto = self._boleto()
-		hoje = date.today()
+		# Mesma fonte de "hoje" que apps/sicredi/service.py usa pra comparar
+		# (timezone.now().date(), não date.today()) -- evita flake perto da
+		# virada do dia quando TIME_ZONE diverge do horário local da máquina.
+		hoje = timezone.now().date()
 		boleto.status = 'pago'
 		boleto.pago_em = hoje
 		boleto.valor_pago = Decimal('1500.00')
