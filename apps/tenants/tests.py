@@ -247,6 +247,15 @@ class AcessoBloqueadoTests(TenantTestCase):
 
         self.assertEqual(resp.status_code, 200)
 
+    def test_favicon_nao_e_redirecionado_com_tenant_bloqueado(self):
+        self.tenant.trial = True
+        self.tenant.trial_expira = date.today() - timedelta(days=1)
+        self.tenant.save()
+
+        resp = self.client.get('/favicon.ico', HTTP_HOST=self.domain.domain)
+
+        self.assertEqual(resp.status_code, 404)
+
 
 class ConfigSicrediWebhookSecretTests(TenantTestCase):
     """

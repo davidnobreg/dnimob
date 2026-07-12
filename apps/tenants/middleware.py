@@ -21,6 +21,7 @@ class PlanoAcessoMiddleware:
         '/login/',
         '/static/',
         '/media/',
+        '/favicon.ico',
     ]
 
     def __init__(self, get_response):
