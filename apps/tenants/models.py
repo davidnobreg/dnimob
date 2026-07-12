@@ -71,6 +71,23 @@ class Tenant(TenantMixin):
     trial_expira = models.DateField(null=True, blank=True)
     assinatura_expira = models.DateField(null=True, blank=True)
 
+    # Billing interno (Asaas assinatura — DN Software cobra a imobiliária).
+    # Campos dedicados: não reaproveitar assinatura_expira/status_assinatura,
+    # que hoje são só data. A ligação com acesso_permitido é de outra fatia.
+    asaas_customer_id = models.CharField('Asaas customer ID', max_length=50, blank=True)
+    asaas_subscription_id = models.CharField('Asaas subscription ID', max_length=50, blank=True)
+
+    class StatusPagamento(models.TextChoices):
+        TRIAL = 'trial', 'Trial'
+        ATIVO = 'ativo', 'Ativo'
+        INADIMPLENTE = 'inadimplente', 'Inadimplente'
+        SUSPENSO = 'suspenso', 'Suspenso'
+        CANCELADO = 'cancelado', 'Cancelado'
+
+    status_pagamento = models.CharField(
+        max_length=20, choices=StatusPagamento.choices, default=StatusPagamento.TRIAL,
+    )
+
     # Aceite de Termos de Uso e Política de Privacidade
     aceite_termos_em = models.DateTimeField('Aceite dos termos em', null=True, blank=True)
     aceite_termos_ip = models.GenericIPAddressField('IP do aceite', null=True, blank=True)

@@ -50,6 +50,7 @@ TENANT_BASE_DOMAIN = env('TENANT_BASE_DOMAIN', default='dnsoftware.com.br')
 SHARED_APPS = [
     'django_tenants',
     'apps.tenants',
+    'apps.billing',
 
     # apps.core DEVE estar aqui porque AUTH_USER_MODEL = 'core.Usuario'
     # e o django.contrib.admin referencia o user model no schema public
@@ -279,6 +280,15 @@ EVOLUTION_API_KEY = env('EVOLUTION_API_KEY', default='')
 EVOLUTION_WEBHOOK_TOKEN = env('EVOLUTION_WEBHOOK_TOKEN', default='')
 
 SITE_BASE_URL = env('SITE_BASE_URL', default='https://dnsoftware.com.br')
+
+# ─────────────────────────────────────────────
+# ASAAS — assinatura (DN Software cobra a imobiliária). Conta única, global
+# (não confundir com futura integração Asaas por-tenant do menu Boleto).
+# Default aponta pro sandbox — nunca produção por engano sem API key setada.
+# ─────────────────────────────────────────────
+ASAAS_API_URL = env('ASAAS_API_URL', default='https://api-sandbox.asaas.com/v3')
+ASAAS_API_KEY = env('ASAAS_API_KEY', default='')
+ASAAS_WEBHOOK_TOKEN = env('ASAAS_WEBHOOK_TOKEN', default='')
 
 # ─────────────────────────────────────────────
 # MISC
