@@ -140,7 +140,7 @@ class MeuTestCase(TenantTestCase):
         for p in self._patches:
             p.start()
             self.addCleanup(p.stop)
-        
+
         # Fixtures mínimas do domínio
         self.imovel = Imovel.objects.create(...)
         self.inquilino = Inquilino.objects.create(...)
@@ -226,27 +226,26 @@ GitHub push main
 **Sempre obrigatórias (todas em Portainer env):**
 ```
 SECRET_KEY, ALLOWED_HOSTS, DEBUG=False
-DB_NAME, DB_USER, DB_PASSWORD, DB_HOST=172.16.51.3, DB_PORT=5432
+DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 REDIS_URL, CACHE_URL
 DJANGO_SETTINGS_MODULE=config.settings.prod
 ```
 
 **Integrações:**
 ```
-EMAIL_HOST=smtp.resend.com, EMAIL_HOST_PASSWORD (API key Resend re_...)
-EMAIL_HOST_USER=resend, EMAIL_PORT=465, EMAIL_USE_SSL=True
+EMAIL_HOST, EMAIL_HOST_PASSWORD, EMAIL_HOST_USER, EMAIL_PORT, EMAIL_USE_SSL
 EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_WEBHOOK_TOKEN
 SICREDI_WEBHOOK_SECRET
-AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME=dnimob-media
+AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME
 SENTRY_DSN
 ```
 
-**Após DNS + Resend verificado (pendentes):**
+**Domínio e email (configurar após DNS verificado):**
 ```
-DEFAULT_FROM_EMAIL=DN Imob <noreply@imob.dnsoftware.com.br>
-BASE_DOMAIN=imob.dnsoftware.com.br
-SITE_BASE_URL=https://imob.dnsoftware.com.br
-TENANT_BASE_DOMAIN=imob.dnsoftware.com.br
+DEFAULT_FROM_EMAIL
+BASE_DOMAIN
+SITE_BASE_URL
+TENANT_BASE_DOMAIN
 ```
 
 ### GitHub Secrets obrigatórios
@@ -254,8 +253,8 @@ TENANT_BASE_DOMAIN=imob.dnsoftware.com.br
 ```
 DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
 PORTAINER_URL, PORTAINER_TOKEN
-PORTAINER_STACK_ID    # pegar após criar stack no Portainer (primeira vez manual)
-PORTAINER_ENDPOINT_ID # geralmente 1
+PORTAINER_STACK_ID
+PORTAINER_ENDPOINT_ID
 SENTRY_DSN, FLOWER_USER, FLOWER_PASSWORD
 ```
 
