@@ -30,7 +30,7 @@ class ImovelForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Aplica classe padrão nos inputs de texto/número
         text_fields = [
-            'codigo','numero','nome_imovel','cep','logradouro','complemento','bairro',
+            'codigo', 'nome_imovel','cep','logradouro', 'numero', 'complemento','bairro',
             'cidade','area_util','area_privativa','area_total','area_construida','area_comum','quartos','suites',
             'banheiros','vagas','valor_aluguel','valor_venda',
             'valor_condominio','valor_iptu','proprietario_nome',
