@@ -66,6 +66,16 @@
                             <p class="text-xs text-red-500 mt-1">{{ form.codigo.errors.0 }}</p>{% endif %}
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Número *</label>
+                        {{ form.numero }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Imóvel</label>
+                        {{ form.nome_imovel }}
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
                         {{ form.tipo }}
                     </div>
@@ -73,12 +83,12 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Finalidade *</label>
                         {{ form.finalidade }}
                     </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                         {{ form.status }}
                     </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
                         {{ form.responsavel }}
@@ -99,11 +109,7 @@
                         {{ form.logradouro }}
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Número *</label>
-                        {{ form.numero }}
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
                         {{ form.complemento }}

@@ -130,8 +130,11 @@
           <div>
             <span class="text-xs text-gray-400 font-mono">{{ imovel.codigo }}</span>
             <h3 class="font-semibold text-gray-900 leading-tight">
-              {{ imovel.get_tipo_display }} — {{ imovel.bairro }}
+              {% if imovel.nome_imovel %}{{ imovel.nome_imovel }}{% else %}{{ imovel.get_tipo_display }} — {{ imovel.bairro }}{% endif %}
             </h3>
+            {% if imovel.nome_imovel %}
+            <p class="text-xs text-gray-500">{{ imovel.get_tipo_display }} — {{ imovel.bairro }}</p>
+            {% endif %}
             <p class="text-xs text-gray-500 mt-0.5">{{ imovel.cidade }}/{{ imovel.estado }}</p>
           </div>
         </div>

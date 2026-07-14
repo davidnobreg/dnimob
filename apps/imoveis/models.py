@@ -36,6 +36,8 @@ class Imovel(models.Model):
 
     # Identificação
     codigo        = models.CharField('Código', max_length=20, unique=True)
+    numero        = models.CharField('Número', max_length=10)
+    nome_imovel   = models.CharField('Nome do Imóvel', max_length=150, blank=True)
     tipo          = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES)
     finalidade    = models.CharField('Finalidade', max_length=10, choices=FINALIDADE_CHOICES, default='aluguel')
     status        = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='disponivel')
@@ -43,7 +45,6 @@ class Imovel(models.Model):
     # Localização
     cep           = models.CharField('CEP', max_length=9)
     logradouro    = models.CharField('Logradouro', max_length=200)
-    numero        = models.CharField('Número', max_length=10)
     complemento   = models.CharField('Complemento', max_length=100, blank=True)
     bairro        = models.CharField('Bairro', max_length=100)
     cidade        = models.CharField('Cidade', max_length=100)
