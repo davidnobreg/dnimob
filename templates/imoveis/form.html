@@ -54,7 +54,9 @@
 
             {# ── Identificação ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Identificação</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-id-badge-2 text-base text-gray-400"></i> Identificação
+                </h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -88,17 +90,13 @@
                         {{ form.responsavel }}
                     </div>
                 </div>
-                <!--<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
-                        {{ form.responsavel }}
-                    </div>
-                </div>-->
             </div>
 
             {# ── Localização ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Localização</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-map-pin text-base text-gray-400"></i> Localização
+                </h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">CEP *</label>
@@ -137,7 +135,9 @@
 
             {# ── Áreas ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Áreas (m²)</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-ruler-2 text-base text-gray-400"></i> Áreas (m²)
+                </h2>
                 <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Área Útil / de Piso</label>
@@ -167,8 +167,9 @@
 
             {# ── Características ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
-                    Características</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-building-community text-base text-gray-400"></i> Características
+                </h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Quartos</label>
@@ -220,12 +221,17 @@
 
             {# ── Valores ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Valores (R$)</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-currency-real text-base text-gray-400"></i> Valores (R$)
+                </h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Aluguel</label>
-                        <input type="text" class="form-input" placeholder="0,00" inputmode="decimal" autocomplete="off"
-                               data-moeda-display="valor_aluguel">
+                        <div class="relative">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-gray-400">R$</span>
+                            <input type="text" class="form-input pl-9" placeholder="0,00" inputmode="decimal" autocomplete="off"
+                                   data-moeda-display="valor_aluguel">
+                        </div>
                         <input type="hidden" name="valor_aluguel" id="id_valor_aluguel"
                                value="{{ form.valor_aluguel.value|default:'' }}">
                         {% if form.valor_aluguel.errors %}
@@ -234,8 +240,11 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Venda</label>
-                        <input type="text" class="form-input" placeholder="0,00" inputmode="decimal" autocomplete="off"
-                               data-moeda-display="valor_venda">
+                        <div class="relative">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-gray-400">R$</span>
+                            <input type="text" class="form-input pl-9" placeholder="0,00" inputmode="decimal" autocomplete="off"
+                                   data-moeda-display="valor_venda">
+                        </div>
                         <input type="hidden" name="valor_venda" id="id_valor_venda"
                                value="{{ form.valor_venda.value|default:'' }}">
                         {% if form.valor_venda.errors %}
@@ -244,15 +253,21 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Condomínio</label>
-                        <input type="text" class="form-input" placeholder="0,00" inputmode="decimal" autocomplete="off"
-                               data-moeda-display="valor_condominio">
+                        <div class="relative">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-gray-400">R$</span>
+                            <input type="text" class="form-input pl-9" placeholder="0,00" inputmode="decimal" autocomplete="off"
+                                   data-moeda-display="valor_condominio">
+                        </div>
                         <input type="hidden" name="valor_condominio" id="id_valor_condominio"
                                value="{{ form.valor_condominio.value|default:'0' }}">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">IPTU Mensal</label>
-                        <input type="text" class="form-input" placeholder="0,00" inputmode="decimal" autocomplete="off"
-                               data-moeda-display="valor_iptu">
+                        <div class="relative">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-gray-400">R$</span>
+                            <input type="text" class="form-input pl-9" placeholder="0,00" inputmode="decimal" autocomplete="off"
+                                   data-moeda-display="valor_iptu">
+                        </div>
                         <input type="hidden" name="valor_iptu" id="id_valor_iptu"
                                value="{{ form.valor_iptu.value|default:'0' }}">
                     </div>
@@ -261,7 +276,9 @@
 
             {# ── Proprietário ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Proprietário</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-user text-base text-gray-400"></i> Proprietário
+                </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
@@ -284,7 +301,9 @@
 
             {# ── Fotos ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Fotos</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-camera text-base text-gray-400"></i> Fotos
+                </h2>
 
                 {% if imovel %}
                     <div class="grid grid-cols-3 md:grid-cols-5 gap-3" id="fotos-atuais">
@@ -337,16 +356,15 @@
 
             {# ── Descrição ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Descrição /
-                    Observações</h2>
+                <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+                    <i class="ti ti-file-text text-base text-gray-400"></i> Descrição / Observações
+                </h2>
                 {{ form.descricao }}
             </div>
 
-            {# Botões #}
-            <div class="flex items-center justify-between pb-8">
-                <a href="
-
-                        {% if imovel %}{% url 'imovel_detalhe' imovel.pk %}{% else %}{% url 'imovel_lista' %}{% endif %}"
+            {# Botões — barra fixa no rodapé pra não perder o scroll num form longo #}
+            <div class="sticky bottom-0 -mx-4 sm:mx-0 flex items-center justify-between gap-3 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur sm:rounded-xl sm:border sm:px-6 sm:shadow-sm">
+                <a href="{% if imovel %}{% url 'imovel_detalhe' imovel.pk %}{% else %}{% url 'imovel_lista' %}{% endif %}"
                    class="text-sm text-gray-500 hover:text-gray-700">
                     Cancelar
                 </a>
