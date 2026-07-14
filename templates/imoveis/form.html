@@ -69,12 +69,12 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Imóvel</label>
                         {{ form.nome_imovel }}
                     </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
                         {{ form.tipo }}
                     </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Finalidade *</label>
                         {{ form.finalidade }}
@@ -83,13 +83,17 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                         {{ form.status }}
                     </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
                         {{ form.responsavel }}
                     </div>
                 </div>
+                <!--<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
+                        {{ form.responsavel }}
+                    </div>
+                </div>-->
             </div>
 
             {# ── Localização ── #}
@@ -310,7 +314,8 @@
                                     </button>
                                 </div>
                                 {% if foto.principal %}
-                                    <span class="absolute bottom-1 left-1 text-[10px] bg-primary-600 text-white px-1 rounded" data-badge-principal>Principal</span>
+                                    <span class="absolute bottom-1 left-1 text-[10px] bg-primary-600 text-white px-1 rounded"
+                                          data-badge-principal>Principal</span>
                                 {% endif %}
                             </div>
                         {% endfor %}
@@ -340,6 +345,7 @@
             {# Botões #}
             <div class="flex items-center justify-between pb-8">
                 <a href="
+
                         {% if imovel %}{% url 'imovel_detalhe' imovel.pk %}{% else %}{% url 'imovel_lista' %}{% endif %}"
                    class="text-sm text-gray-500 hover:text-gray-700">
                     Cancelar
@@ -380,19 +386,23 @@
                             document.querySelector('[name="cidade"]').value = d.localidade || '';
                             document.querySelector('[name="estado"]').value = d.uf || '';
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                    }
                 });
             }
 
             // ── Máscara monetária BR ──────────────────────────────────────────
             // Display (type=text, sem name) + hidden (type=hidden, com name)
             // Django só recebe o hidden, sempre em formato decimal (1500.00)
-            document.querySelectorAll('[data-moeda-display]').forEach(function(display) {
+            document.querySelectorAll('[data-moeda-display]').forEach(function (display) {
                 const hidden = document.getElementById('id_' + display.dataset.moedaDisplay);
                 if (!hidden) return;
 
                 function syncHidden(raw) {
-                    if (!raw) { hidden.value = ''; return; }
+                    if (!raw) {
+                        hidden.value = '';
+                        return;
+                    }
                     const n = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
                     hidden.value = isNaN(n) ? '' : n.toFixed(2);
                 }
@@ -401,21 +411,27 @@
                 if (hidden.value !== '') {
                     const init = parseFloat(hidden.value);
                     if (!isNaN(init)) {
-                        display.value = init.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        display.value = init.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
                     }
                 }
 
-                display.addEventListener('input', function() {
+                display.addEventListener('input', function () {
                     this.value = this.value.replace(/[^\d,.]/g, '');
                     syncHidden(this.value);
                 });
 
-                display.addEventListener('blur', function() {
+                display.addEventListener('blur', function () {
                     const v = this.value.trim();
-                    if (!v) { hidden.value = ''; return; }
+                    if (!v) {
+                        hidden.value = '';
+                        return;
+                    }
                     const n = parseFloat(v.replace(/\./g, '').replace(',', '.'));
                     if (!isNaN(n)) {
-                        this.value = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        this.value = n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                         hidden.value = n.toFixed(2);
                     } else {
                         this.value = '';
@@ -436,14 +452,17 @@
             if (!_areaTotalInput) return;
             let soma = 0;
             let temValor = false;
-            _areaInputs.forEach(function(el) {
+            _areaInputs.forEach(function (el) {
                 const v = parseFloat(el.value.replace(',', '.'));
-                if (!isNaN(v) && v > 0) { soma += v; temValor = true; }
+                if (!isNaN(v) && v > 0) {
+                    soma += v;
+                    temValor = true;
+                }
             });
             _areaTotalInput.value = temValor ? soma.toFixed(2) : '';
         }
 
-        _areaInputs.forEach(function(el) {
+        _areaInputs.forEach(function (el) {
             el.addEventListener('input', recalcularAreaTotal);
             el.addEventListener('change', recalcularAreaTotal);
         });
@@ -456,11 +475,11 @@
         }
 
         async function fotoDefinirPrincipal(btn) {
-            const pk  = btn.dataset.fotoPk;
+            const pk = btn.dataset.fotoPk;
             const url = btn.dataset.url;
             const resp = await fetch(url, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': _fotoCSRF(), 'X-Requested-With': 'XMLHttpRequest' },
+                headers: {'X-CSRFToken': _fotoCSRF(), 'X-Requested-With': 'XMLHttpRequest'},
             });
             if (!resp.ok) return;
             // Remove badge e botão estrela de todas as fotos
@@ -479,11 +498,11 @@
 
         async function fotoExcluir(btn) {
             if (!confirm('Excluir esta foto?')) return;
-            const pk  = btn.dataset.fotoPk;
+            const pk = btn.dataset.fotoPk;
             const url = btn.dataset.url;
             const resp = await fetch(url, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': _fotoCSRF(), 'X-Requested-With': 'XMLHttpRequest' },
+                headers: {'X-CSRFToken': _fotoCSRF(), 'X-Requested-With': 'XMLHttpRequest'},
             });
             if (!resp.ok) return;
             const div = document.getElementById('foto-' + pk);
