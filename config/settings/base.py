@@ -81,6 +81,7 @@ TENANT_APPS = [
     'apps.imoveis',
     'apps.inquilinos',
     'apps.contratos',
+    'apps.documentos',
     'apps.financeiro',
     'apps.sicredi',
     'apps.whatsapp',

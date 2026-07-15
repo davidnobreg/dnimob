@@ -1,0 +1,41 @@
+[
+  {
+    "model": "documentos.modelodocumento",
+    "pk": "50951bf7-ce67-46e6-b9f1-5835e7d7a45d",
+    "fields": {
+      "titulo": "Contrato de Locação Residencial",
+      "tipo": "contrato",
+      "conteudo_html": "<h1>CONTRATO DE LOCAÇÃO RESIDENCIAL</h1><p><strong>LOCADOR:</strong> {{ imovel.proprietario_nome }}, CPF/CNPJ {{ imovel.proprietario_cpf_cnpj }}, telefone {{ imovel.proprietario_telefone }}.</p><p><strong>LOCATÁRIO:</strong> {{ inquilino.nome }}, {{ inquilino.nacionalidade }}, {{ inquilino.estado_civil }}, {{ inquilino.profissao }}, CPF {{ inquilino.cpf_formatado }}, RG {{ inquilino.rg }}, telefone {{ inquilino.telefone }}, e-mail {{ inquilino.email }}.</p><p><strong>IMÓVEL LOCADO:</strong> {{ imovel.endereco_completo }} ({{ imovel.tipo }}).</p><p><strong>PRAZO:</strong> de {{ contrato.data_inicio }} a {{ contrato.data_fim }} ({{ contrato.duracao_meses }} meses).</p><p><strong>VALOR:</strong> aluguel mensal de {{ contrato.valor_aluguel_formatado }}, condomínio {{ contrato.valor_condominio_formatado }}, IPTU {{ contrato.valor_iptu_formatado }}, com vencimento todo dia {{ contrato.dia_vencimento }}.</p><p><strong>REAJUSTE:</strong> anual pelo índice {{ contrato.indice_reajuste }}.</p><p><strong>GARANTIA:</strong> {{ contrato.tipo_garantia }}.</p><p><strong>FIADOR:</strong> {{ inquilino.fiador_nome }}, CPF {{ inquilino.fiador_cpf }}, telefone {{ inquilino.fiador_telefone }}.</p><p><strong>MULTA RESCISÓRIA:</strong> {{ contrato.multa_rescisao }}% sobre o valor do aluguel vigente.</p><p>E por estarem justas e contratadas, as partes assinam o presente instrumento em {{ data.data_atual_extenso }}.</p><p>_________________________________<br>Locador</p><p>_________________________________<br>Locatário</p>",
+      "ativo": true,
+      "padrao": true,
+      "criado_em": "2026-07-15T09:00:00Z",
+      "atualizado_em": "2026-07-15T09:00:00Z"
+    }
+  },
+  {
+    "model": "documentos.modelodocumento",
+    "pk": "25de7195-fbe9-4068-b312-7cb707fbf421",
+    "fields": {
+      "titulo": "Distrato de Locação",
+      "tipo": "distrato",
+      "conteudo_html": "<h1>DISTRATO DE CONTRATO DE LOCAÇÃO</h1><p><strong>LOCADOR:</strong> {{ imovel.proprietario_nome }}, CPF/CNPJ {{ imovel.proprietario_cpf_cnpj }}.</p><p><strong>LOCATÁRIO:</strong> {{ inquilino.nome }}, CPF {{ inquilino.cpf_formatado }}.</p><p><strong>IMÓVEL:</strong> {{ imovel.endereco_completo }}, referente ao contrato nº {{ contrato.numero }}.</p><p>As partes acordam o encerramento antecipado da locação, com desocupação e entrega das chaves em {{ data.data_atual }}, nas condições em que se encontra o imóvel, dando-se mútua quitação quanto a aluguéis, encargos e obrigações contratuais até esta data.</p><p>E por estarem justas e acordadas, as partes assinam o presente distrato em {{ data.data_atual_extenso }}.</p><p>_________________________________<br>Locador</p><p>_________________________________<br>Locatário</p>",
+      "ativo": true,
+      "padrao": true,
+      "criado_em": "2026-07-15T09:00:00Z",
+      "atualizado_em": "2026-07-15T09:00:00Z"
+    }
+  },
+  {
+    "model": "documentos.modelodocumento",
+    "pk": "52d82370-f35a-413f-b0a7-b2191393ffc9",
+    "fields": {
+      "titulo": "Recibo de Pagamento de Aluguel",
+      "tipo": "recibo",
+      "conteudo_html": "<h1>RECIBO DE PAGAMENTO</h1><p>Recebi de {{ inquilino.nome }}, CPF {{ inquilino.cpf_formatado }}, a importância de {{ contrato.valor_aluguel_formatado }}, referente ao aluguel do imóvel situado em {{ imovel.endereco_completo }}, competência {{ contrato.numero }}, pago em {{ data.data_atual }}.</p><p>Para clareza, firmo o presente recibo.</p><p>{{ imovel.proprietario_nome }}<br>{{ data.data_atual_extenso }}</p><p>_________________________________<br>Locador</p>",
+      "ativo": true,
+      "padrao": true,
+      "criado_em": "2026-07-15T09:00:00Z",
+      "atualizado_em": "2026-07-15T09:00:00Z"
+    }
+  }
+]

@@ -1,0 +1,157 @@
+[
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 1,
+    "fields": {"slug": "inquilino.nome", "label": "Nome do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 2,
+    "fields": {"slug": "inquilino.cpf_formatado", "label": "CPF do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 3,
+    "fields": {"slug": "inquilino.rg", "label": "RG do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 4,
+    "fields": {"slug": "inquilino.nacionalidade", "label": "Nacionalidade do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 5,
+    "fields": {"slug": "inquilino.estado_civil", "label": "Estado Civil do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 6,
+    "fields": {"slug": "inquilino.profissao", "label": "Profissão do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 7,
+    "fields": {"slug": "inquilino.email", "label": "E-mail do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 8,
+    "fields": {"slug": "inquilino.telefone", "label": "Telefone do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 9,
+    "fields": {"slug": "inquilino.endereco_completo", "label": "Endereço Completo do Inquilino", "categoria": "inquilino", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 10,
+    "fields": {"slug": "inquilino.fiador_nome", "label": "Nome do Fiador", "categoria": "fiador", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 11,
+    "fields": {"slug": "inquilino.fiador_cpf", "label": "CPF do Fiador", "categoria": "fiador", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 12,
+    "fields": {"slug": "inquilino.fiador_telefone", "label": "Telefone do Fiador", "categoria": "fiador", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 13,
+    "fields": {"slug": "imovel.endereco_completo", "label": "Endereço Completo do Imóvel", "categoria": "imovel", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 14,
+    "fields": {"slug": "imovel.tipo", "label": "Tipo do Imóvel", "categoria": "imovel", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 15,
+    "fields": {"slug": "imovel.proprietario_nome", "label": "Nome do Proprietário", "categoria": "proprietario", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 16,
+    "fields": {"slug": "imovel.proprietario_cpf_cnpj", "label": "CPF/CNPJ do Proprietário", "categoria": "proprietario", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 17,
+    "fields": {"slug": "imovel.proprietario_telefone", "label": "Telefone do Proprietário", "categoria": "proprietario", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 18,
+    "fields": {"slug": "imovel.proprietario_email", "label": "E-mail do Proprietário", "categoria": "proprietario", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 19,
+    "fields": {"slug": "contrato.numero", "label": "Número do Contrato", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 20,
+    "fields": {"slug": "contrato.data_inicio", "label": "Data de Início", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 21,
+    "fields": {"slug": "contrato.data_fim", "label": "Data de Término", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 22,
+    "fields": {"slug": "contrato.valor_aluguel_formatado", "label": "Valor do Aluguel (formatado)", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 23,
+    "fields": {"slug": "contrato.dia_vencimento", "label": "Dia de Vencimento", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 24,
+    "fields": {"slug": "contrato.tipo_garantia", "label": "Tipo de Garantia", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 25,
+    "fields": {"slug": "contrato.duracao_meses", "label": "Duração (meses)", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 26,
+    "fields": {"slug": "contrato.indice_reajuste", "label": "Índice de Reajuste", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 27,
+    "fields": {"slug": "contrato.multa_rescisao", "label": "Multa Rescisória (%)", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 28,
+    "fields": {"slug": "contrato.valor_condominio_formatado", "label": "Valor do Condomínio (formatado)", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 29,
+    "fields": {"slug": "contrato.valor_iptu_formatado", "label": "Valor do IPTU (formatado)", "categoria": "contrato", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 30,
+    "fields": {"slug": "data.data_atual", "label": "Data Atual", "categoria": "data", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 31,
+    "fields": {"slug": "data.data_atual_extenso", "label": "Data Atual por Extenso", "categoria": "data", "ativo": true}
+  }
+]
