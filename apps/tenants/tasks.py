@@ -4,6 +4,7 @@ import requests
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from .models import Domain
 from .services import _criar_templates_padrao
@@ -50,6 +51,8 @@ def provisionar_tenant(self, tenant_pk: int, dados_admin: dict):
 		tenant.save(update_fields=['provisionamento_status'])
 		logger.info('Tenant provisionado: %s (schema=%s)', tenant.nome, tenant.schema_name)
 
+		_criar_assinatura_asaas(tenant)
+
 		_enviar_email_boas_vindas(tenant, dados_admin['email'], dados_admin['senha'])
 
 	except Exception as exc:
@@ -57,6 +60,51 @@ def provisionar_tenant(self, tenant_pk: int, dados_admin: dict):
 		tenant.save(update_fields=['provisionamento_status'])
 		logger.error('Falha ao provisionar tenant %s: %s', tenant_pk, exc)
 		raise self.retry(countdown=30, max_retries=3)
+
+
+def _criar_assinatura_asaas(tenant):
+	"""
+	Cria customer + subscription no Asaas pra cobrança da mensalidade do tenant.
+	Roda fora do schema_context (Tenant é modelo público — SHARED_APPS).
+	NUNCA falha o provisionamento: erro aqui só é logado, e o admin corrige
+	manualmente depois preenchendo asaas_customer_id/asaas_subscription_id.
+	"""
+	from apps.billing.client import AsaasClient, AsaasError
+
+	if not tenant.plano:
+		logger.warning('Tenant %s sem plano — pulando criação de assinatura Asaas', tenant.schema_name)
+		return
+
+	try:
+		client = AsaasClient()
+		customer = client.criar_customer(
+			tenant.nome,
+			tenant.cnpj or tenant.cpf or '',
+			email=tenant.email,
+			external_reference=tenant.pk,
+		)
+		subscription = client.criar_subscription(
+			customer['id'],
+			tenant.plano.preco_mensal,
+			timezone.localdate(),
+			descricao=f'DNImob — Plano {tenant.plano.get_nome_display()}',
+		)
+
+		tenant.asaas_customer_id = customer['id']
+		tenant.asaas_subscription_id = subscription['id']
+		tenant.save(update_fields=['asaas_customer_id', 'asaas_subscription_id', 'atualizado_em'])
+
+		logger.info(
+			'Asaas: customer=%s subscription=%s criados para tenant %s',
+			customer['id'], subscription['id'], tenant.schema_name,
+		)
+	except AsaasError as e:
+		logger.error(
+			'Erro ao criar customer/subscription Asaas para tenant %s: %s',
+			tenant.schema_name, e,
+		)
+	except Exception:
+		logger.exception('Erro inesperado ao criar assinatura Asaas para tenant %s', tenant.schema_name)
 
 
 def _enviar_email_boas_vindas(tenant, email_admin: str, senha: str):
