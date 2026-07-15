@@ -125,7 +125,7 @@ class Tenant(TenantMixin):
 
     @property
     def status_assinatura(self):
-        hoje = timezone.now().date()
+        hoje = timezone.localdate()
         if self.trial and self.trial_expira:
             if self.trial_expira >= hoje:
                 return 'trial'
