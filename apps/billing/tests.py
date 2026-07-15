@@ -7,12 +7,14 @@ Nenhuma chamada real à API Asaas: requests.Session.post é sempre mockado
 """
 import json
 from datetime import date, timedelta
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, TestCase, override_settings
 from django_tenants.test.cases import TenantTestCase
 
-from apps.tenants.models import Tenant
+from apps.tenants.models import Plano, Tenant
+from apps.tenants.tasks import _criar_assinatura_asaas
 
 from .client import AsaasAPIError, AsaasAuthError, AsaasClient
 from .webhook import asaas_webhook
@@ -298,3 +300,58 @@ class AcessoPermitidoTest(TenantTestCase):
 		self.tenant.save()
 
 		self.assertFalse(self.tenant.acesso_permitido)
+
+
+@override_settings(ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox')
+class CriarAssinaturaAsaasTest(TestCase):
+	"""
+	Testes de _criar_assinatura_asaas (integração do provisionamento com o
+	Asaas). Tenant vive no schema public — criado direto via ORM, com
+	auto_create_schema=False (mesmo padrão de criar_tenant em services.py),
+	sem precisar criar o schema real pra esses testes.
+	"""
+
+	def setUp(self):
+		# 0010_fixar_planos já semeia os planos padrão — não recriar, só ajustar.
+		self.plano, _ = Plano.objects.update_or_create(
+			nome=Plano.BASICO, defaults={'preco_mensal': Decimal('97.00')},
+		)
+
+	def _criar_tenant(self, schema_name):
+		tenant = Tenant(
+			schema_name=schema_name, nome='Imob Teste', cnpj='12345678000190',
+			email='contato@imob.com', plano=self.plano,
+		)
+		tenant.auto_create_schema = False
+		tenant.save()
+		return tenant
+
+	@patch('requests.Session.post')
+	def test_criar_assinatura_asaas_salva_ids_no_tenant(self, mock_post):
+		mock_post.side_effect = [_resp(200, {'id': 'cus_123'}), _resp(200, {'id': 'sub_456'})]
+		tenant = self._criar_tenant('imob_teste_asaas1')
+
+		_criar_assinatura_asaas(tenant)
+
+		tenant.refresh_from_db()
+		self.assertEqual(tenant.asaas_customer_id, 'cus_123')
+		self.assertEqual(tenant.asaas_subscription_id, 'sub_456')
+
+	@patch('requests.Session.post')
+	def test_erro_asaas_nao_propaga_nem_falha_provisionamento(self, mock_post):
+		import requests
+		mock_post.side_effect = requests.ConnectionError('timeout')
+		tenant = self._criar_tenant('imob_teste_asaas2')
+
+		_criar_assinatura_asaas(tenant)  # não deve lançar
+
+		tenant.refresh_from_db()
+		self.assertEqual(tenant.asaas_customer_id, '')
+		self.assertEqual(tenant.asaas_subscription_id, '')
+
+	def test_tenant_sem_plano_nao_chama_asaas(self):
+		tenant = self._criar_tenant('imob_teste_asaas3')
+		tenant.plano = None
+		tenant.save()
+
+		_criar_assinatura_asaas(tenant)  # não deve lançar nem exigir mock
