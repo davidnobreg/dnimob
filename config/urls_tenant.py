@@ -35,6 +35,7 @@ urlpatterns = [
     path('imoveis/', include('apps.imoveis.urls')),
     path('inquilinos/', include('apps.inquilinos.urls')),
     path('contratos/', include('apps.contratos.urls')),
+    path('configuracoes/documentos/', include('apps.documentos.urls', namespace='documentos')),
     path('financeiro/', include('apps.financeiro.urls')),
     path('relatorios/', include('apps.relatorios.urls')),
     path('sicredi/', include('apps.sicredi.urls')),

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Modelos de Documento</h1>
+<p>Em construção — editor vem na Fatia 3.</p>
+{% for modelo in modelos %}
+  <p>{{ modelo.titulo }} — <a href="{% url 'documentos:editor_modelo' modelo.pk %}">Editar</a></p>
+{% endfor %}
+{% endblock %}

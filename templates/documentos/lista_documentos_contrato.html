@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Documentos — Contrato {{ contrato.numero }}</h1>
+{% for documento in documentos %}
+  <p>{{ documento.titulo }} — <a href="{% url 'documentos:download_documento' documento.pk %}">Baixar PDF</a></p>
+{% empty %}
+  <p>Nenhum documento gerado para este contrato ainda.</p>
+{% endfor %}
+{% endblock %}
