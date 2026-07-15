@@ -5,12 +5,17 @@ Testes do AsaasClient — billing interno (DN Software cobra a imobiliária).
 Nenhuma chamada real à API Asaas: requests.Session.post é sempre mockado
 (não há API key/conta ainda). Mesmo padrão de apps/sicredi/tests.py.
 """
-from datetime import date
+import json
+from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
+from django_tenants.test.cases import TenantTestCase
+
+from apps.tenants.models import Tenant
 
 from .client import AsaasAPIError, AsaasAuthError, AsaasClient
+from .webhook import asaas_webhook
 
 
 def _resp(status_code, json_data=None, text=''):
@@ -117,3 +122,179 @@ class AsaasClientTests(TestCase):
 
 		with self.assertRaises(AsaasAPIError):
 			self.client_asaas.criar_customer('Imobiliária Teste', '12345678000190')
+
+
+class WebhookAsaasTest(TenantTestCase):
+	"""
+	Testes do webhook Asaas — Tenant vive no schema public, sem chamada real.
+
+	override_settings vai por método (não por classe): TenantTestCase.setUpClass
+	não chama super().setUpClass(), que é onde o Django habilitaria
+	_overridden_settings no nível de classe.
+	"""
+
+	def _post_webhook(self, payload, token='token-secreto-teste'):
+		factory = RequestFactory()
+		req = factory.post(
+			'/asaas/webhook/',
+			data=json.dumps(payload),
+			content_type='application/json',
+			HTTP_ASAAS_ACCESS_TOKEN=token,
+		)
+		return asaas_webhook(req)
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_evento_payment_confirmed_ativa_tenant(self):
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'PAYMENT_CONFIRMED',
+			'payment': {'subscription': 'sub_123', 'customer': 'cus_123'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.tenant.refresh_from_db()
+		self.assertEqual(self.tenant.status_pagamento, 'ativo')
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_evento_payment_overdue_marca_inadimplente(self):
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'PAYMENT_OVERDUE',
+			'payment': {'subscription': 'sub_123', 'customer': 'cus_123'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.tenant.refresh_from_db()
+		self.assertEqual(self.tenant.status_pagamento, 'inadimplente')
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_evento_subscription_deleted_cancela(self):
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'SUBSCRIPTION_DELETED',
+			'subscription': {'id': 'sub_123', 'customer': 'cus_123'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.tenant.refresh_from_db()
+		self.assertEqual(self.tenant.status_pagamento, 'cancelado')
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_evento_desconhecido_ignorado(self):
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'PAYMENT_CREATED',
+			'payment': {'subscription': 'sub_123'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.assertEqual(json.loads(resp.content), {'ok': True, 'ignorado': True})
+		self.tenant.refresh_from_db()
+		self.assertEqual(self.tenant.status_pagamento, 'ativo')
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_token_invalido_retorna_401(self):
+		resp = self._post_webhook({'event': 'PAYMENT_CONFIRMED'}, token='token-errado')
+
+		self.assertEqual(resp.status_code, 401)
+
+	def test_tenant_nao_encontrado_retorna_200(self):
+		resp = self._post_webhook({
+			'event': 'PAYMENT_CONFIRMED',
+			'payment': {'subscription': 'sub_inexistente', 'customer': 'cus_inexistente'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.assertEqual(json.loads(resp.content)['tenant'], 'não encontrado')
+
+
+class AcessoPermitidoTest(TenantTestCase):
+	"""
+	Testes da property acesso_permitido com status_pagamento.
+
+	self.tenant é o mesmo objeto Python reaproveitado por todos os métodos
+	da classe (só o schema é recriado por classe, não por teste) — o setUp
+	reseta os campos relevantes pra cada teste não herdar estado deixado
+	por outro (ex.: ativo=False vazando pros testes seguintes).
+	"""
+
+	def setUp(self):
+		self.tenant.ativo = True
+		self.tenant.trial = True
+		self.tenant.trial_expira = None
+		self.tenant.asaas_graca_ate = None
+		self.tenant.status_pagamento = Tenant.StatusPagamento.TRIAL
+
+	def test_status_ativo_permite_acesso(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+		self.tenant.save()
+
+		self.assertTrue(self.tenant.acesso_permitido)
+
+	def test_status_suspenso_bloqueia(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.SUSPENSO
+		self.tenant.save()
+
+		self.assertFalse(self.tenant.acesso_permitido)
+
+	def test_status_cancelado_bloqueia(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.CANCELADO
+		self.tenant.save()
+
+		self.assertFalse(self.tenant.acesso_permitido)
+
+	def test_status_inadimplente_sem_graca_bloqueia(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+		self.tenant.asaas_graca_ate = None
+		self.tenant.save()
+
+		self.assertFalse(self.tenant.acesso_permitido)
+
+	def test_status_inadimplente_dentro_graca_permite(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+		self.tenant.asaas_graca_ate = date.today() + timedelta(days=3)
+		self.tenant.save()
+
+		self.assertTrue(self.tenant.acesso_permitido)
+
+	def test_status_inadimplente_graca_vencida_bloqueia(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+		self.tenant.asaas_graca_ate = date.today() - timedelta(days=1)
+		self.tenant.save()
+
+		self.assertFalse(self.tenant.acesso_permitido)
+
+	def test_status_trial_valido_permite(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.TRIAL
+		self.tenant.trial = True
+		self.tenant.trial_expira = date.today() + timedelta(days=5)
+		self.tenant.save()
+
+		self.assertTrue(self.tenant.acesso_permitido)
+
+	def test_status_trial_vencido_bloqueia(self):
+		self.tenant.status_pagamento = Tenant.StatusPagamento.TRIAL
+		self.tenant.trial = True
+		self.tenant.trial_expira = date.today() - timedelta(days=1)
+		self.tenant.save()
+
+		self.assertFalse(self.tenant.acesso_permitido)
+
+	def test_ativo_false_sempre_bloqueia(self):
+		self.tenant.ativo = False
+		self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+		self.tenant.save()
+
+		self.assertFalse(self.tenant.acesso_permitido)

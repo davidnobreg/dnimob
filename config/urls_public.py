@@ -9,6 +9,7 @@ from django.views.generic import TemplateView
 
 from apps.tenants import views as tv
 from apps.sicredi import views as sicredi_views
+from apps.billing.webhook import asaas_webhook
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -34,6 +35,10 @@ urlpatterns = [
     # no payload; o <str:secret> autentica a chamada, já que a Sicredi não envia
     # nenhum header de autenticação nesta versão da API)
     path('sicredi/webhook/<str:secret>/', sicredi_views.webhook_sicredi, name='sicredi_webhook'),
+
+    # Webhook Asaas — público, sem tenant (autentica pelo header
+    # asaas-access-token, configurado no painel Asaas)
+    path('asaas/webhook/', asaas_webhook, name='asaas_webhook'),
 
     path('admin-master/', tv.superadmin_dashboard, name='superadmin_dashboard'),
     path('admin-master/criar/', tv.superadmin_criar_tenant, name='superadmin_criar_tenant'),
