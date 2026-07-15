@@ -237,17 +237,6 @@ CELERY_BEAT_SCHEDULE = {
         'args': ['task_avisar_contratos_vencendo'],
         'schedule': crontab(hour='9', minute='30'),
     },
-    # ── Backup ───────────────────────────────────
-    'backup-diario': {
-        'task': 'apps.core.tasks.executar_backup',
-        'schedule': crontab(hour=2, minute=0),
-        'kwargs': {'tipo': 'daily'},
-    },
-    'backup-semanal': {
-        'task': 'apps.core.tasks.executar_backup',
-        'schedule': crontab(hour=2, minute=0, day_of_week='monday'),
-        'kwargs': {'tipo': 'weekly'},
-    },
 }
 
 # ─────────────────────────────────────────────
