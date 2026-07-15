@@ -609,7 +609,7 @@ def _registrar_estorno(nosso_numero, payload):
 		logger.warning('Webhook Sicredi: estorno de boleto %s não encontrado', nosso_numero)
 		return
 
-	hoje = timezone.now().date()
+	hoje = timezone.localdate()
 	if boleto.pago_em and boleto.pago_em != hoje:
 		logger.warning('Webhook Sicredi: estorno de %s fora do mesmo dia (pago_em=%s) — ignorado',
 		               nosso_numero, boleto.pago_em)
