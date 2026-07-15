@@ -143,7 +143,36 @@ class Tenant(TenantMixin):
 
     @property
     def acesso_permitido(self):
-        return self.ativo and self.status_assinatura in ('trial', 'ativo')
+        """
+        Retorna True se o tenant pode acessar o sistema.
+
+        - ativo=False → sempre bloqueia (desativado manualmente)
+        - status_pagamento='trial' → permite se trial ainda não venceu
+        - status_pagamento='ativo' → permite sempre
+        - status_pagamento='inadimplente' → permite dentro do período de graça
+        - status_pagamento='suspenso'/'cancelado' → bloqueia
+        """
+        if not self.ativo:
+            return False
+
+        sp = self.status_pagamento
+
+        if sp == self.StatusPagamento.TRIAL:
+            if not self.trial:
+                return False
+            hoje = timezone.localdate()
+            return self.trial_expira is None or self.trial_expira >= hoje
+
+        if sp == self.StatusPagamento.ATIVO:
+            return True
+
+        if sp == self.StatusPagamento.INADIMPLENTE:
+            if self.asaas_graca_ate is None:
+                return False
+            hoje = timezone.localdate()
+            return self.asaas_graca_ate >= hoje
+
+        return False
 
     def tem_whatsapp(self):
         return self.plano and self.plano.tem_whatsapp
