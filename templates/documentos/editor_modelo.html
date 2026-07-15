@@ -1,5 +1,220 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Editar modelo — {{ modelo.titulo }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'documentos/css/editor.css' %}">
+{% endblock %}
+
 {% block content %}
-<h1>Editor — {{ modelo.titulo }}</h1>
-<p>Em construção — Fatia 3.</p>
+<div class="space-y-4">
+
+	<!-- Topbar -->
+	<div class="sticky top-0 z-10 -mx-4 sm:mx-0 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur sm:rounded-xl sm:border sm:px-6 sm:shadow-sm">
+		<div>
+			<h1 class="text-base font-semibold text-gray-900">{{ modelo.titulo }}</h1>
+			<p class="text-xs text-gray-500">{{ modelo.get_tipo_display }}</p>
+		</div>
+		<div class="flex items-center gap-3">
+			<span id="salvar-status" class="text-xs text-gray-400"></span>
+			<a href="{% url 'documentos:lista_modelos' %}"
+			   class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+				<i class="ti ti-arrow-left text-base"></i> Voltar
+			</a>
+			<button type="button" id="btn-salvar"
+			        class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 transition-colors">
+				<i class="ti ti-device-floppy text-base"></i> Salvar
+			</button>
+		</div>
+	</div>
+
+	<div class="flex flex-col xl:flex-row gap-4">
+
+		<!-- Editor -->
+		<div class="flex-1 min-w-0 space-y-3">
+
+			<!-- Toolbar -->
+			<div class="bg-white rounded-xl border border-gray-200 p-2">
+				<div class="flex flex-wrap items-center toolbar-doc-editor">
+
+					<div class="toolbar-group">
+						<button type="button" class="toolbar-btn" data-action="undo" title="Desfazer"><i class="ti ti-arrow-back-up"></i></button>
+						<button type="button" class="toolbar-btn" data-action="redo" title="Refazer"><i class="ti ti-arrow-forward-up"></i></button>
+					</div>
+					<span class="toolbar-sep"></span>
+
+					<div class="toolbar-group">
+						<button type="button" class="toolbar-btn" data-action="bold" title="Negrito"><i class="ti ti-bold"></i></button>
+						<button type="button" class="toolbar-btn" data-action="italic" title="Itálico"><i class="ti ti-italic"></i></button>
+						<button type="button" class="toolbar-btn" data-action="underline" title="Sublinhado"><i class="ti ti-underline"></i></button>
+						<button type="button" class="toolbar-btn" data-action="subscript" title="Subscrito"><i class="ti ti-subscript"></i></button>
+						<button type="button" class="toolbar-btn" data-action="superscript" title="Sobrescrito"><i class="ti ti-superscript"></i></button>
+						<button type="button" class="toolbar-btn" data-action="link" title="Inserir/remover link"><i class="ti ti-link"></i></button>
+
+						<div class="relative" x-data="{ open: false }">
+							<button type="button" class="toolbar-btn" title="Fonte" @click="open = !open" @click.outside="open = false"><i class="ti ti-typography"></i></button>
+							<div x-show="open" x-cloak class="absolute z-20 mt-1 w-44 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-family="Arial, sans-serif" @click="open = false">Arial</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-family="'Times New Roman', serif" @click="open = false">Times New Roman</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-family="'Courier New', monospace" @click="open = false">Courier New</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 mt-1 border-t border-gray-100 pt-2 text-gray-500 hover:text-gray-700" data-action="font-family-clear" @click="open = false">Remover fonte</button>
+							</div>
+						</div>
+
+						<div class="relative" x-data="{ open: false }">
+							<button type="button" class="toolbar-btn" title="Tamanho da fonte" @click="open = !open" @click.outside="open = false"><i class="ti ti-text-size"></i></button>
+							<div x-show="open" x-cloak class="absolute z-20 mt-1 w-28 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-size="10" @click="open = false">10pt</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-size="11" @click="open = false">11pt</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-size="12" @click="open = false">12pt</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-size="14" @click="open = false">14pt</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-size="16" @click="open = false">16pt</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-size="18" @click="open = false">18pt</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-font-size="24" @click="open = false">24pt</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 mt-1 border-t border-gray-100 pt-2 text-gray-500 hover:text-gray-700" data-action="font-size-clear" @click="open = false">Padrão</button>
+							</div>
+						</div>
+
+						<div class="relative" x-data="{ open: false }">
+							<button type="button" class="toolbar-btn" title="Cor do texto" @click="open = !open" @click.outside="open = false"><i class="ti ti-letter-case" style="color:#dc2626"></i></button>
+							<div x-show="open" x-cloak class="absolute z-20 mt-1 w-32 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+								<div class="flex flex-wrap gap-1">
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#000000" data-color="#000000" title="#000000" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#dc2626" data-color="#dc2626" title="#dc2626" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#2563eb" data-color="#2563eb" title="#2563eb" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#16a34a" data-color="#16a34a" title="#16a34a" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#d97706" data-color="#d97706" title="#d97706" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#7c3aed" data-color="#7c3aed" title="#7c3aed" @click="open = false"></button>
+								</div>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 mt-2 border-t border-gray-100 pt-2 text-gray-500 hover:text-gray-700" data-action="color-clear" @click="open = false">Remover cor</button>
+							</div>
+						</div>
+
+						<div class="relative" x-data="{ open: false }">
+							<button type="button" class="toolbar-btn" title="Realce" @click="open = !open" @click.outside="open = false"><i class="ti ti-highlight"></i></button>
+							<div x-show="open" x-cloak class="absolute z-20 mt-1 w-32 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+								<div class="flex flex-wrap gap-1">
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#fef08a" data-highlight="#fef08a" title="#fef08a" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#bbf7d0" data-highlight="#bbf7d0" title="#bbf7d0" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#bfdbfe" data-highlight="#bfdbfe" title="#bfdbfe" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#fecaca" data-highlight="#fecaca" title="#fecaca" @click="open = false"></button>
+									<button type="button" class="w-5 h-5 rounded border border-gray-200" style="background:#fed7aa" data-highlight="#fed7aa" title="#fed7aa" @click="open = false"></button>
+								</div>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 mt-2 border-t border-gray-100 pt-2 text-gray-500 hover:text-gray-700" data-action="highlight-clear" @click="open = false">Remover realce</button>
+							</div>
+						</div>
+					</div>
+					<span class="toolbar-sep"></span>
+
+					<div class="toolbar-group">
+						<button type="button" class="toolbar-btn" data-action="h1" title="Título 1"><i class="ti ti-h-1"></i></button>
+						<button type="button" class="toolbar-btn" data-action="h2" title="Título 2"><i class="ti ti-h-2"></i></button>
+						<button type="button" class="toolbar-btn" data-action="p" title="Parágrafo"><i class="ti ti-pilcrow"></i></button>
+					</div>
+					<span class="toolbar-sep"></span>
+
+					<div class="toolbar-group">
+						<button type="button" class="toolbar-btn" data-action="left" title="Alinhar à esquerda"><i class="ti ti-align-left"></i></button>
+						<button type="button" class="toolbar-btn" data-action="center" title="Centralizar"><i class="ti ti-align-center"></i></button>
+						<button type="button" class="toolbar-btn" data-action="justify" title="Justificar"><i class="ti ti-align-justified"></i></button>
+
+						<div class="relative" x-data="{ open: false }">
+							<button type="button" class="toolbar-btn" title="Espaçamento entre linhas" @click="open = !open" @click.outside="open = false"><i class="ti ti-line-height"></i></button>
+							<div x-show="open" x-cloak class="absolute z-20 mt-1 w-24 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-line-height="1" @click="open = false">1.0</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-line-height="1.15" @click="open = false">1.15</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-line-height="1.5" @click="open = false">1.5</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-50" data-line-height="2" @click="open = false">2.0</button>
+								<button type="button" class="w-full text-left text-sm px-2 py-1 mt-1 border-t border-gray-100 pt-2 text-gray-500 hover:text-gray-700" data-action="line-height-clear" @click="open = false">Padrão</button>
+							</div>
+						</div>
+					</div>
+					<span class="toolbar-sep"></span>
+
+					<div class="toolbar-group">
+						<button type="button" class="toolbar-btn" data-action="bullet" title="Lista com marcadores"><i class="ti ti-list"></i></button>
+					</div>
+					<span class="toolbar-sep"></span>
+
+					<div class="toolbar-group">
+						<button type="button" class="toolbar-btn" data-action="table" title="Inserir tabela"><i class="ti ti-table"></i></button>
+						<button type="button" class="toolbar-btn" data-action="hr" title="Linha horizontal"><i class="ti ti-minus"></i></button>
+
+						<span id="grupo-tabela" class="toolbar-group" style="display:none">
+							<span class="toolbar-sep"></span>
+							<button type="button" class="toolbar-btn" data-action="col-before" title="Inserir coluna à esquerda"><i class="ti ti-column-insert-left"></i></button>
+							<button type="button" class="toolbar-btn" data-action="col-after" title="Inserir coluna à direita"><i class="ti ti-column-insert-right"></i></button>
+							<button type="button" class="toolbar-btn" data-action="col-del" title="Deletar coluna"><i class="ti ti-column-remove"></i></button>
+							<button type="button" class="toolbar-btn" data-action="row-before" title="Inserir linha acima"><i class="ti ti-row-insert-top"></i></button>
+							<button type="button" class="toolbar-btn" data-action="row-after" title="Inserir linha abaixo"><i class="ti ti-row-insert-bottom"></i></button>
+							<button type="button" class="toolbar-btn" data-action="row-del" title="Deletar linha"><i class="ti ti-row-remove"></i></button>
+							<button type="button" class="toolbar-btn text-red-600" data-action="table-del" title="Deletar tabela"><i class="ti ti-trash"></i></button>
+						</span>
+					</div>
+					<span class="toolbar-sep"></span>
+
+					<div class="toolbar-group">
+						<button type="button" class="toolbar-btn" data-action="clear" title="Limpar formatação"><i class="ti ti-eraser"></i></button>
+					</div>
+
+					<span id="contador-caracteres" class="text-xs text-gray-400 ml-auto"></span>
+				</div>
+			</div>
+
+			<!-- Área de edição paginada -->
+			<div class="bg-white rounded-xl border border-gray-200 p-4" style="background:#f1f5f9; overflow:auto; max-height:78vh;">
+				<div
+					id="editor-root"
+					data-modelo-pk="{{ modelo.pk }}"
+					data-save-url="{% url 'documentos:salvar_modelo' modelo.pk %}"
+					class="editor-a4-shell"
+				></div>
+			</div>
+
+			<script id="conteudo-inicial" type="application/json">{{ conteudo_html_json }}</script>
+		</div>
+
+		<!-- Painel lateral de variáveis -->
+		<div class="w-full xl:w-72 shrink-0">
+			<div class="bg-white rounded-xl border border-gray-200 p-4">
+				<h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+					<i class="ti ti-braces text-base text-gray-400"></i> Variáveis
+				</h3>
+				<input type="text" id="busca-variavel" placeholder="Buscar..."
+				       class="form-input mb-3">
+
+				<div style="max-height:70vh; overflow:auto;">
+					{% regroup variaveis by get_categoria_display as variaveis_por_categoria %}
+					{% for grupo in variaveis_por_categoria %}
+					<div class="mt-3 first:mt-0">
+						<p class="text-xs font-semibold uppercase text-gray-400">{{ grupo.grouper }}</p>
+						{% for var in grupo.list %}
+						<button
+							type="button"
+							class="variavel-item w-full text-left text-sm px-2 py-1.5 rounded-lg mt-1 transition"
+							data-var-slug="{{ var.slug }}"
+							data-var-label="{{ var.label }}"
+							title="{{ var.slug }}"
+						>
+							<span class="text-gray-700">{{ var.label }}</span>
+							<br><code class="text-xs text-blue-600">{{ var.slug }}</code>
+						</button>
+						{% endfor %}
+					</div>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'documentos/js/vendor/tiptap.bundle.min.js' %}"></script>
+{% for ext in extensoes_js %}
+<script src="{% static ext %}"></script>
+{% endfor %}
+<script src="{% static 'documentos/js/editor/editor-init.js' %}"></script>
 {% endblock %}

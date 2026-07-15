@@ -141,3 +141,14 @@ class ViewsDocumentosTests(TenantTestCase):
         self.assertEqual(resp.json(), {'ok': True})
         self.modelo.refresh_from_db()
         self.assertEqual(self.modelo.conteudo_html, '<p>Novo conteúdo</p>')
+
+    def test_editor_modelo_retorna_200_com_contexto_esperado(self):
+        resp = self.client.get(
+            reverse('documentos:editor_modelo', args=[self.modelo.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['modelo'], self.modelo)
+        self.assertIn('variaveis', resp.context)
+        conteudo_decodificado = json.loads(resp.context['conteudo_html_json'])
+        self.assertEqual(conteudo_decodificado, self.modelo.conteudo_html)

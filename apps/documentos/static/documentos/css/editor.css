@@ -1,0 +1,116 @@
+/* ==========================================================
+   editor.css — preview A4 estático do editor de modelos.
+   Sem paginação real (PaginationPlus fica pra fatia futura,
+   se necessário) — aqui é só a caixa A4 com margens ABNT.
+   ========================================================== */
+
+.editor-a4-shell {
+	width: 210mm;
+	min-height: 297mm;
+	margin: 0 auto;
+	padding: 25mm 20mm 20mm 30mm;
+	background: #fff;
+	box-shadow: 0 0 12px rgba(15, 23, 42, 0.12);
+	font-family: "Times New Roman", Times, serif;
+	font-size: 12pt;
+	line-height: 1.5;
+	color: #000;
+	box-sizing: border-box;
+	text-align: justify;
+}
+
+.editor-a4-shell .ProseMirror {
+	outline: none;
+	min-height: 100%;
+}
+
+.editor-a4-shell h1,
+.editor-a4-shell h2 {
+	text-align: center;
+	font-size: 13pt;
+	font-weight: bold;
+	margin: 0 0 10pt 0;
+}
+
+.editor-a4-shell p {
+	margin: 0 0 6pt 0;
+	text-align: justify;
+	text-indent: 1.5cm;
+}
+
+.editor-a4-shell table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 6pt 0;
+}
+
+.editor-a4-shell td,
+.editor-a4-shell th {
+	padding: 6px 10px;
+	vertical-align: top;
+	border: 1px solid #000;
+	min-width: 40px;
+}
+
+.editor-a4-shell th {
+	background-color: #f0f0f0;
+	font-weight: bold;
+}
+
+.editor-a4-shell .selectedCell {
+	background-color: #dbeafe;
+}
+
+/* Variável destacada no editor (não aparece no PDF) */
+.doc-var {
+	background: #eef4ff;
+	border: 1px solid #bfdbfe;
+	border-radius: 3px;
+	padding: 0 3px;
+	font-family: "Courier New", monospace;
+	font-size: 0.92em;
+	color: #1d4ed8;
+}
+
+/* Toolbar */
+.toolbar-doc-editor {
+	gap: 0.5rem;
+}
+
+.toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.toolbar-sep {
+	align-self: stretch;
+	width: 1px;
+	background: rgb(226 232 240);
+	margin: 2px 0;
+}
+
+.toolbar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: 0.5rem;
+	color: rgb(71 85 105);
+	transition: background-color 120ms ease, color 120ms ease;
+}
+
+.toolbar-btn:hover {
+	background: rgb(248 250 252);
+	color: rgb(15 23 42);
+}
+
+.toolbar-btn.is-active {
+	background: rgb(239 246 255);
+	color: rgb(37 99 235);
+}
+
+.variavel-item:hover {
+	background: rgb(239 246 255);
+}

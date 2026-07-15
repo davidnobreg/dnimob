@@ -1,8 +1,10 @@
 import json
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.staticfiles import finders
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 
 from apps.contratos.models import Contrato
@@ -22,17 +24,26 @@ def lista_modelos(request):
 	return render(request, 'documentos/lista_modelos.html', {'modelos': modelos})
 
 
+EXTENSOES_JS_EDITOR = [
+	'documentos/js/editor/variavel-node.js',
+	'documentos/js/editor/indent-attrs.js',
+	'documentos/js/editor/font-attrs.js',
+	'documentos/js/editor/line-height-attrs.js',
+]
+
+
 @login_required
 def editor_modelo(request, pk):
 	modelo = get_object_or_404(ModeloDocumento, pk=pk)
+	variaveis = VariavelDocumento.objects.filter(ativo=True).order_by('categoria', 'label')
 
-	variaveis_por_categoria = {}
-	for variavel in VariavelDocumento.objects.filter(ativo=True).order_by('categoria', 'label'):
-		variaveis_por_categoria.setdefault(variavel.categoria, []).append(variavel)
+	extensoes_js = [caminho for caminho in EXTENSOES_JS_EDITOR if finders.find(caminho)]
 
 	return render(request, 'documentos/editor_modelo.html', {
 		'modelo': modelo,
-		'variaveis_por_categoria': variaveis_por_categoria,
+		'variaveis': variaveis,
+		'conteudo_html_json': mark_safe(json.dumps(modelo.conteudo_html)),
+		'extensoes_js': extensoes_js,
 	})
 
 

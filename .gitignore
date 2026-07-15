@@ -113,6 +113,9 @@ logs/
 # static/ é usada como destino do collectstatic:
 # python manage.py collectstatic
 static/
+# excecao: static/ dentro de apps/ e codigo-fonte versionado (nao coletado)
+!apps/**/static/
+!apps/**/static/**
 
 
 # ==============================================================================
