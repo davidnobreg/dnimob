@@ -1,196 +1,177 @@
-# ImobCloud — Sistema de Gestão Imobiliária Multi-Tenant
+# DN Imob — Sistema de Gestão Imobiliária Multi-Tenant
 
-Stack: Django 5 · django-tenants · PostgreSQL 16 · Tailwind CSS · Alpine.js · Celery · Redis · Evolution API · Sicredi
+SaaS multi-tenant para imobiliárias. Cada imobiliária (tenant) tem dados
+isolados por schema PostgreSQL, compartilhando uma única instância Django.
+
+Stack: Django 5.0.14 · django-tenants 3.6.1 · PostgreSQL 16 · Tailwind CSS (CDN) · Alpine.js · Celery 5.4 + Redis · django-celery-beat · xhtml2pdf · Evolution API (WhatsApp) · Sicredi API (boletos) · openpyxl
 
 ---
 
-## Arquitetura de serviços
+## Arquitetura multi-tenant
 
-Este projeto contém apenas **4 serviços** no seu próprio `docker-compose.yml`:
+- Schema `public` → landing page, cadastro, superadmin (`config.urls_public`)
+- Schema `imob_*` → sistema da imobiliária (`config.urls_tenant`)
+
+**SHARED_APPS:** `apps.tenants`, `apps.billing`, `apps.core` + apps built-in do Django
+**TENANT_APPS:** `apps.core`, `apps.imoveis`, `apps.inquilinos`, `apps.contratos`, `apps.financeiro`, `apps.sicredi`, `apps.whatsapp`, `apps.relatorios`
+
+| App | Responsabilidade |
+|---|---|
+| `tenants` | Onboarding, superadmin, configurações, planos, WhatsApp/Sicredi config |
+| `billing` | Assinatura interna via Asaas (DN Software cobra a imobiliária pelo plano) |
+| `core` | `Usuario` (AbstractUser + perfil), context processors, task de backup |
+| `imoveis` | CRUD imóveis + fotos. Excluir = inativo (nunca deletar) |
+| `inquilinos` | CRUD inquilinos PF/PJ. Excluir = inativo. Reativação por CPF/CNPJ |
+| `contratos` | Contratos + parcelas, encerramento, rescisão, PDF |
+| `financeiro` | Lançamentos (receita/despesa), fluxo de caixa, inadimplência |
+| `sicredi` | Boletos (1-para-1 com Parcela), OAuth2, webhook |
+| `whatsapp` | Log de mensagens, envio via Evolution API, Celery Beat agendado |
+| `relatorios` | Só agregação — sem models próprios |
+
+---
+
+## Arquitetura de serviços (produção)
+
+Stack Docker Swarm / Portainer, imagem imutável (`davidnobrega/dnimob:latest`) baked no build via GitHub Actions:
 
 | Serviço | O que é |
 |---|---|
 | `web` | Django + Gunicorn |
-| `celery` | Celery Worker (4 concorrentes) |
-| `celery-beat` | Agendador de tasks |
-| `flower` | Monitor de tasks (Celery) |
+| `celery` | Celery Worker (filas `celery`, `financeiro`, `whatsapp`) |
+| `beat` | Celery Beat (agendador, `DatabaseScheduler`) |
+| `flower` | Monitor de tasks Celery |
+| `backup` | Serviço dedicado (`davidnobrega/dnimob-backup:latest`) — dump do PostgreSQL para Backblaze B2 |
 
-Os serviços abaixo estão em **stacks externas separadas** e se comunicam via rede Docker `imob_network`:
+PostgreSQL, Redis, Evolution API e proxy reverso rodam em stacks externas separadas, comunicando-se via rede Docker `app_network`.
 
-| Serviço | Stack externa |
+---
+
+## Pré-requisitos (dev local)
+
+- Python 3.12+
+- PostgreSQL 16 acessível (externo, ex: `172.16.51.3`)
+- Redis (para Celery)
+
+---
+
+## Início rápido — desenvolvimento local
+
+```bash
+# 1. Ambiente virtual
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+pip install -r requirements/dev.txt
+
+# 2. Variáveis de ambiente
+copy configuration\.envDnimob.example configuration\.envDnimob
+# Editar configuration/.envDnimob com credenciais reais
+
+# 3. Migrations
+python manage.py migrate_schemas --settings=config.settings.dev
+
+# 4. Rodar
+python manage.py runserver --settings=config.settings.dev
+```
+
+- Landing page (schema `public`): `127.0.0.1:8000`
+- Tenant de desenvolvimento (`imob_alpha`): `localhost:8000`
+
+### Celery (dev)
+
+```bash
+celery -A config worker -l info --settings=config.settings.dev
+celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler --settings=config.settings.dev
+```
+
+---
+
+## Variáveis de ambiente
+
+Arquivo: `configuration/.envDnimob` (local) — ver `configuration/.envDnimob.example` para o template completo.
+
+| Variável | Descrição |
 |---|---|
-| PostgreSQL 16 | stack do banco |
-| Redis 7 | stack do redis |
-| Evolution API | stack do evolution |
-| Nginx | stack do nginx |
+| `SECRET_KEY` | Chave secreta Django |
+| `DEBUG` | `True` em dev, `False` em prod |
+| `DB_NAME` / `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` | Credenciais PostgreSQL |
+| `REDIS_URL` | URL Redis para Celery |
+| `EMAIL_*` | SMTP relay via Resend (prod) ou console backend (dev) |
+| `EVOLUTION_API_URL` | URL base da instância Evolution API (WhatsApp) |
+| `EVOLUTION_API_KEY` | Chave de autenticação da Evolution API |
+| `EVOLUTION_WEBHOOK_TOKEN` | Token do webhook Evolution |
+| `SICREDI_API_URL` / `SICREDI_TOKEN_URL` / `SICREDI_WEBHOOK_SECRET` | Integração de boletos Sicredi |
+| `ASAAS_API_URL` / `ASAAS_API_KEY` / `ASAAS_WEBHOOK_TOKEN` | Assinatura interna (billing DN Software → imobiliária) |
+| `SENTRY_DSN` / `SENTRY_ENVIRONMENT` / `SENTRY_TRACES_RATE` | Monitoramento de erros (prod) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_STORAGE_BUCKET_NAME` / `AWS_S3_REGION_NAME` / `AWS_S3_CUSTOM_DOMAIN` | Storage S3-compatível (prod) |
+| `AWS_BACKUP_BUCKET` / `BACKUP_PREFIX` | Bucket e prefixo do backup PostgreSQL |
+| `PG_DUMP_PATH` | Caminho do binário `pg_dump` usado pelo serviço de backup |
+| `BASE_DOMAIN` | Domínio base dos subdomínios de tenant |
+| `SITE_BASE_URL` | URL pública do site |
 
 ---
 
-## Pré-requisitos
+## Geração de PDF
 
-- Docker + Docker Compose
-- Stacks externas (db, redis, evolution, nginx) já rodando
-- Rede Docker `imob_network` criada e compartilhada entre todas as stacks
-
----
-
-## Configuração da rede Docker
-
-Todas as stacks precisam usar a mesma rede externa.
-
-```bash
-# 1. Criar a rede (uma vez por servidor)
-make network
-# ou:
-docker network create imob_network
-
-# 2. Cada stack externa deve declarar a rede assim:
-# (no docker-compose.yml de cada stack externa)
-networks:
-  imob_network:
-    external: true
-```
-
----
-
-## Início rápido
-
-```bash
-# 1. Configurar variáveis de ambiente
-cp .env.example .env
-# Edite o .env:
-#   DB_HOST      = nome do container PostgreSQL na rede imob_network
-#   REDIS_URL    = redis://nome-do-container-redis:6379/0
-#   EVOLUTION_API_URL = http://nome-do-container-evolution:8080
-
-# 2. Build e subir
-make build
-make up
-
-# 3. Migrations do schema public (primeira vez)
-make migrate-shared
-
-# 4. Criar primeira imobiliária de teste
-make create-tenant
-
-# 5. Verificar se todos os containers estão visíveis na rede
-make check-network
-```
-
----
-
-## Configuração do Nginx externo
-
-O Nginx da sua stack deve fazer proxy para o container `web` via rede `imob_network`.
-Exemplo de bloco no Nginx externo:
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name ~^(?<tenant>.+)\.dnsoftware\.com\.br$ dnsoftware.com.br;
-
-    ssl_certificate     /etc/nginx/certs/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/privkey.pem;
-
-    location /static/ {
-        alias /app/staticfiles/;
-        expires 30d;
-    }
-
-    location /media/ {
-        alias /app/media/;
-        expires 7d;
-    }
-
-    location / {
-        proxy_pass         http://web:8000;   # ← container web via rede Docker
-        proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto https;
-        proxy_read_timeout 120s;
-    }
-}
-```
-
-> **Atenção:** O volume de `/app/staticfiles` e `/app/media` do container `web`
-> precisam ser acessíveis pelo Nginx. Use um volume nomeado compartilhado ou
-> monte o mesmo diretório do host nas duas stacks.
-
----
-
-## Variáveis de ambiente importantes
-
-| Variável | Descrição | Exemplo |
-|---|---|---|
-| `SECRET_KEY` | Chave secreta Django | string longa aleatória |
-| `DB_HOST` | Nome do container PostgreSQL na rede | `postgres` |
-| `DB_NAME/USER/PASSWORD` | Credenciais do banco | — |
-| `REDIS_URL` | URL Redis na rede Docker | `redis://redis:6379/0` |
-| `EVOLUTION_API_URL` | URL Evolution na rede Docker | `http://evolution:8080` |
-| `EVOLUTION_API_KEY` | Chave da Evolution API | — |
-| `TENANT_BASE_DOMAIN` | Domínio base dos subdomínios | `dnsoftware.com.br` |
-| `FLOWER_USER/PASSWORD` | Acesso ao painel Flower | — |
-| `SICREDI_WEBHOOK_SECRET` | Secret HMAC do webhook Sicredi | — |
+Usa **xhtml2pdf** (WeasyPrint é incompatível com Windows e não é usado no projeto).
 
 ---
 
 ## Estrutura do projeto
 
 ```
-imobiliaria/
+dnimob/
 ├── config/
 │   ├── settings/base.py     # configurações multi-tenant
 │   ├── settings/dev.py
 │   ├── settings/prod.py
-│   ├── celery.py            # TenantTask
-│   ├── urls_public.py       # landing page
-│   └── urls_tenant.py       # sistema por imobiliária
+│   ├── celery.py
+│   ├── urls.py
+│   ├── urls_public.py       # schema public — landing, cadastro, superadmin
+│   └── urls_tenant.py       # schema tenant — sistema da imobiliária
 ├── apps/
-│   ├── tenants/             # Tenant, Domain, Plano
-│   ├── core/                # Usuario, dashboard
-│   ├── imoveis/             # (Fase 3)
-│   ├── inquilinos/          # (Fase 3)
-│   ├── contratos/           # (Fase 4)
-│   ├── financeiro/          # (Fase 5)
-│   ├── sicredi/             # (Fase 5)
-│   ├── whatsapp/            # (Fase 6)
-│   └── relatorios/          # (Fase 7)
+│   ├── tenants/              # Tenant, Domain, Plano, onboarding, superadmin
+│   ├── billing/               # assinatura interna (Asaas)
+│   ├── core/                  # Usuario, dashboard, backup
+│   ├── imoveis/                # CRUD imóveis
+│   ├── inquilinos/              # CRUD inquilinos
+│   ├── contratos/                # contratos, parcelas, PDF
+│   ├── financeiro/                # lançamentos, fluxo de caixa
+│   ├── sicredi/                    # boletos, OAuth2, webhook
+│   ├── whatsapp/                    # Evolution API, LogMensagem
+│   └── relatorios/                   # agregação de relatórios
 ├── templates/
 ├── static/
 ├── requirements/
-├── docker-compose.yml       # web, celery, celery-beat, flower
+│   ├── base.txt
+│   ├── dev.txt
+│   └── prod.txt
+├── docker-compose.yml        # web, celery, beat, flower, backup
 ├── Dockerfile
-├── Makefile
-└── .env.example
+└── manage.py
 ```
 
 ---
 
-## Comandos úteis
+## Testes
 
 ```bash
-make network                         # cria rede Docker externa (1x)
-make build && make up                # build e subir
-make logs                            # ver logs
-make migrate-shared                  # migrations iniciais
-make migrate                         # migrations em todos os tenants
-make create-tenant                   # criar imobiliária de teste
-make check-network                   # verificar containers na rede
-make tenant-shell schema=imob_alpha  # shell dentro de um tenant
+python manage.py test apps.<app> --settings=config.settings.dev --verbosity=2
 ```
+
+Suíte com pytest cobrindo lógica de negócio, APIs e regras críticas (parcelas, boletos, webhooks).
 
 ---
 
-## Fases de implementação
+## Fases — status atual
 
 | Fase | Status | Descrição |
 |---|---|---|
-| 1 | ✅ Concluída | Setup, Docker, Django, Tailwind, multi-tenant base |
-| 2 | 🔜 Próxima | App tenants: onboarding, painel superadmin, configurações |
-| 3 | ⏳ | Imóveis e inquilinos — CRUD completo |
-| 4 | ⏳ | Contratos e geração de PDF |
-| 5 | ⏳ | Financeiro e integração Sicredi |
-| 6 | ⏳ | WhatsApp via Evolution API |
-| 7 | ⏳ | Relatórios e dashboard |
-| 8 | ⏳ | Produção: SSL, monitoramento, backup |
+| 1 | ✅ | Setup, Docker, Django, Tailwind, multi-tenant |
+| 2 | ✅ | Onboarding, superadmin, configurações, planos |
+| 3 | ✅ | Imóveis e Inquilinos — CRUD completo |
+| 4 | ✅ | Contratos, parcelas, PDF (xhtml2pdf) |
+| 5 | ✅ | Financeiro + Sicredi |
+| 6 | ✅ | WhatsApp via Evolution API + Celery Beat |
+| 7 | ✅ | Dashboard analítico + relatórios PDF/Excel |
+| 8 | ⏳ | Produção: SSL wildcard, Sentry, backup, SMTP |
+| 9 | 🔄 | Testes automatizados (pytest) |
