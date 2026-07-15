@@ -2,10 +2,46 @@
 {% block title %}Modelos de Documento{% endblock %}
 
 {% block page_header %}
-<div class="flex items-center justify-between">
+<div class="flex items-center justify-between" x-data="{ modalNovoModelo: false }">
 	<div>
 		<h1 class="text-xl font-semibold text-gray-900">Modelos de Documento</h1>
 		<p class="text-sm text-gray-500">Contratos, distratos e recibos usados na geração de documentos.</p>
+	</div>
+	<button type="button" @click="modalNovoModelo = true"
+	        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 transition-colors">
+		<i class="ti ti-plus text-base"></i> Novo Modelo
+	</button>
+
+	<div x-show="modalNovoModelo" x-cloak
+	     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+	     @keydown.escape.window="modalNovoModelo = false">
+		<div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" @click.outside="modalNovoModelo = false">
+			<h3 class="text-lg font-semibold text-gray-900 mb-4">Novo Modelo de Documento</h3>
+			<form method="post" action="{% url 'documentos:criar_modelo' %}">
+				{% csrf_token %}
+				<label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+				<input type="text" name="titulo" required class="form-input w-full mb-4" placeholder="Ex: Contrato Residencial Padrão">
+
+				<label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+				<select name="tipo" class="form-input w-full mb-4">
+					<option value="contrato">Contrato de Locação</option>
+					<option value="distrato">Distrato</option>
+					<option value="recibo">Recibo de Pagamento</option>
+					<option value="outro">Outro</option>
+				</select>
+
+				<div class="flex justify-end gap-3">
+					<button type="button" @click="modalNovoModelo = false"
+					        class="px-3.5 py-2 text-xs font-semibold rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+						Cancelar
+					</button>
+					<button type="submit"
+					        class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+						Criar e Editar
+					</button>
+				</div>
+			</form>
+		</div>
 	</div>
 </div>
 {% endblock %}

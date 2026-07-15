@@ -17,7 +17,7 @@ from apps.imoveis.models import Imovel
 from apps.inquilinos.models import Inquilino
 
 from .models import ContratoDocumentoGerado, ModeloDocumento, VariavelDocumento
-from .services import construir_contexto, renderizar_modelo
+from .services import construir_contexto, renderizar_modelo, salvar_documento_gerado
 
 
 class ModeloDocumentoTests(TenantTestCase):
@@ -152,3 +152,67 @@ class ViewsDocumentosTests(TenantTestCase):
         self.assertIn('variaveis', resp.context)
         conteudo_decodificado = json.loads(resp.context['conteudo_html_json'])
         self.assertEqual(conteudo_decodificado, self.modelo.conteudo_html)
+
+    def test_criar_modelo_cria_e_redireciona_pro_editor(self):
+        resp = self.client.post(
+            reverse('documentos:criar_modelo'),
+            data={'titulo': 'Recibo Padrão', 'tipo': 'recibo'},
+            HTTP_HOST=self.domain.domain,
+        )
+
+        novo = ModeloDocumento.objects.get(titulo='Recibo Padrão')
+        self.assertEqual(novo.tipo, 'recibo')
+        self.assertRedirects(
+            resp, reverse('documentos:editor_modelo', args=[novo.pk]),
+            fetch_redirect_response=False,
+        )
+
+
+class GerarDocumentoDownloadTests(TenantTestCase):
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='tester', password='senha123')
+        self.client.login(username='tester', password='senha123')
+
+        self.imovel = Imovel.objects.create(
+            codigo='IM-0001', tipo='apartamento', cep='60000000',
+            logradouro='Rua Teste', numero='100', bairro='Centro',
+            cidade='Fortaleza', estado='CE',
+        )
+        self.inquilino = Inquilino.objects.create(
+            tipo='pf', nome='Rodrigo Oliveira', cpf='02738306006',
+            telefone='85999999999', email='pagador@email.com',
+            logradouro='Rua Doutor Vargas', numero='150',
+            cidade='Porto Alegre', estado='RS', cep='91250000',
+        )
+        self.contrato = Contrato.objects.create(
+            imovel=self.imovel, inquilino=self.inquilino, numero='CT-0001',
+            data_inicio=date(2026, 1, 10), data_fim=date(2026, 12, 10),
+            dia_vencimento=10, valor_aluguel=Decimal('1500.00'),
+        )
+        self.modelo = ModeloDocumento.objects.create(
+            titulo='Modelo Teste', tipo='contrato', conteudo_html='<p>{{ contrato.numero }}</p>',
+        )
+
+    def test_gerar_documento_retorna_pdf(self):
+        resp = self.client.post(
+            reverse('documentos:gerar_documento'),
+            data=json.dumps({'modelo_id': str(self.modelo.pk), 'contrato_id': self.contrato.pk}),
+            content_type='application/json',
+            HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'application/pdf')
+        self.assertTrue(ContratoDocumentoGerado.objects.filter(contrato=self.contrato).exists())
+
+    def test_download_documento_retorna_200_com_pdf(self):
+        documento = salvar_documento_gerado(self.contrato, self.modelo, self.user)
+
+        resp = self.client.get(
+            reverse('documentos:download_documento', args=[documento.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'application/pdf')

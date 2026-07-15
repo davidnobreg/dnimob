@@ -7,6 +7,8 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 
+from apps.documentos.models import ModeloDocumento
+
 from .models import Contrato, Parcela
 from .forms import ContratoForm, FiltroContratoForm, ParcelaPagamentoForm
 
@@ -74,10 +76,13 @@ def contrato_detalhe(request, pk):
         'atrasadas': parcelas.filter(status='atrasado').count(),
     }
 
+    modelos_documento = ModeloDocumento.objects.filter(ativo=True).order_by('tipo', 'titulo')
+
     return render(request, 'contratos/detalhe.html', {
         'contrato': contrato,
         'parcelas': parcelas,
         'resumo':   resumo,
+        'modelos_documento': modelos_documento,
     })
 
 

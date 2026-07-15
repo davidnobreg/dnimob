@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django_tenants.test.cases import TenantTestCase
 
+from apps.documentos.models import ModeloDocumento
 from apps.financeiro.models import Lancamento
 from apps.financeiro.views import _resumo_mes
 from apps.imoveis.models import Imovel
@@ -232,3 +233,47 @@ class EstornarParcelaTests(TenantTestCase):
 
         receitas_depois, _, _ = _resumo_mes(2026, 1)
         self.assertEqual(receitas_depois, Decimal('0'))
+
+
+class ContratoDetalheModelosDocumentoTests(TenantTestCase):
+
+    def setUp(self):
+        self._patches = [
+            patch('apps.whatsapp.tasks.task_contrato_criado.apply_async'),
+        ]
+        for p in self._patches:
+            p.start()
+            self.addCleanup(p.stop)
+
+        self.imovel = Imovel.objects.create(
+            codigo='IM-0001', tipo='apartamento', cep='60000000',
+            logradouro='Rua Teste', numero='100', bairro='Centro',
+            cidade='Fortaleza', estado='CE',
+        )
+        self.inquilino = Inquilino.objects.create(
+            tipo='pf', nome='Rodrigo Oliveira', cpf='02738306006',
+            telefone='85999999999', email='pagador@email.com',
+            logradouro='Rua Doutor Vargas', numero='150',
+            cidade='Porto Alegre', estado='RS', cep='91250000',
+        )
+        self.contrato = Contrato.objects.create(
+            imovel=self.imovel, inquilino=self.inquilino, numero='CT-0001',
+            data_inicio=date(2026, 1, 10), data_fim=date(2026, 12, 10),
+            dia_vencimento=10, valor_aluguel=Decimal('1500.00'),
+        )
+        self.modelo = ModeloDocumento.objects.create(
+            titulo='Modelo Teste', tipo='contrato', conteudo_html='<p>{{ contrato.numero }}</p>',
+        )
+
+        User = get_user_model()
+        User.objects.create_user(username='tester', password='senha123')
+        self.client.login(username='tester', password='senha123')
+
+    def test_contrato_detalhe_inclui_modelos_documento_no_contexto(self):
+        resp = self.client.get(
+            reverse('contrato_detalhe', args=[self.contrato.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('modelos_documento', resp.context)
+        self.assertIn(self.modelo, list(resp.context['modelos_documento']))

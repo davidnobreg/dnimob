@@ -24,6 +24,17 @@ def lista_modelos(request):
 	return render(request, 'documentos/lista_modelos.html', {'modelos': modelos})
 
 
+@login_required
+@require_POST
+def criar_modelo(request):
+	titulo = request.POST.get('titulo', '').strip()
+	tipo = request.POST.get('tipo', 'outro')
+	if titulo:
+		modelo = ModeloDocumento.objects.create(titulo=titulo, tipo=tipo)
+		return redirect('documentos:editor_modelo', pk=modelo.pk)
+	return redirect('documentos:lista_modelos')
+
+
 EXTENSOES_JS_EDITOR = [
 	'documentos/js/editor/variavel-node.js',
 	'documentos/js/editor/indent-attrs.js',
@@ -75,15 +86,25 @@ def salvar_modelo(request, pk):
 @login_required
 @require_POST
 def gerar_documento(request):
-	modelo = get_object_or_404(ModeloDocumento, pk=request.POST.get('modelo_id'))
+	try:
+		payload = json.loads(request.body)
+	except json.JSONDecodeError:
+		return JsonResponse({'erro': 'JSON inválido.'}, status=400)
+
+	modelo = get_object_or_404(ModeloDocumento, pk=payload.get('modelo_id'), ativo=True)
 	contrato = get_object_or_404(
 		Contrato.objects.select_related('imovel', 'inquilino'),
-		pk=request.POST.get('contrato_id'),
+		pk=payload.get('contrato_id'),
 	)
 
 	documento = salvar_documento_gerado(contrato, modelo, request.user)
 
-	return redirect('documentos:download_documento', pk=documento.pk)
+	if not documento.arquivo_pdf:
+		return JsonResponse({'erro': 'Falha ao gerar PDF.'}, status=500)
+
+	response = HttpResponse(documento.arquivo_pdf.read(), content_type='application/pdf')
+	response['Content-Disposition'] = f'attachment; filename="{documento.titulo}.pdf"'
+	return response
 
 
 @login_required
