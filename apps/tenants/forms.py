@@ -282,13 +282,9 @@ class ConfigSicrediForm(forms.ModelForm):
 class ConfigWhatsAppForm(forms.ModelForm):
     class Meta:
         model = InstanciaWhatsApp
-        fields = ['nome_instancia', 'token_api']
+        fields = ['nome_instancia']
         help_texts = {
             'nome_instancia': 'Identificador único desta instância na Evolution API (sem espaços)',
-            'token_api': 'Token de autenticação da sua Evolution API',
-        }
-        widgets = {
-            'token_api': forms.PasswordInput(render_value=True),
         }
 
     def clean_nome_instancia(self):

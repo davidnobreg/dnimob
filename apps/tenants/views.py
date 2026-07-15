@@ -347,7 +347,6 @@ def config_whatsapp(request):
 
     if request.method == 'POST':
         form = ConfigWhatsAppForm(request.POST, instance=instancia)
-        evolution_url = request.POST.get('evolution_url', '').strip()
 
         if form.is_valid():
             dados = form.cleaned_data
@@ -355,14 +354,7 @@ def config_whatsapp(request):
                 instancia = criar_instancia_whatsapp(
                     request.tenant.schema_name,
                     dados['nome_instancia'],
-                    dados['token_api'],
-                    evolution_url=evolution_url,  # ← adicionar esta linha
                 )
-                # Salva a URL que não está no form original
-                if evolution_url:
-                    instancia.evolution_url = evolution_url
-                    instancia.save(update_fields=['evolution_url'])
-
                 messages.success(request, 'Instância criada! Escaneie o QR Code abaixo.')
                 return redirect('config_whatsapp')
 
@@ -376,6 +368,7 @@ def config_whatsapp(request):
     return render(request, 'tenants/config_whatsapp.html', {
         'form': form,
         'instancia': instancia,
+        'evolution_api_url': settings.EVOLUTION_API_URL,
     })
 
 

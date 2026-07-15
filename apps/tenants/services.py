@@ -320,18 +320,9 @@ class EvolutionAPIClient:
 
 def _get_client_tenant(tenant_schema: str) -> EvolutionAPIClient:
     """
-    Retorna um EvolutionAPIClient configurado com a URL e token
-    salvos no InstanciaWhatsApp do tenant.
-    Faz fallback para as variáveis de settings se não houver instância.
+    Retorna um EvolutionAPIClient configurado com EVOLUTION_API_URL/EVOLUTION_API_KEY
+    do settings (servidor único por instância DN Software, não por tenant).
     """
-    with schema_context(tenant_schema):
-        instancia = InstanciaWhatsApp.objects.first()
-        if instancia and instancia.evolution_url:
-            return EvolutionAPIClient(
-                base_url=instancia.evolution_url,
-                api_key=instancia.token_api,
-            )
-    # fallback: usa EVOLUTION_API_URL / EVOLUTION_API_KEY do settings
     return EvolutionAPIClient()
 
 
@@ -342,32 +333,18 @@ def _get_client_tenant(tenant_schema: str) -> EvolutionAPIClient:
 def criar_instancia_whatsapp(
     tenant_schema: str,
     nome_instancia: str,
-    token_api: str,
-    evolution_url: str = '',
 ) -> InstanciaWhatsApp:
     """Cria ou atualiza a instância WhatsApp na Evolution API e salva no banco."""
     with schema_context(tenant_schema):
         instancia, created = InstanciaWhatsApp.objects.get_or_create(
             nome_instancia=nome_instancia,
-            defaults={
-                'token_api':     token_api,
-                'evolution_url': evolution_url,
-                'status':        'desconectado',
-            },
+            defaults={'status': 'desconectado'},
         )
 
-        if not created:
-            instancia.token_api     = token_api
-            instancia.evolution_url = evolution_url
-            instancia.save(update_fields=['token_api', 'evolution_url'])
-
-        client = EvolutionAPIClient(
-            base_url=evolution_url,
-            api_key=token_api,
-        )
+        client = EvolutionAPIClient()
 
         try:
-            client.criar_instancia(nome_instancia, token_api)
+            client.criar_instancia(nome_instancia)
             instancia.status = 'aguardando_qr'
             instancia.save()
         except EvolutionAPIError as e:

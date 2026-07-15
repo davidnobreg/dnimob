@@ -4,6 +4,7 @@ Usa InstanciaWhatsApp do tenant para obter credenciais.
 """
 import logging
 import requests
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
@@ -76,13 +77,11 @@ class EvolutionAPIClient:
 def get_client_for_tenant() -> EvolutionAPIClient | None:
     """Retorna cliente configurado para o tenant atual. None se não configurado."""
     instancia = _get_instancia()
-    if not instancia:
-        return None
-    if not all([instancia.evolution_url, instancia.token_api, instancia.nome_instancia]):
+    if not instancia or not instancia.nome_instancia:
         return None
     return EvolutionAPIClient(
-        base_url=instancia.evolution_url,
-        api_key=instancia.token_api,
+        base_url=settings.EVOLUTION_API_URL,
+        api_key=settings.EVOLUTION_API_KEY,
         instance=instancia.nome_instancia,
     )
 
