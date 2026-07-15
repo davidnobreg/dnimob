@@ -87,6 +87,13 @@ class Tenant(TenantMixin):
     status_pagamento = models.CharField(
         max_length=20, choices=StatusPagamento.choices, default=StatusPagamento.TRIAL,
     )
+    asaas_graca_ate = models.DateField(
+        'Graça até',
+        null=True,
+        blank=True,
+        help_text='Data limite do período de graça após inadimplência. '
+                  'Quando setar: decisão pendente (TODO Fatia 2+).'
+    )
 
     # Aceite de Termos de Uso e Política de Privacidade
     aceite_termos_em = models.DateTimeField('Aceite dos termos em', null=True, blank=True)
