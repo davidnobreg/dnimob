@@ -144,3 +144,20 @@ def salvar_documento_gerado(contrato, modelo, usuario):
         doc.arquivo_pdf.save(filename, ContentFile(pdf_bytes), save=False)
     doc.save()
     return doc
+
+
+def criar_documentos_padrao():
+    """
+    Carrega as fixtures de variáveis e modelos padrão do app documentos
+    no schema corrente. Deve ser chamada dentro de schema_context do tenant.
+    Idempotente: pula cada fixture se já houver registro correspondente.
+    """
+    from django.core.management import call_command
+
+    from .models import ModeloDocumento, VariavelDocumento
+
+    if not VariavelDocumento.objects.exists():
+        call_command('loaddata', 'variaveis_documento', app_label='documentos', verbosity=0)
+
+    if not ModeloDocumento.objects.filter(padrao=True).exists():
+        call_command('loaddata', 'modelos_padrao', app_label='documentos', verbosity=0)

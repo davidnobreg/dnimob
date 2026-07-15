@@ -17,7 +17,12 @@ from apps.imoveis.models import Imovel
 from apps.inquilinos.models import Inquilino
 
 from .models import ContratoDocumentoGerado, ModeloDocumento, VariavelDocumento
-from .services import construir_contexto, renderizar_modelo, salvar_documento_gerado
+from .services import (
+    construir_contexto,
+    criar_documentos_padrao,
+    renderizar_modelo,
+    salvar_documento_gerado,
+)
 
 
 class ModeloDocumentoTests(TenantTestCase):
@@ -216,3 +221,19 @@ class GerarDocumentoDownloadTests(TenantTestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Content-Type'], 'application/pdf')
+
+
+class CriarDocumentosPadraoTests(TenantTestCase):
+
+    def test_criar_documentos_padrao_idempotente(self):
+        criar_documentos_padrao()
+        count1 = VariavelDocumento.objects.count()
+        criar_documentos_padrao()
+        count2 = VariavelDocumento.objects.count()
+
+        self.assertEqual(count1, count2)
+
+    def test_criar_documentos_padrao_cria_modelos(self):
+        criar_documentos_padrao()
+
+        self.assertEqual(ModeloDocumento.objects.filter(padrao=True).count(), 3)

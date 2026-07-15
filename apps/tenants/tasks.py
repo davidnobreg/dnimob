@@ -43,6 +43,9 @@ def provisionar_tenant(self, tenant_pk: int, dados_admin: dict):
 			admin.save()
 			_criar_templates_padrao()
 
+			from apps.documentos.services import criar_documentos_padrao
+			criar_documentos_padrao()
+
 		tenant.provisionamento_status = 'pronto'
 		tenant.save(update_fields=['provisionamento_status'])
 		logger.info('Tenant provisionado: %s (schema=%s)', tenant.nome, tenant.schema_name)
