@@ -1,6 +1,28 @@
 {% extends "base_public.html" %}
 
-{% block title %}Gestão imobiliária moderna{% endblock %}
+{% block title %}DN Imob — Sistema de Gestão para Imobiliárias{% endblock %}
+
+{% block meta_description %}Sistema completo para imobiliárias: contratos, cobranças, boletos Sicredi e WhatsApp automático. Gerencie sua imobiliária com eficiência real. Teste grátis por 14 dias.{% endblock %}
+
+{% block meta_extra %}
+<meta name="keywords" content="sistema para imobiliária, software para imobiliária, ERP imobiliário, sistema de gestão de aluguéis, software para corretor de imóveis, gestão de contratos de locação, boleto de aluguel, sistema imobiliário SaaS">
+<meta name="robots" content="index, follow">
+<meta name="author" content="DN Software">
+<link rel="canonical" href="https://imob.dnsoftware.com.br/">
+
+<!-- Open Graph (WhatsApp, LinkedIn, Facebook) -->
+<meta property="og:title" content="DN Imob — Gestão inteligente de locações">
+<meta property="og:description" content="Contratos, cobranças, boletos Sicredi e WhatsApp automático — tudo em um só lugar. Teste grátis por 14 dias.">
+<meta property="og:url" content="https://imob.dnsoftware.com.br/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="DN Imob">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DN Imob — Sistema de Gestão para Imobiliárias">
+<meta name="twitter:description" content="Contratos, cobranças, boletos Sicredi e WhatsApp automático. Teste grátis por 14 dias.">
+{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css" integrity="sha512-A0aE7SmVvHV5xR8CxUt/bpJTLYt/8OjcGdaSJ4y8ExHRzXFV1TZLW8B24V1EiaBu9WPa0iCsCXqDpX1mvR+cyw==" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -335,6 +357,23 @@
         </div>
     </div>
 </section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "DN Imob",
+  "description": "Sistema de gestão para imobiliárias com contratos, cobranças, boletos Sicredi e WhatsApp automático.",
+  "url": "https://imob.dnsoftware.com.br",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "provider": {
+    "@type": "Organization",
+    "name": "DN Software",
+    "url": "https://imob.dnsoftware.com.br"
+  }
+}
+</script>
 
 {% endblock %}
 

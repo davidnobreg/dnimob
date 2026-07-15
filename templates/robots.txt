@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin-master/
+Disallow: /cadastro/aguardando/
+Disallow: /cadastro/status/
+Disallow: /sicredi/webhook/
+
+Sitemap: https://imob.dnsoftware.com.br/sitemap.xml

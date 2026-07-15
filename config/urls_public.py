@@ -5,6 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 from apps.tenants import views as tv
 from apps.sicredi import views as sicredi_views
@@ -13,6 +14,14 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', tv.landing, name='landing'),
+    path('robots.txt', TemplateView.as_view(
+        template_name='robots.txt',
+        content_type='text/plain',
+    ), name='robots_txt'),
+    path('sitemap.xml', TemplateView.as_view(
+        template_name='sitemap.xml',
+        content_type='application/xml',
+    ), name='sitemap_xml'),
     path('cadastro/', tv.cadastro_imobiliaria, name='cadastro_imobiliaria'),
     path('cadastro/aguardando/<str:schema>/', tv.cadastro_aguardando, name='cadastro_aguardando'),
     path('cadastro/status/<str:schema>/', tv.cadastro_status, name='cadastro_status'),
