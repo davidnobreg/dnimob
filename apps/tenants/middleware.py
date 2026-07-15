@@ -19,6 +19,7 @@ class PlanoAcessoMiddleware:
         '/acesso-bloqueado/',
         '/logout/',
         '/login/',
+        '/senha/redefinir/',
         '/static/',
         '/media/',
         '/favicon.ico',
