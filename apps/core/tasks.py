@@ -48,7 +48,7 @@ def executar_backup(self, tipo='daily'):
     s3_key = f'{prefix}/{year_month}/{filename}'
 
     cmd = [
-        'pg_dump',
+        os.environ.get('PG_DUMP_PATH', '/usr/bin/pg_dump'),
         '-h', db['HOST'],
         '-p', str(db.get('PORT', 5432)),
         '-U', db['USER'],
