@@ -488,6 +488,25 @@ def whatsapp_status(request):
     return JsonResponse({'status': status, 'numero': instancia.numero_telefone})
 
 
+@login_required
+@user_passes_test(is_admin)
+@require_POST
+def recriar_instancia_whatsapp(request):
+    """Recria no servidor Evolution API uma instância que sumiu de lá (status='nao_encontrada')."""
+    instancia = InstanciaWhatsApp.objects.first()
+    if not instancia:
+        messages.error(request, 'Nenhuma instância configurada.')
+        return redirect('config_whatsapp')
+
+    try:
+        criar_instancia_whatsapp(request.tenant.schema_name, instancia.nome_instancia)
+        messages.success(request, 'Instância recriada! Escaneie o QR Code para conectar.')
+    except EvolutionAPIError as e:
+        messages.error(request, f'Erro ao recriar instância: {e}')
+
+    return redirect('config_whatsapp')
+
+
 GRUPOS_TEMPLATES_WHATSAPP = [
     ('📋 Contrato', ['boas_vindas', 'contrato_enviado', 'contrato_60dias', 'contrato_30dias', 'distrato_enviado']),
     ('💰 Cobrança', ['boleto_gerado', 'vence_amanha', 'vence_hoje']),

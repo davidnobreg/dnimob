@@ -57,6 +57,7 @@ urlpatterns = [
     path('configuracoes/whatsapp/', tv.config_whatsapp, name='config_whatsapp'),
     path('configuracoes/whatsapp/qrcode/', tv.whatsapp_qrcode, name='whatsapp_qrcode'),
     path('configuracoes/whatsapp/status/', tv.whatsapp_status, name='whatsapp_status'),
+    path('configuracoes/whatsapp/recriar/', tv.recriar_instancia_whatsapp, name='recriar_instancia_whatsapp'),
     path('configuracoes/whatsapp/templates/', tv.whatsapp_templates, name='whatsapp_templates'),
     path(
         'configuracoes/whatsapp/templates/<int:template_id>/editar/',

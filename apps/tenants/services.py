@@ -232,6 +232,11 @@ class EvolutionAPIError(Exception):
     pass
 
 
+class EvolutionAPINotFoundError(EvolutionAPIError):
+    """Instância não existe no servidor Evolution API (HTTP 404)."""
+    pass
+
+
 class EvolutionAPIClient:
     def __init__(self, base_url: str = None, api_key: str = None):
         self.base_url = (
@@ -255,6 +260,7 @@ class EvolutionAPIClient:
             if status_code == 404:
                 # Instância não existe — warning, não error (não gera issue no Sentry)
                 logger.warning('Evolution API instância não encontrada: %s', url)
+                raise EvolutionAPINotFoundError(str(e)) from e
             else:
                 logger.error('Evolution API HTTP error %s %s: %s', status_code, url, e)
                 logger.error('Response body: %s', e.response.text if e.response is not None else 'N/A')
@@ -395,6 +401,11 @@ def verificar_status_whatsapp(tenant_schema: str, nome_instancia: str) -> str:
         with schema_context(tenant_schema):
             InstanciaWhatsApp.objects.filter(nome_instancia=nome_instancia).update(status=status)
         return status
+    except EvolutionAPINotFoundError:
+        # Instância não existe mais no servidor (reinício, limpeza, etc)
+        with schema_context(tenant_schema):
+            InstanciaWhatsApp.objects.filter(nome_instancia=nome_instancia).update(status='nao_encontrada')
+        return 'nao_encontrada'
     except EvolutionAPIError:
         return 'erro'
 

@@ -259,6 +259,7 @@ class InstanciaWhatsApp(models.Model):
         ('aguardando_qr', 'Aguardando QR Code'),
         ('conectado', 'Conectado'),
         ('erro', 'Erro'),
+        ('nao_encontrada', 'Não encontrada no servidor'),
     ]
 
     evolution_url  = models.URLField(blank=True, default='', verbose_name='URL da Evolution API',
