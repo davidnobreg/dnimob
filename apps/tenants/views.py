@@ -4,6 +4,7 @@ Views do app tenants: cadastro público, painel de configurações,
 Sicredi, WhatsApp e gerenciamento de usuários.
 """
 
+import json
 import logging
 import secrets
 
@@ -187,10 +188,22 @@ def superadmin_tenant_detalhe(request, tenant_id):
     tenant = get_object_or_404(Tenant, pk=tenant_id)
     with schema_context(tenant.schema_name):
         usuarios = Usuario.objects.all().order_by('email')
+
+    billing_type_atual = None
+    if tenant.asaas_subscription_id:
+        try:
+            from apps.billing.client import AsaasClient, AsaasError
+            client = AsaasClient()
+            subscription_data = client.obter_subscription(tenant.asaas_subscription_id)
+            billing_type_atual = subscription_data.get('billingType')
+        except AsaasError as e:
+            logger.warning('Erro ao consultar subscription Asaas do tenant %s: %s', tenant.schema_name, e)
+
     return render(request, 'tenants/superadmin/tenant_detalhe.html', {
         'tenant': tenant,
         'usuarios': usuarios,
         'planos': Plano.objects.filter(ativo=True),
+        'billing_type_atual': billing_type_atual,
     })
 
 
@@ -236,6 +249,86 @@ def superadmin_criar_tenant(request):
     else:
         form = SuperAdminCriarTenantForm()
     return render(request, 'tenants/superadmin/criar_tenant.html', {'form': form})
+
+
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
+def superadmin_asaas_pagamento(request, tenant_id):
+    """
+    Tela admin-master pra mudar a forma de pagamento da assinatura Asaas
+    de um tenant. Só o superadmin DN Software acessa — a imobiliária não
+    gerencia o próprio pagamento da mensalidade.
+    """
+    from apps.billing.client import AsaasClient, AsaasError
+
+    tenant = get_object_or_404(Tenant, pk=tenant_id)
+
+    if request.method == 'POST':
+        billing_type = request.POST.get('billing_type', '').upper()
+
+        if billing_type not in ('BOLETO', 'PIX'):
+            messages.error(request, 'Forma de pagamento inválida.')
+            return redirect('superadmin_asaas_pagamento', tenant_id=tenant_id)
+
+        if not tenant.asaas_subscription_id:
+            messages.error(request, 'Tenant sem subscription Asaas.')
+            return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
+
+        try:
+            client = AsaasClient()
+            client.atualizar_billing_type(tenant.asaas_subscription_id, billing_type)
+            messages.success(request, f'Forma de pagamento de {tenant.nome} atualizada para {billing_type}.')
+        except AsaasError as e:
+            logger.error('Erro ao atualizar billing type do tenant %s: %s', tenant.schema_name, e)
+            messages.error(request, f'Erro Asaas: {e}')
+
+        return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
+
+    billing_type_atual = None
+    subscription_data = None
+    if tenant.asaas_subscription_id:
+        try:
+            client = AsaasClient()
+            subscription_data = client.obter_subscription(tenant.asaas_subscription_id)
+            billing_type_atual = subscription_data.get('billingType')
+        except AsaasError as e:
+            logger.warning('Erro ao consultar subscription Asaas do tenant %s: %s', tenant.schema_name, e)
+            messages.warning(request, f'Erro ao consultar Asaas: {e}')
+
+    return render(request, 'tenants/superadmin_asaas_pagamento.html', {
+        'tenant': tenant,
+        'billing_type_atual': billing_type_atual,
+        'subscription_data': subscription_data,
+        'ASAAS_PUBLIC_KEY': settings.ASAAS_PUBLIC_KEY,
+        'ASAAS_JS_URL': settings.ASAAS_JS_URL,
+    })
+
+
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
+@require_POST
+def superadmin_asaas_cartao(request, tenant_id):
+    """Recebe o token do cartão gerado pelo Asaas.js — nunca dado de cartão cru."""
+    from apps.billing.client import AsaasClient, AsaasError
+
+    tenant = get_object_or_404(Tenant, pk=tenant_id)
+    if not tenant.asaas_subscription_id:
+        return JsonResponse({'ok': False, 'erro': 'Tenant sem subscription Asaas.'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+    except ValueError:
+        return JsonResponse({'ok': False, 'erro': 'Corpo da requisição inválido.'}, status=400)
+
+    credit_card_token = data.get('creditCardToken')
+    if not credit_card_token:
+        return JsonResponse({'ok': False, 'erro': 'Token do cartão não fornecido.'}, status=400)
+
+    try:
+        client = AsaasClient()
+        client.associar_cartao_subscription(tenant.asaas_subscription_id, credit_card_token)
+        return JsonResponse({'ok': True})
+    except AsaasError as e:
+        logger.error('Erro ao associar cartão do tenant %s: %s', tenant.schema_name, e)
+        return JsonResponse({'ok': False, 'erro': 'Erro ao associar cartão. Tente novamente.'}, status=502)
 
 
 @user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')

@@ -10,9 +10,6 @@ from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from django.contrib.auth import get_user_model
-from django.contrib.messages.storage.fallback import FallbackStorage
-from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory, TestCase, override_settings
 from django_tenants.test.cases import TenantTestCase
 
@@ -20,7 +17,6 @@ from apps.tenants.models import Plano, Tenant
 from apps.tenants.tasks import _criar_assinatura_asaas
 
 from .client import AsaasAPIError, AsaasAuthError, AsaasClient
-from .views import associar_cartao_asaas, config_asaas
 from .webhook import asaas_webhook
 
 
@@ -360,77 +356,3 @@ class CriarAssinaturaAsaasTest(TestCase):
 
 		_criar_assinatura_asaas(tenant)  # não deve lançar nem exigir mock
 
-
-@override_settings(ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox')
-class ConfigAsaasViewTests(TenantTestCase):
-	"""
-	Testes de config_asaas/associar_cartao_asaas via RequestFactory,
-	mesmo padrão de ConfigSicrediWebhookSecretTests em apps/tenants/tests.py.
-	"""
-
-	def setUp(self):
-		self.factory = RequestFactory()
-		Usuario = get_user_model()
-		self.user = Usuario.objects.create_user(
-			username='admin-teste', password='senha123', is_staff=True,
-		)
-		self.tenant.asaas_customer_id = 'cus_123'
-		self.tenant.asaas_subscription_id = 'sub_456'
-		self.tenant.save()
-
-	def _request(self, method, path='/configuracoes/asaas/', data=None, body=None):
-		if body is not None:
-			request = getattr(self.factory, method)(path, data=body, content_type='application/json')
-		else:
-			request = getattr(self.factory, method)(path, data=data or {})
-		SessionMiddleware(lambda r: None).process_request(request)
-		request.session.save()
-		request.user = self.user
-		request.tenant = self.tenant
-		request._messages = FallbackStorage(request)
-		return request
-
-	@patch('requests.Session.get')
-	def test_config_asaas_get_retorna_200(self, mock_get):
-		mock_get.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'BOLETO'})
-
-		response = config_asaas(self._request('get'))
-
-		self.assertEqual(response.status_code, 200)
-
-	@patch('requests.Session.patch')
-	@patch('requests.Session.get')
-	def test_config_asaas_post_boleto_chama_asaas(self, mock_get, mock_patch):
-		mock_get.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'PIX'})
-		mock_patch.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'BOLETO'})
-
-		config_asaas(self._request('post', data={'billing_type': 'BOLETO'}))
-
-		payload = mock_patch.call_args.kwargs['json']
-		self.assertEqual(payload['billingType'], 'BOLETO')
-
-	@patch('requests.Session.patch')
-	@patch('requests.Session.get')
-	def test_config_asaas_post_pix_chama_asaas(self, mock_get, mock_patch):
-		mock_get.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'BOLETO'})
-		mock_patch.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'PIX'})
-
-		config_asaas(self._request('post', data={'billing_type': 'PIX'}))
-
-		payload = mock_patch.call_args.kwargs['json']
-		self.assertEqual(payload['billingType'], 'PIX')
-
-	def test_associar_cartao_sem_token_retorna_400(self):
-		response = associar_cartao_asaas(self._request('post', body=json.dumps({})))
-
-		self.assertEqual(response.status_code, 400)
-		self.assertFalse(json.loads(response.content)['ok'])
-
-	@patch('requests.Session.get')
-	def test_config_asaas_erro_asaas_nao_quebra_view(self, mock_get):
-		import requests
-		mock_get.side_effect = requests.ConnectionError('timeout')
-
-		response = config_asaas(self._request('get'))
-
-		self.assertEqual(response.status_code, 200)

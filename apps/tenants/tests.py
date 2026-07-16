@@ -5,7 +5,7 @@ Testes do app tenants (schema public — SHARED_APPS, TestCase comum,
 sem TenantTestCase, já que Plano/Tenant/Domain vivem no schema public).
 """
 from datetime import date, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django import forms
 from django.contrib.auth import get_user_model
@@ -17,7 +17,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from .forms import ConfigSicrediForm
 from .models import ConfigSicredi, Plano, Tenant
-from .views import config_sicredi, landing
+from .views import config_sicredi, landing, superadmin_asaas_pagamento
 
 
 @override_settings(ROOT_URLCONF='config.urls_public')
@@ -323,3 +323,78 @@ class ConfigSicrediWebhookSecretTests(TenantTestCase):
         conteudo = response.content.decode()
 
         self.assertIn('/sicredi/webhook/secret-fixo-teste/', conteudo)
+
+
+def _resp(status_code, json_data=None, text=''):
+    resp = MagicMock()
+    resp.status_code = status_code
+    resp.text = text or str(json_data or '')
+    resp.json.return_value = json_data if json_data is not None else {}
+    return resp
+
+
+class SuperadminAsaasPagamentoTests(TenantTestCase):
+    """
+    Tela de pagamento Asaas mora no admin-master (superadmin), não nas
+    configurações da imobiliária — só o superuser DN Software acessa.
+
+    Nota: override_settings aqui é aplicado por método (não na classe) porque
+    TenantTestCase.setUpClass não chama super().setUpClass(), então o hook do
+    Django que aplica @override_settings de classe nunca dispara.
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        Usuario = get_user_model()
+        self.superuser = Usuario.objects.create_user(
+            username='super-teste', password='senha123', is_superuser=True, is_staff=True,
+        )
+        self.admin_tenant = Usuario.objects.create_user(
+            username='admin-tenant-teste', password='senha123', is_staff=True,
+        )
+        self.tenant.asaas_customer_id = 'cus_123'
+        self.tenant.asaas_subscription_id = 'sub_456'
+        self.tenant.save()
+
+    def _request(self, method, user, data=None):
+        request = getattr(self.factory, method)(f'/admin-master/tenant/{self.tenant.pk}/asaas/', data=data or {})
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        request.user = user
+        request._messages = FallbackStorage(request)
+        return request
+
+    @override_settings(
+        ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox',
+        ROOT_URLCONF='config.urls_public',
+    )
+    @patch('requests.Session.get')
+    def test_superadmin_asaas_pagamento_get_retorna_200(self, mock_get):
+        mock_get.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'BOLETO'})
+
+        response = superadmin_asaas_pagamento(self._request('get', self.superuser), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(
+        ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox',
+        ROOT_URLCONF='config.urls_public',
+    )
+    @patch('requests.Session.patch')
+    @patch('requests.Session.get')
+    def test_superadmin_asaas_pagamento_post_boleto(self, mock_get, mock_patch):
+        mock_get.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'PIX'})
+        mock_patch.return_value = _resp(200, {'id': 'sub_456', 'billingType': 'BOLETO'})
+
+        superadmin_asaas_pagamento(
+            self._request('post', self.superuser, data={'billing_type': 'BOLETO'}), tenant_id=self.tenant.pk,
+        )
+
+        payload = mock_patch.call_args.kwargs['json']
+        self.assertEqual(payload['billingType'], 'BOLETO')
+
+    def test_superadmin_asaas_pagamento_nao_acessivel_por_tenant_admin(self):
+        response = superadmin_asaas_pagamento(self._request('get', self.admin_tenant), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin-master/login/', response.url)

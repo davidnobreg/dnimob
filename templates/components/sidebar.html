@@ -4,7 +4,7 @@
         x-data="{
         sidebarOpen: true,
         mobileOpen: false,
-        openConfig: {% if request.resolver_match.url_name in 'config_conta,config_sicredi,config_asaas,config_whatsapp,whatsapp_templates,usuarios_lista' or request.resolver_match.namespace == 'documentos' %}true{% else %}false{% endif %}
+        openConfig: {% if request.resolver_match.url_name in 'config_conta,config_sicredi,config_whatsapp,whatsapp_templates,usuarios_lista' or request.resolver_match.namespace == 'documentos' %}true{% else %}false{% endif %}
     }"
         class="relative z-50"
 >
@@ -307,18 +307,6 @@
                             {% endif %}"
                         >
                             🏦 Sicredi
-                        </a>
-
-                        <a
-                                href="{% url 'config_asaas' %}"
-                                class="block rounded-xl px-4 py-2 text-sm transition
-                            {% if request.resolver_match.url_name == 'config_asaas' %}
-                                bg-blue-50 font-semibold text-blue-700
-                            {% else %}
-                                text-slate-500 hover:bg-slate-50 hover:text-slate-800
-                            {% endif %}"
-                        >
-                            💳 Pagamento
                         </a>
 
                         {% if request.tenant.tem_whatsapp %}
