@@ -7,6 +7,7 @@ sem TenantTestCase, já que Plano/Tenant/Domain vivem no schema public).
 from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
+import requests
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -16,8 +17,9 @@ from django.urls import resolve, reverse
 from django_tenants.test.cases import TenantTestCase
 
 from .forms import ConfigSicrediForm
-from .models import ConfigSicredi, Plano, Tenant
-from .views import config_sicredi, landing, superadmin_asaas_pagamento
+from .models import ConfigSicredi, InstanciaWhatsApp, Plano, Tenant
+from .services import verificar_status_whatsapp
+from .views import config_sicredi, landing, recriar_instancia_whatsapp, superadmin_asaas_pagamento
 
 
 @override_settings(ROOT_URLCONF='config.urls_public')
@@ -398,3 +400,66 @@ class SuperadminAsaasPagamentoTests(TenantTestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn('/admin-master/login/', response.url)
+
+
+class WhatsAppInstanciaNaoEncontradaTests(TenantTestCase):
+    """
+    Evolution API retorna 404 quando a instância sumiu do servidor (reinício,
+    limpeza, etc). Isso precisa virar status='nao_encontrada' — diferente de
+    'erro' genérico — pra tela oferecer o botão de recriação.
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        Usuario = get_user_model()
+        self.admin = Usuario.objects.create_user(
+            username='admin-wpp-teste', password='senha123', is_staff=True,
+        )
+        self.instancia = InstanciaWhatsApp.objects.create(
+            nome_instancia='imob-teste', status='conectado',
+        )
+
+    def _http_error_response(self, status_code, text=''):
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.text = text
+        resp.raise_for_status.side_effect = requests.exceptions.HTTPError(response=resp)
+        return resp
+
+    @patch('requests.Session.request')
+    def test_verificar_status_404_retorna_nao_encontrada(self, mock_request):
+        mock_request.return_value = self._http_error_response(404, 'Not Found')
+
+        status = verificar_status_whatsapp(self.tenant.schema_name, 'imob-teste')
+
+        self.assertEqual(status, 'nao_encontrada')
+        self.instancia.refresh_from_db()
+        self.assertEqual(self.instancia.status, 'nao_encontrada')
+
+    @patch('requests.Session.request')
+    def test_verificar_status_erro_generico_retorna_erro(self, mock_request):
+        mock_request.return_value = self._http_error_response(500, 'Internal Server Error')
+
+        status = verificar_status_whatsapp(self.tenant.schema_name, 'imob-teste')
+
+        self.assertEqual(status, 'erro')
+        self.instancia.refresh_from_db()
+        self.assertEqual(self.instancia.status, 'conectado')  # não mexe no status em erro genérico
+
+    def _request(self, user):
+        request = self.factory.post('/configuracoes/whatsapp/recriar/')
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        request.user = user
+        request._messages = FallbackStorage(request)
+        request.tenant = self.tenant
+        return request
+
+    @patch('apps.tenants.views.criar_instancia_whatsapp')
+    def test_recriar_instancia_whatsapp_post_sucesso(self, mock_criar):
+        mock_criar.return_value = self.instancia
+
+        response = recriar_instancia_whatsapp(self._request(self.admin))
+
+        self.assertEqual(response.status_code, 302)
+        mock_criar.assert_called_once_with(self.tenant.schema_name, 'imob-teste')
