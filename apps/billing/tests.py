@@ -276,9 +276,18 @@ class WebhookAsaasTest(TenantTestCase):
 
 	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
 	def test_token_invalido_retorna_401(self):
-		resp = self._post_webhook({'event': 'PAYMENT_CONFIRMED'}, token='token-errado')
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'PAYMENT_CONFIRMED',
+			'payment': {'subscription': 'sub_123', 'customer': 'cus_123'},
+		}, token='token-errado')
 
 		self.assertEqual(resp.status_code, 401)
+		self.tenant.refresh_from_db()
+		self.assertEqual(self.tenant.status_pagamento, 'inadimplente')
 
 	@override_settings(ASAAS_WEBHOOK_TOKEN='')
 	def test_tenant_nao_encontrado_retorna_200(self):
