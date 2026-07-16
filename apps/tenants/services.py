@@ -251,8 +251,13 @@ class EvolutionAPIClient:
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
-            logger.error('Evolution API HTTP error %s: %s', url, e)
-            logger.error('Response body: %s', e.response.text)  # ← adicionar esta linha
+            status_code = e.response.status_code if e.response is not None else None
+            if status_code == 404:
+                # Instância não existe — warning, não error (não gera issue no Sentry)
+                logger.warning('Evolution API instância não encontrada: %s', url)
+            else:
+                logger.error('Evolution API HTTP error %s %s: %s', status_code, url, e)
+                logger.error('Response body: %s', e.response.text if e.response is not None else 'N/A')
             raise EvolutionAPIError(str(e)) from e
         except requests.exceptions.RequestException as e:
             logger.error('Evolution API connection error: %s', e)
