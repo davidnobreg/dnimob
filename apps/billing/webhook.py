@@ -10,9 +10,11 @@ model Tenant).
 """
 import json
 import logging
+from datetime import timedelta
 
 from django.conf import settings
 from django.http import JsonResponse
+from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -101,7 +103,27 @@ def asaas_webhook(request):
 
 	status_anterior = tenant.status_pagamento
 	tenant.status_pagamento = novo_status
-	tenant.save(update_fields=['status_pagamento', 'atualizado_em'])
+
+	if evento == 'PAYMENT_OVERDUE':
+		# Período de graça: 5 dias corridos após o vencimento da fatura.
+		due_date_str = (
+			payload.get('payment', {}).get('dueDate')
+			or payload.get('payment', {}).get('originalDueDate')
+		)
+		tenant.asaas_graca_ate = None
+		if due_date_str:
+			due_date = parse_date(due_date_str)
+			if due_date:
+				tenant.asaas_graca_ate = due_date + timedelta(days=5)
+			else:
+				logger.warning(
+					'Webhook Asaas: não foi possível parsear dueDate=%s para tenant %s',
+					due_date_str, tenant.schema_name,
+				)
+	elif evento in ('PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'):
+		tenant.asaas_graca_ate = None
+
+	tenant.save(update_fields=['status_pagamento', 'asaas_graca_ate', 'atualizado_em'])
 
 	logger.info(
 		'Tenant %s: status_pagamento %s → %s (evento: %s)',
