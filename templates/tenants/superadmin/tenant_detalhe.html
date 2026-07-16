@@ -219,6 +219,60 @@
         </div>
       </div>
 
+      {% if tenant.asaas_subscription_id %}
+      <!-- Histórico de Pagamentos (Asaas) -->
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6" data-aos="fade-up" data-aos-delay="0">
+        <div class="px-5 py-4 border-b border-gray-200">
+          <h2 class="font-display text-base font-bold text-slate-800">Histórico de Pagamentos</h2>
+        </div>
+        {% if pagamentos %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Vencimento</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Valor</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Forma</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Pago em</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for p in pagamentos %}
+              <tr class="hover:bg-blue-50/40 transition-colors">
+                <td class="px-5 py-3.5 text-slate-600">{{ p.dueDate|default:"—" }}</td>
+                <td class="px-5 py-3.5 font-medium text-slate-800">R$ {{ p.value|default:"—" }}</td>
+                <td class="px-5 py-3.5">
+                  {% if p.status == 'RECEIVED' or p.status == 'CONFIRMED' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Pago</span>
+                  {% elif p.status == 'PENDING' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Pendente</span>
+                  {% elif p.status == 'OVERDUE' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Vencido</span>
+                  {% elif p.status == 'REFUNDED' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Estornado</span>
+                  {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">{{ p.status }}</span>
+                  {% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-slate-600">
+                  {% if p.billingType == 'BOLETO' %}Boleto
+                  {% elif p.billingType == 'PIX' %}Pix
+                  {% elif p.billingType == 'CREDIT_CARD' %}Cartão
+                  {% else %}{{ p.billingType }}{% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-slate-400">{{ p.paymentDate|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="px-5 py-8 text-center text-slate-400 text-sm">Nenhum pagamento encontrado.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
       <!-- Usuários -->
       <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" data-aos="fade-up" data-aos-delay="0">
         <div class="px-5 py-4 border-b border-gray-200">

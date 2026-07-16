@@ -190,6 +190,7 @@ def superadmin_tenant_detalhe(request, tenant_id):
         usuarios = Usuario.objects.all().order_by('email')
 
     billing_type_atual = None
+    pagamentos = []
     if tenant.asaas_subscription_id:
         try:
             from apps.billing.client import AsaasClient, AsaasError
@@ -199,11 +200,19 @@ def superadmin_tenant_detalhe(request, tenant_id):
         except AsaasError as e:
             logger.warning('Erro ao consultar subscription Asaas do tenant %s: %s', tenant.schema_name, e)
 
+        try:
+            from apps.billing.client import AsaasClient, AsaasError
+            client = AsaasClient()
+            pagamentos = client.listar_pagamentos_subscription(tenant.asaas_subscription_id)
+        except AsaasError as e:
+            logger.warning('Erro ao listar pagamentos Asaas do tenant %s: %s', tenant.schema_name, e)
+
     return render(request, 'tenants/superadmin/tenant_detalhe.html', {
         'tenant': tenant,
         'usuarios': usuarios,
         'planos': Plano.objects.filter(ativo=True),
         'billing_type_atual': billing_type_atual,
+        'pagamentos': pagamentos,
     })
 
 

@@ -112,6 +112,15 @@ class AsaasClient:
 		logger.info('Asaas atualizar_billing_type: subscription=%s billing_type=%s', subscription_id, billing_type)
 		return self._patch(f'/subscriptions/{subscription_id}', payload, contexto='atualizar forma de pagamento')
 
+	def listar_pagamentos_subscription(self, subscription_id, limit=10):
+		"""
+		Lista os pagamentos (cobranças) de uma subscription, mais recentes
+		primeiro. Retorna lista de dicts (payments) — vazia se não houver.
+		"""
+		path = f'/payments?subscription={subscription_id}&limit={limit}&offset=0'
+		data = self._get(path, contexto='listar pagamentos')
+		return data.get('data', [])
+
 	def associar_cartao_subscription(self, subscription_id, credit_card_token):
 		"""
 		Associa cartão tokenizado (gerado pelo Asaas.js no frontend) à
