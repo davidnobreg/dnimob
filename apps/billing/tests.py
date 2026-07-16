@@ -117,6 +117,27 @@ class AsaasClientTests(TestCase):
 		with self.assertRaises(AsaasAuthError):
 			self.client_asaas.criar_customer('Imobiliária Teste', '12345678000190')
 
+	@patch('requests.Session.get')
+	def test_listar_pagamentos_subscription_retorna_lista(self, mock_get):
+		mock_get.return_value = _resp(200, {'data': [
+			{'dueDate': '2026-08-10', 'value': 197.0, 'status': 'RECEIVED', 'billingType': 'BOLETO'},
+		]})
+
+		resultado = self.client_asaas.listar_pagamentos_subscription('sub_456')
+
+		url = mock_get.call_args.args[0]
+		self.assertIn('/payments?subscription=sub_456', url)
+		self.assertEqual(len(resultado), 1)
+		self.assertEqual(resultado[0]['status'], 'RECEIVED')
+
+	@patch('requests.Session.get')
+	def test_listar_pagamentos_subscription_sem_dados_retorna_lista_vazia(self, mock_get):
+		mock_get.return_value = _resp(200, {})
+
+		resultado = self.client_asaas.listar_pagamentos_subscription('sub_456')
+
+		self.assertEqual(resultado, [])
+
 	@patch('requests.Session.post')
 	def test_falha_de_conexao_vira_asaas_api_error(self, mock_post):
 		import requests
@@ -174,6 +195,53 @@ class WebhookAsaasTest(TenantTestCase):
 		self.assertEqual(resp.status_code, 200)
 		self.tenant.refresh_from_db()
 		self.assertEqual(self.tenant.status_pagamento, 'inadimplente')
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_payment_overdue_seta_graca_5_dias(self):
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'PAYMENT_OVERDUE',
+			'payment': {'subscription': 'sub_123', 'customer': 'cus_123', 'dueDate': '2026-07-20'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.tenant.refresh_from_db()
+		self.assertEqual(self.tenant.asaas_graca_ate, date(2026, 7, 25))
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_payment_confirmed_limpa_graca(self):
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+		self.tenant.asaas_graca_ate = date(2026, 7, 25)
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'PAYMENT_CONFIRMED',
+			'payment': {'subscription': 'sub_123', 'customer': 'cus_123'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.tenant.refresh_from_db()
+		self.assertIsNone(self.tenant.asaas_graca_ate)
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
+	def test_payment_overdue_sem_due_date_nao_quebra(self):
+		self.tenant.asaas_subscription_id = 'sub_123'
+		self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+		self.tenant.save()
+
+		resp = self._post_webhook({
+			'event': 'PAYMENT_OVERDUE',
+			'payment': {'subscription': 'sub_123', 'customer': 'cus_123'},
+		})
+
+		self.assertEqual(resp.status_code, 200)
+		self.tenant.refresh_from_db()
+		self.assertEqual(self.tenant.status_pagamento, 'inadimplente')
+		self.assertIsNone(self.tenant.asaas_graca_ate)
 
 	@override_settings(ASAAS_WEBHOOK_TOKEN='token-secreto-teste')
 	def test_evento_subscription_deleted_cancela(self):

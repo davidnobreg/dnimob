@@ -19,7 +19,10 @@ from django_tenants.test.cases import TenantTestCase
 from .forms import ConfigSicrediForm
 from .models import ConfigSicredi, InstanciaWhatsApp, Plano, Tenant
 from .services import verificar_status_whatsapp
-from .views import config_sicredi, landing, recriar_instancia_whatsapp, superadmin_asaas_pagamento
+from .views import (
+    config_sicredi, landing, recriar_instancia_whatsapp,
+    superadmin_asaas_pagamento, superadmin_tenant_detalhe,
+)
 
 
 @override_settings(ROOT_URLCONF='config.urls_public')
@@ -400,6 +403,70 @@ class SuperadminAsaasPagamentoTests(TenantTestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn('/admin-master/login/', response.url)
+
+
+class SuperadminTenantDetalhePagamentosTests(TenantTestCase):
+    """
+    Histórico de pagamentos Asaas na tela admin-master do tenant. Erro na
+    consulta ao Asaas não pode quebrar a tela (só loga e segue com lista vazia).
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        Usuario = get_user_model()
+        self.superuser = Usuario.objects.create_user(
+            username='super-pagtos', password='senha123', is_superuser=True, is_staff=True,
+        )
+
+    def _request(self):
+        request = self.factory.get(f'/admin-master/tenant/{self.tenant.pk}/')
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        request.user = self.superuser
+        request._messages = FallbackStorage(request)
+        return request
+
+    @override_settings(
+        ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox',
+        ROOT_URLCONF='config.urls_public',
+    )
+    @patch('requests.Session.get')
+    def test_superadmin_tenant_inclui_pagamentos_no_contexto(self, mock_get):
+        self.tenant.asaas_subscription_id = 'sub_456'
+        self.tenant.save()
+        mock_get.side_effect = [
+            _resp(200, {'id': 'sub_456', 'billingType': 'BOLETO'}),
+            _resp(200, {'data': [{
+                'dueDate': '2026-08-10', 'value': 197.0, 'status': 'RECEIVED',
+                'billingType': 'BOLETO', 'paymentDate': '2026-08-10',
+            }]}),
+        ]
+
+        response = superadmin_tenant_detalhe(self._request(), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'2026-08-10', response.content)
+
+    @override_settings(ROOT_URLCONF='config.urls_public')
+    def test_superadmin_tenant_pagamentos_vazio_quando_sem_subscription(self):
+        response = superadmin_tenant_detalhe(self._request(), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Tenant sem assinatura Asaas configurada', response.content)
+
+    @override_settings(
+        ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox',
+        ROOT_URLCONF='config.urls_public',
+    )
+    @patch('requests.Session.get')
+    def test_superadmin_tenant_erro_asaas_nao_quebra_tela(self, mock_get):
+        self.tenant.asaas_subscription_id = 'sub_456'
+        self.tenant.save()
+        mock_get.side_effect = requests.ConnectionError('timeout')
+
+        response = superadmin_tenant_detalhe(self._request(), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 200)
 
 
 class WhatsAppInstanciaNaoEncontradaTests(TenantTestCase):
