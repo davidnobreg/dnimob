@@ -99,6 +99,29 @@ class AsaasClient:
 		logger.info('Asaas criar_subscription: customer=%s valor=%s ciclo=%s', customer_id, valor, ciclo)
 		return self._post('/subscriptions', payload, contexto='criar subscription')
 
+	def obter_subscription(self, subscription_id):
+		"""Consulta os dados atuais de uma subscription (inclui billingType)."""
+		return self._get(f'/subscriptions/{subscription_id}', contexto='consultar subscription')
+
+	def atualizar_billing_type(self, subscription_id, billing_type):
+		"""
+		Atualiza a forma de pagamento de uma subscription existente.
+		`billing_type`: 'BOLETO' | 'PIX' | 'CREDIT_CARD'.
+		"""
+		payload = {'billingType': billing_type}
+		logger.info('Asaas atualizar_billing_type: subscription=%s billing_type=%s', subscription_id, billing_type)
+		return self._patch(f'/subscriptions/{subscription_id}', payload, contexto='atualizar forma de pagamento')
+
+	def associar_cartao_subscription(self, subscription_id, credit_card_token):
+		"""
+		Associa cartão tokenizado (gerado pelo Asaas.js no frontend) à
+		subscription. O cartão em si nunca trafega pelo nosso servidor —
+		só o token.
+		"""
+		payload = {'billingType': 'CREDIT_CARD', 'creditCardToken': credit_card_token}
+		logger.info('Asaas associar_cartao_subscription: subscription=%s', subscription_id)
+		return self._patch(f'/subscriptions/{subscription_id}', payload, contexto='associar cartão')
+
 	# ── Transporte ───────────────────────────────────────────────────────
 
 	def _post(self, path, payload, contexto):
@@ -107,7 +130,25 @@ class AsaasClient:
 		except requests.RequestException as e:
 			logger.error('Asaas %s: falha de conexão: %s', contexto, e)
 			raise AsaasAPIError(f'Falha de conexão com o Asaas: {e}') from e
+		return self._tratar_resposta(resp, contexto)
 
+	def _patch(self, path, payload, contexto):
+		try:
+			resp = self.session.patch(f'{self.base_url}{path}', json=payload, headers=self._headers(), timeout=20)
+		except requests.RequestException as e:
+			logger.error('Asaas %s: falha de conexão: %s', contexto, e)
+			raise AsaasAPIError(f'Falha de conexão com o Asaas: {e}') from e
+		return self._tratar_resposta(resp, contexto)
+
+	def _get(self, path, contexto):
+		try:
+			resp = self.session.get(f'{self.base_url}{path}', headers=self._headers(), timeout=20)
+		except requests.RequestException as e:
+			logger.error('Asaas %s: falha de conexão: %s', contexto, e)
+			raise AsaasAPIError(f'Falha de conexão com o Asaas: {e}') from e
+		return self._tratar_resposta(resp, contexto)
+
+	def _tratar_resposta(self, resp, contexto):
 		if resp.status_code in (401, 403):
 			msg = _extrair_erro(resp)
 			logger.error('Asaas %s: erro de autenticação %s: %s', contexto, resp.status_code, resp.text[:300])

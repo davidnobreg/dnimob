@@ -280,6 +280,18 @@ ASAAS_API_URL = env('ASAAS_API_URL', default='https://api-sandbox.asaas.com/v3')
 ASAAS_API_KEY = env('ASAAS_API_KEY', default='')
 ASAAS_WEBHOOK_TOKEN = env('ASAAS_WEBHOOK_TOKEN', default='')
 
+# Chave pública (Asaas.js, tokenização de cartão no frontend) — diferente da
+# API key privada. Painel Asaas → Integrações → Chaves de API.
+ASAAS_PUBLIC_KEY = env('ASAAS_PUBLIC_KEY', default='')
+
+# URL do Asaas.js derivada de ASAAS_API_URL, pra nunca dessincronizar
+# ambiente da API com ambiente do script de tokenização.
+ASAAS_JS_URL = (
+	'https://sandbox.asaas.com/static/js/asaas.js'
+	if 'sandbox' in ASAAS_API_URL
+	else 'https://www.asaas.com/static/js/asaas.js'
+)
+
 # ─────────────────────────────────────────────
 # MISC
 # ─────────────────────────────────────────────
