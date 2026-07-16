@@ -12,6 +12,10 @@ env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
 )
+# Chaves tipo Asaas começam com "$" — sem isso, django-environ interpreta
+# como proxy pra outra env var (valor some, vira '').  Exige escapar com
+# "\$" no .env.
+env.escape_proxy = True
 
 # Lê o .env na raiz do projeto
 environ.Env.read_env(BASE_DIR / 'configuration/.envDnimob')
