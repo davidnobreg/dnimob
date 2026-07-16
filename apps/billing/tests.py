@@ -280,6 +280,7 @@ class WebhookAsaasTest(TenantTestCase):
 
 		self.assertEqual(resp.status_code, 401)
 
+	@override_settings(ASAAS_WEBHOOK_TOKEN='')
 	def test_tenant_nao_encontrado_retorna_200(self):
 		resp = self._post_webhook({
 			'event': 'PAYMENT_CONFIRMED',
