@@ -7,6 +7,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
+from apps.billing import views as bv
 from apps.tenants import views as tv
 
 urlpatterns = [
@@ -52,6 +53,10 @@ urlpatterns = [
         tv.regenerar_webhook_secret_sicredi,
         name='regenerar_webhook_secret_sicredi',
     ),
+
+    # Configurações Asaas (forma de pagamento da assinatura)
+    path('configuracoes/asaas/', bv.config_asaas, name='config_asaas'),
+    path('configuracoes/asaas/cartao/', bv.associar_cartao_asaas, name='associar_cartao_asaas'),
 
     # Configurações WhatsApp
     path('configuracoes/whatsapp/', tv.config_whatsapp, name='config_whatsapp'),
