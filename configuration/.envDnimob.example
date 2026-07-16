@@ -1,62 +1,63 @@
 SECRET_KEY=substitua-por-chave-segura
-ALLOWED_HOSTS=localhost,127.0.0.1,seudominio.com.br
+ALLOWED_HOSTS=
 DEBUG=False
 
 # Banco de dados (PostgreSQL externo)
-DB_NAME=dnimoveis
-DB_USER=postgres
+DB_NAME=
+DB_USER=
 DB_PASSWORD=
-DB_HOST=172.16.51.3
-DB_PORT=5432
+DB_HOST=
+DB_PORT=
 
 # Redis / Celery
-REDIS_URL=redis://:senha@host:6379/0
+REDIS_URL=
 
 # EMAIL — Resend SMTP relay
 # Em dev: deixe EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 # Em prod: smtp.EmailBackend + credenciais Resend abaixo
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.resend.com
-EMAIL_PORT=465
-EMAIL_HOST_USER=resend
-EMAIL_HOST_PASSWORD=re_SUBSTITUA_PELA_API_KEY_DO_RESEND
+EMAIL_BACKEND=
+EMAIL_HOST=
+EMAIL_PORT=
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
 EMAIL_USE_SSL=True
 EMAIL_USE_TLS=False
 DEFAULT_FROM_EMAIL=DN Imob <noreply@imob.dnsoftware.com.br>
 
 # Evolution API (WhatsApp)
-EVOLUTION_API_URL=http://evolution:8080
+EVOLUTION_API_URL=
 EVOLUTION_API_KEY=
 EVOLUTION_WEBHOOK_TOKEN=
 
 # Sicredi
-SICREDI_API_URL=https://cobranca.sicredi.com.br/v1
-SICREDI_TOKEN_URL=https://auth.sicredi.com.br/oauth/token
+SICREDI_API_URL=
+SICREDI_TOKEN_URL=
 SICREDI_WEBHOOK_SECRET=
 
 # Asaas — assinatura interna (DN Software cobra a imobiliária pelo plano).
 # Placeholders: ainda não existe conta/API key. Não confundir com a futura
 # integração Asaas por-tenant do menu Boleto (chave diferente, por tenant).
 # Prefixo da key identifica o ambiente: sandbox=$aact_hmlg_..., prod=$aact_prod_...
-ASAAS_API_URL=https://api-sandbox.asaas.com/v3
+ASAAS_API_URL=
 ASAAS_API_KEY=
 ASAAS_WEBHOOK_TOKEN=
+ASAAS_PUBLIC_KEY=
 
 # Sentry (prod) — deixe vazio em dev; preencha em prod para capturar erros
-SENTRY_DSN=https://CHAVE@ORGANIZACAO.ingest.sentry.io/PROJETO_ID
-SENTRY_ENVIRONMENT=production
-SENTRY_TRACES_RATE=0.1
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=
+SENTRY_TRACES_RATE=
 
 # S3 / storage (prod)
-AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
-AWS_STORAGE_BUCKET_NAME=dnimob-media
+AWS_STORAGE_BUCKET_NAME=
 AWS_S3_REGION_NAME=sa-east-1
 AWS_S3_CUSTOM_DOMAIN=
 
 # Backup (se AWS_BACKUP_BUCKET vazio, usa AWS_STORAGE_BUCKET_NAME + prefixo BACKUP_PREFIX)
-AWS_BACKUP_BUCKET=dnimob-backups
-BACKUP_PREFIX=backups
+AWS_BACKUP_BUCKET=
+BACKUP_PREFIX=
 PG_DUMP_PATH=/usr/bin/pg_dump
 
 # Multi-tenant
