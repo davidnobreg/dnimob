@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Pagamento — Configuração{% endblock %}
+
+{% block content %}
+
+<div
+    x-data="asaasConfig()"
+    class="space-y-6"
+>
+
+    <!-- Cabeçalho da página -->
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+                <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                    <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                    Assinatura DNImob
+                </div>
+
+                <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                    Forma de Pagamento
+                </h1>
+
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                    Escolha como sua imobiliária paga a mensalidade do plano DNImob.
+                </p>
+            </div>
+
+            <div>
+                {% if asaas_configurado %}
+                    <span class="inline-flex items-center gap-2 rounded-2xl bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                        Assinatura ativa
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600">
+                        <span class="h-2 w-2 rounded-full bg-slate-400"></span>
+                        Não configurada
+                    </span>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Grid principal -->
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+
+        <!-- Card formulário -->
+        <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+
+            <!-- Header card -->
+            <div class="border-b border-slate-200 bg-slate-50/80 px-6 py-5">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
+                    <div>
+                        <h2 class="text-lg font-extrabold text-slate-900">
+                            Forma de cobrança
+                        </h2>
+
+                        <p class="mt-1 text-sm text-slate-500">
+                            Atual: <strong>{{ billing_type_atual }}</strong>
+                        </p>
+                    </div>
+
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
+                        <i class="ti ti-credit-card text-2xl"></i>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6">
+                {% if not asaas_configurado %}
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-700">
+                        Assinatura ainda não configurada. Entre em contato com o suporte.
+                    </div>
+                {% else %}
+                    <form method="post" id="formAsaas" class="space-y-6">
+                        {% csrf_token %}
+
+                        <div class="grid gap-4 sm:grid-cols-3">
+
+                            <label class="flex cursor-pointer flex-col gap-2 rounded-2xl border-2 p-4 transition
+                                {% if billing_type_atual == 'BOLETO' %}border-blue-500 bg-blue-50{% else %}border-slate-200 hover:border-slate-300{% endif %}">
+                                <div class="flex items-center justify-between">
+                                    <i class="ti ti-barcode text-2xl text-slate-700"></i>
+                                    <input type="radio" name="billing_type" value="BOLETO"
+                                        {% if billing_type_atual == 'BOLETO' %}checked{% endif %}
+                                        @change="selecionarForma('BOLETO')">
+                                </div>
+                                <span class="text-sm font-bold text-slate-800">Boleto Bancário</span>
+                            </label>
+
+                            <label class="flex cursor-pointer flex-col gap-2 rounded-2xl border-2 p-4 transition
+                                {% if billing_type_atual == 'PIX' %}border-blue-500 bg-blue-50{% else %}border-slate-200 hover:border-slate-300{% endif %}">
+                                <div class="flex items-center justify-between">
+                                    <i class="ti ti-qrcode text-2xl text-slate-700"></i>
+                                    <input type="radio" name="billing_type" value="PIX"
+                                        {% if billing_type_atual == 'PIX' %}checked{% endif %}
+                                        @change="selecionarForma('PIX')">
+                                </div>
+                                <span class="text-sm font-bold text-slate-800">Pix</span>
+                            </label>
+
+                            <label class="flex cursor-pointer flex-col gap-2 rounded-2xl border-2 p-4 transition
+                                {% if billing_type_atual == 'CREDIT_CARD' %}border-blue-500 bg-blue-50{% else %}border-slate-200 hover:border-slate-300{% endif %}">
+                                <div class="flex items-center justify-between">
+                                    <i class="ti ti-credit-card text-2xl text-slate-700"></i>
+                                    <input type="radio" name="billing_type" value="CREDIT_CARD" id="radio-cartao"
+                                        {% if billing_type_atual == 'CREDIT_CARD' %}checked{% endif %}
+                                        @change="selecionarForma('CREDIT_CARD')">
+                                </div>
+                                <span class="text-sm font-bold text-slate-800">Cartão de Crédito</span>
+                            </label>
+
+                        </div>
+
+                        <!-- Formulário de cartão (Asaas.js) -->
+                        <div x-show="formaSelecionada === 'CREDIT_CARD'" x-cloak class="space-y-4 border-t border-slate-100 pt-6">
+                            <p class="text-xs leading-5 text-slate-500">
+                                Os dados do cartão são processados diretamente pelo Asaas —
+                                não trafegam pelo nosso servidor.
+                            </p>
+
+                            {% if ASAAS_PUBLIC_KEY %}
+                                <div id="asaas-card-form" class="rounded-2xl border border-slate-200 p-4"></div>
+
+                                <button
+                                    type="button"
+                                    id="btn-tokenizar-cartao"
+                                    :disabled="salvandoCartao"
+                                    class="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <span x-show="!salvandoCartao">Salvar Cartão</span>
+                                    <span x-show="salvandoCartao" class="inline-flex items-center gap-2"><i class="ti ti-loader-2 animate-spin text-base"></i> Salvando...</span>
+                                </button>
+                            {% else %}
+                                <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                                    Cartão de crédito indisponível no momento — chave pública não configurada.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Resultado -->
+                        <div
+                            x-show="resultadoVisivel"
+                            x-cloak
+                            x-transition
+                            class="rounded-2xl border p-4 text-sm font-semibold"
+                            :class="resultadoOk
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-red-200 bg-red-50 text-red-700'"
+                        >
+                            <span x-text="resultadoMensagem"></span>
+                        </div>
+
+                        <!-- Ações -->
+                        <div x-show="formaSelecionada !== 'CREDIT_CARD'" class="flex justify-end border-t border-slate-100 pt-6">
+                            <button
+                                type="submit"
+                                class="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
+                            >
+                                <i class="ti ti-device-floppy text-base"></i> Salvar forma de pagamento
+                            </button>
+                        </div>
+
+                    </form>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Card lateral -->
+        <aside class="space-y-6">
+            <section class="rounded-3xl border border-amber-200 bg-amber-50 p-6">
+                <div class="flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                        <i class="ti ti-shield-lock text-xl"></i>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-extrabold text-amber-900">
+                            Segurança
+                        </h3>
+
+                        <p class="mt-2 text-sm leading-6 text-amber-800/80">
+                            Dados de cartão são processados direto pelo Asaas —
+                            nunca chegam aos nossos servidores.
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+    </div>
+</div>
+
+{% if ASAAS_PUBLIC_KEY %}
+<script src="{{ ASAAS_JS_URL }}"></script>
+{% endif %}
+<script>
+    function asaasConfig() {
+        return {
+            formaSelecionada: '{{ billing_type_atual }}',
+            resultadoVisivel: false,
+            resultadoOk: false,
+            resultadoMensagem: '',
+            salvandoCartao: false,
+
+            selecionarForma(valor) {
+                this.formaSelecionada = valor;
+            },
+
+            init() {
+                {% if ASAAS_PUBLIC_KEY %}
+                const btn = document.getElementById('btn-tokenizar-cartao');
+                if (btn) {
+                    btn.addEventListener('click', () => this.tokenizarCartao());
+                }
+                {% endif %}
+            },
+
+            async tokenizarCartao() {
+                this.salvandoCartao = true;
+                this.resultadoVisivel = false;
+
+                try {
+                    const asaas = new Asaas('{{ ASAAS_PUBLIC_KEY }}');
+                    const tokenData = await asaas.tokenizeCreditCard({
+                        customer: '{{ tenant.asaas_customer_id }}',
+                    });
+
+                    const resp = await fetch("{% url 'associar_cartao_asaas' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        },
+                        body: JSON.stringify({ creditCardToken: tokenData.creditCardToken }),
+                    });
+
+                    const data = await resp.json();
+
+                    this.resultadoVisivel = true;
+                    this.resultadoOk = !!data.ok;
+                    this.resultadoMensagem = data.ok
+                        ? 'Cartão associado com sucesso!'
+                        : (data.erro || 'Erro ao associar cartão.');
+
+                    if (data.ok) {
+                        setTimeout(() => window.location.reload(), 1200);
+                    }
+                } catch (err) {
+                    this.resultadoVisivel = true;
+                    this.resultadoOk = false;
+                    this.resultadoMensagem = 'Erro ao processar cartão: ' + err.message;
+                } finally {
+                    this.salvandoCartao = false;
+                }
+            }
+        }
+    }
+</script>
+
+{% endblock %}
