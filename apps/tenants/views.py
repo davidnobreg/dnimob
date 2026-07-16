@@ -10,6 +10,7 @@ import secrets
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db.models import Count, Sum
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -173,12 +174,37 @@ def superadmin_dashboard(request):
     tenants = Tenant.objects.exclude(schema_name=get_public_schema_name()).order_by('-criado_em')
     total = tenants.count()
     ativos = tenants.filter(ativo=True).count()
+
+    tenants_financeiro = tenants.select_related('plano')
+    receita_mensal = tenants_financeiro.filter(
+        status_pagamento='ativo'
+    ).aggregate(
+        total=Sum('plano__preco_mensal')
+    )['total'] or 0
+    por_plano = tenants_financeiro.values(
+        'plano__nome'
+    ).annotate(
+        quantidade=Count('id'),
+        receita=Sum('plano__preco_mensal'),
+    ).order_by('-receita')
+    lista_inadimplentes = tenants_financeiro.filter(
+        status_pagamento='inadimplente'
+    ).order_by('nome')
+
     context = {
         'tenants': tenants,
         'total': total,
         'ativos': ativos,
         'trial': tenants.filter(trial=True).count(),
         'inativos': total - ativos,
+        'status_ativos': tenants.filter(status_pagamento='ativo').count(),
+        'status_trial': tenants.filter(status_pagamento='trial').count(),
+        'status_inadimplentes': tenants.filter(status_pagamento='inadimplente').count(),
+        'status_suspensos': tenants.filter(status_pagamento='suspenso').count(),
+        'status_cancelados': tenants.filter(status_pagamento='cancelado').count(),
+        'receita_mensal': receita_mensal,
+        'por_plano': por_plano,
+        'lista_inadimplentes': lista_inadimplentes,
     }
     return render(request, 'tenants/superadmin/dashboard.html', context)
 

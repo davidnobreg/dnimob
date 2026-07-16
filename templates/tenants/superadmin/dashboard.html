@@ -79,6 +79,100 @@
         </div>
       </div>
 
+      <!-- KPIs financeiros -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-emerald-200">
+          <div class="flex items-center justify-between">
+            <p class="text-3xl font-bold text-emerald-600">R$ {{ receita_mensal|floatformat:2 }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center text-white text-lg shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110">💰</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Receita mensal estimada</p>
+        </div>
+        <div class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-emerald-200">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold text-emerald-600">{{ status_ativos }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center text-white text-lg shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110">✓</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Pagamento ativo</p>
+        </div>
+        <div class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl {% if status_inadimplentes > 0 %}border-red-300{% else %}hover:border-red-200{% endif %}">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold {% if status_inadimplentes > 0 %}text-red-600{% else %}text-slate-400{% endif %}">{{ status_inadimplentes }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center text-white text-lg shadow-md shadow-red-400/20 transition-transform duration-300 group-hover:scale-110">⚠</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Inadimplentes</p>
+        </div>
+        <div class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-amber-200">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold text-amber-500">{{ status_trial }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white text-lg shadow-md shadow-amber-400/20 transition-transform duration-300 group-hover:scale-110">⏳</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Em trial</p>
+        </div>
+      </div>
+
+      <!-- Distribuição por plano -->
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8" data-aos="fade-up" data-aos-delay="0">
+        <div class="px-5 py-4 border-b border-gray-200">
+          <h2 class="font-display text-base font-bold text-slate-800">Distribuição por plano</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Plano</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Qtd tenants</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Receita estimada</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for linha in por_plano %}
+              <tr class="hover:bg-blue-50/40 transition-colors">
+                <td class="px-5 py-3.5 text-slate-800 font-medium">{{ linha.plano__nome|default:"Sem plano" }}</td>
+                <td class="px-5 py-3.5 text-slate-600">{{ linha.quantidade }}</td>
+                <td class="px-5 py-3.5 text-slate-600">R$ {{ linha.receita|default:0|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" class="px-5 py-10 text-center text-slate-400">Nenhum dado de plano ainda.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% if lista_inadimplentes %}
+      <!-- Inadimplentes -->
+      <div class="bg-white rounded-2xl border border-red-200 shadow-sm overflow-hidden mb-8" data-aos="fade-up" data-aos-delay="0">
+        <div class="px-5 py-4 border-b border-gray-200">
+          <h2 class="font-display text-base font-bold text-red-700">Inadimplentes</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Nome</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Plano</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Graça até</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Customer Asaas</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for tenant in lista_inadimplentes %}
+              <tr class="hover:bg-red-50/40 transition-colors">
+                <td class="px-5 py-3.5 text-slate-800 font-medium">{{ tenant.nome }}</td>
+                <td class="px-5 py-3.5 text-slate-600">{{ tenant.plano|default:"—" }}</td>
+                <td class="px-5 py-3.5 text-slate-600">{{ tenant.asaas_graca_ate|date:"d/m/Y"|default:"—" }}</td>
+                <td class="px-5 py-3.5 text-slate-600">{{ tenant.asaas_customer_id|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Tabela -->
       <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" data-aos="fade-up" data-aos-delay="0">
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
