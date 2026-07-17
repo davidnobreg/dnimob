@@ -103,6 +103,7 @@ class AceiteTermosPersistenciaTests(TestCase):
             'documento': '',
             'subdominio': 'teste-aceite',
             'plano': self.plano.pk,
+            'forma_pagamento': 'BOLETO',
             'nome_admin': 'Fulano de Tal',
             'email_admin': 'fulano@teste.com',
             'telefone_admin': '',
@@ -139,6 +140,22 @@ class AceiteTermosPersistenciaTests(TestCase):
 
         tenant = Tenant.objects.get(schema_name='imob_teste_aceite')
         self.assertEqual(tenant.aceite_termos_ip, '198.51.100.7')
+
+    @patch('apps.tenants.tasks.provisionar_tenant.delay')
+    def test_cadastro_seta_trial_14_dias(self, mock_delay):
+        self._post_cadastro(REMOTE_ADDR='203.0.113.42')
+
+        tenant = Tenant.objects.get(schema_name='imob_teste_aceite')
+        self.assertTrue(tenant.trial)
+        self.assertEqual(tenant.trial_expira, date.today() + timedelta(days=14))
+        self.assertEqual(tenant.status_pagamento, Tenant.StatusPagamento.TRIAL)
+
+    @patch('apps.tenants.tasks.provisionar_tenant.delay')
+    def test_cadastro_repassa_forma_pagamento_escolhida_para_provisionamento(self, mock_delay):
+        self._post_cadastro(REMOTE_ADDR='203.0.113.42')
+
+        dados_admin = mock_delay.call_args.args[1]
+        self.assertEqual(dados_admin['billing_type'], 'BOLETO')
 
 
 class PlanosFixadosMigrationTests(TestCase):

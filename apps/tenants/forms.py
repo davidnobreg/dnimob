@@ -27,6 +27,13 @@ _SLUG = (
 )
 
 
+FORMA_PAGAMENTO_CHOICES = [
+    ('BOLETO', 'Boleto Bancário'),
+    ('PIX', 'Pix'),
+    ('CREDIT_CARD', 'Cartão de Crédito'),
+]
+
+
 class CadastroImobiliariaForm(forms.Form):
     """Formulário público de cadastro (landing page)."""
 
@@ -62,6 +69,12 @@ class CadastroImobiliariaForm(forms.Form):
         queryset=Plano.objects.filter(ativo=True),
         label='Plano',
         empty_label='Selecione um plano',
+        widget=forms.Select(attrs={'class': _SELECT}),
+    )
+    forma_pagamento = forms.ChoiceField(
+        choices=FORMA_PAGAMENTO_CHOICES,
+        label='Forma de pagamento preferida',
+        initial='BOLETO',
         widget=forms.Select(attrs={'class': _SELECT}),
     )
 

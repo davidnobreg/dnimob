@@ -89,6 +89,7 @@ def cadastro_imobiliaria(request):
                         'nome':  form.cleaned_data['nome_admin'],
                         'email': form.cleaned_data['email_admin'],
                         'senha': form.cleaned_data['senha'],
+                        'billing_type': form.cleaned_data['forma_pagamento'],
                     },
                 )
                 return redirect('cadastro_aguardando', schema=tenant.schema_name)

@@ -242,6 +242,21 @@
                                 {% endif %}
                             </div>
                         </div>
+
+                        <!-- Forma de pagamento -->
+                        <div>
+                            <label class="mb-1.5 block text-sm font-bold text-slate-700">
+                                {{ form.forma_pagamento.label }}
+                            </label>
+
+                            {{ form.forma_pagamento }}
+
+                            {% if form.forma_pagamento.errors %}
+                                <p class="mt-1.5 text-xs font-semibold text-red-600">
+                                    {{ form.forma_pagamento.errors.0 }}
+                                </p>
+                            {% endif %}
+                        </div>
                     </fieldset>
 
                     <!-- Dados do administrador -->

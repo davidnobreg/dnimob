@@ -51,7 +51,7 @@ def provisionar_tenant(self, tenant_pk: int, dados_admin: dict):
 		tenant.save(update_fields=['provisionamento_status'])
 		logger.info('Tenant provisionado: %s (schema=%s)', tenant.nome, tenant.schema_name)
 
-		_criar_assinatura_asaas(tenant)
+		_criar_assinatura_asaas(tenant, billing_type=dados_admin.get('billing_type', 'BOLETO'))
 
 		_enviar_email_boas_vindas(tenant, dados_admin['email'], dados_admin['senha'])
 
@@ -62,12 +62,14 @@ def provisionar_tenant(self, tenant_pk: int, dados_admin: dict):
 		raise self.retry(countdown=30, max_retries=3)
 
 
-def _criar_assinatura_asaas(tenant):
+def _criar_assinatura_asaas(tenant, billing_type='BOLETO'):
 	"""
 	Cria customer + subscription no Asaas pra cobrança da mensalidade do tenant.
 	Roda fora do schema_context (Tenant é modelo público — SHARED_APPS).
 	NUNCA falha o provisionamento: erro aqui só é logado, e o admin corrige
 	manualmente depois preenchendo asaas_customer_id/asaas_subscription_id.
+	`billing_type`: 'BOLETO' | 'PIX' | 'CREDIT_CARD' — forma de pagamento
+	escolhida pelo tenant no cadastro.
 	"""
 	from apps.billing.client import AsaasClient, AsaasError
 
@@ -87,6 +89,7 @@ def _criar_assinatura_asaas(tenant):
 			customer['id'],
 			tenant.plano.preco_mensal,
 			timezone.localdate(),
+			billing_type=billing_type,
 			descricao=f'DNImob — Plano {tenant.plano.get_nome_display()}',
 		)
 
