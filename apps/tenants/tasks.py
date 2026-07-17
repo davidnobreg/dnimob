@@ -62,6 +62,34 @@ def provisionar_tenant(self, tenant_pk: int, dados_admin: dict):
 		raise self.retry(countdown=30, max_retries=3)
 
 
+@shared_task(name='tenants.verificar_trials_vencidos')
+def verificar_trials_vencidos():
+	"""
+	Roda diariamente (CELERY_BEAT_SCHEDULE). Tenants com trial_expira < hoje
+	e status_pagamento='trial' sem pagamento confirmado no Asaas viram
+	'inadimplente' — acesso passa a somente leitura (Tenant.acesso_readonly),
+	nunca bloqueio total.
+	"""
+	from .models import Tenant
+
+	hoje = timezone.localdate()
+
+	tenants_vencidos = Tenant.objects.filter(
+		trial=True,
+		status_pagamento=Tenant.StatusPagamento.TRIAL,
+		trial_expira__lt=hoje,
+	).exclude(schema_name='public')
+
+	total = 0
+	for tenant in tenants_vencidos:
+		tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+		tenant.save(update_fields=['status_pagamento', 'atualizado_em'])
+		total += 1
+		logger.info('Trial vencido: tenant %s marcado como inadimplente (read-only)', tenant.schema_name)
+
+	return f'{total} tenant(s) marcados como inadimplente'
+
+
 def _criar_assinatura_asaas(tenant, billing_type='BOLETO'):
 	"""
 	Cria customer + subscription no Asaas pra cobrança da mensalidade do tenant.

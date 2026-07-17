@@ -19,6 +19,7 @@ from django_tenants.test.cases import TenantTestCase
 from .forms import ConfigSicrediForm
 from .models import ConfigSicredi, InstanciaWhatsApp, Plano, Tenant
 from .services import verificar_status_whatsapp
+from .tasks import verificar_trials_vencidos
 from .views import (
     config_sicredi, landing, recriar_instancia_whatsapp,
     superadmin_asaas_pagamento, superadmin_liberar_cobranca, superadmin_tenant_detalhe,
@@ -186,6 +187,88 @@ class TermosPrivacidadeRotasTests(TestCase):
         request = RequestFactory().get('/privacidade/')
         response = match.func(request)
         self.assertEqual(response.status_code, 200)
+
+
+class AcessoSomenteLeituraTests(TenantTestCase):
+    """
+    Trial vencido sem pagamento (status_pagamento='inadimplente' + trial=True)
+    entra em modo somente leitura: GET passa, escrita leva 403. Nunca é o
+    bloqueio total do PlanoAcessoMiddleware (isso é só p/ suspenso/cancelado
+    ou trial ainda não marcado como inadimplente).
+    """
+
+    def setUp(self):
+        Usuario = get_user_model()
+        self.user = Usuario.objects.create_user(username='user-readonly', password='senha123')
+        self.client.login(username='user-readonly', password='senha123')
+        self.tenant.trial = True
+        self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+        self.tenant.save()
+
+    def test_get_passa_normalmente(self):
+        resp = self.client.get(reverse('dashboard'), HTTP_HOST=self.domain.domain)
+
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_e_bloqueado_com_403(self):
+        resp = self.client.post(reverse('dashboard'), HTTP_HOST=self.domain.domain)
+
+        self.assertEqual(resp.status_code, 403)
+
+    def test_banner_somente_leitura_aparece_no_get(self):
+        resp = self.client.get(reverse('dashboard'), HTTP_HOST=self.domain.domain)
+
+        self.assertIn('somente leitura', resp.content.decode())
+
+    def test_logout_post_nao_e_bloqueado_pelo_readonly(self):
+        resp = self.client.post(reverse('logout'), HTTP_HOST=self.domain.domain)
+
+        self.assertNotEqual(resp.status_code, 403)
+
+    def test_tenant_inadimplente_nao_trial_continua_bloqueio_total(self):
+        self.tenant.trial = False
+        self.tenant.save()
+
+        resp = self.client.get(reverse('dashboard'), HTTP_HOST=self.domain.domain)
+
+        self.assertRedirects(resp, reverse('acesso_bloqueado'), fetch_redirect_response=False)
+
+
+class VerificarTrialsVencidosTaskTests(TenantTestCase):
+    """Task diária que vira o gatilho do modo somente leitura."""
+
+    def test_marca_inadimplente_quando_trial_venceu(self):
+        self.tenant.trial = True
+        self.tenant.status_pagamento = Tenant.StatusPagamento.TRIAL
+        self.tenant.trial_expira = date.today() - timedelta(days=1)
+        self.tenant.save()
+
+        resultado = verificar_trials_vencidos()
+
+        self.tenant.refresh_from_db()
+        self.assertEqual(self.tenant.status_pagamento, Tenant.StatusPagamento.INADIMPLENTE)
+        self.assertIn('1 tenant', resultado)
+
+    def test_nao_altera_trial_ainda_valido(self):
+        self.tenant.trial = True
+        self.tenant.status_pagamento = Tenant.StatusPagamento.TRIAL
+        self.tenant.trial_expira = date.today() + timedelta(days=5)
+        self.tenant.save()
+
+        verificar_trials_vencidos()
+
+        self.tenant.refresh_from_db()
+        self.assertEqual(self.tenant.status_pagamento, Tenant.StatusPagamento.TRIAL)
+
+    def test_nao_mexe_em_tenant_ja_inadimplente(self):
+        self.tenant.trial = True
+        self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+        self.tenant.trial_expira = date.today() - timedelta(days=1)
+        self.tenant.save()
+
+        resultado = verificar_trials_vencidos()
+
+        self.assertIn('0 tenant', resultado)
 
 
 class ConfigSicrediFormMascaramentoTests(TestCase):

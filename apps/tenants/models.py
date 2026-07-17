@@ -180,6 +180,16 @@ class Tenant(TenantMixin):
 
         return False
 
+    @property
+    def acesso_readonly(self):
+        """
+        True quando o trial venceu sem pagamento confirmado (status_pagamento
+        virou 'inadimplente' via task verificar_trials_vencidos, mas ainda em
+        trial). Acesso continua liberado pro middleware, só que somente
+        leitura — nunca bloqueio total, diferente de suspenso/cancelado.
+        """
+        return self.status_pagamento == self.StatusPagamento.INADIMPLENTE and self.trial
+
     def tem_whatsapp(self):
         return self.plano and self.plano.tem_whatsapp
 

@@ -4,7 +4,7 @@ Middlewares para controle de acesso por plano e verificação de limites.
 """
 
 from django.conf import settings
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django_tenants.utils import get_public_schema_name
 
@@ -13,6 +13,10 @@ class PlanoAcessoMiddleware:
     """
     Bloqueia acesso ao tenant se o plano estiver expirado ou inativo.
     Redireciona para a tela de acesso bloqueado.
+
+    Exceção: tenant em modo read-only (trial vencido sem pagamento —
+    Tenant.acesso_readonly) nunca é bloqueado por completo. GET passa
+    normalmente; métodos de escrita levam 403 com tela de aviso.
     """
 
     URLS_LIBERADAS = [
@@ -25,6 +29,8 @@ class PlanoAcessoMiddleware:
         '/favicon.ico',
     ]
 
+    METODOS_SEGUROS = ('GET', 'HEAD', 'OPTIONS')
+
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -36,8 +42,12 @@ class PlanoAcessoMiddleware:
             path = request.path_info
             liberada = any(path.startswith(url) for url in self.URLS_LIBERADAS)
 
-            if not liberada and not schema.acesso_permitido:
-                return redirect('acesso_bloqueado')
+            if not liberada:
+                if schema.acesso_readonly:
+                    if request.method not in self.METODOS_SEGUROS:
+                        return render(request, 'tenants/acesso_somente_leitura.html', status=403)
+                elif not schema.acesso_permitido:
+                    return redirect('acesso_bloqueado')
 
         return self.get_response(request)
 

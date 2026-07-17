@@ -306,6 +306,17 @@
         <main class="min-h-[calc(100vh-8rem)] px-4 py-6 sm:px-6 lg:px-8">
             <div class="mx-auto w-full max-w-7xl">
 
+                {% if request.tenant.acesso_readonly %}
+                <div class="no-print mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <i class="ti ti-alert-triangle mt-0.5 text-lg text-amber-600"></i>
+                    <p>
+                        <span class="font-bold">Período de teste encerrado.</span>
+                        Seu acesso está em modo somente leitura até a confirmação do pagamento.
+                        Criação, edição e exclusão de registros ficam bloqueadas.
+                    </p>
+                </div>
+                {% endif %}
+
                 {% include "components/messages.html" %}
 
                 {% block page_header %}{% endblock %}

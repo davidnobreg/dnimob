@@ -242,6 +242,11 @@ CELERY_BEAT_SCHEDULE = {
         'args': ['task_avisar_contratos_vencendo'],
         'schedule': crontab(hour='9', minute='30'),
     },
+    # ── Billing (Asaas) ──────────────────────────────
+    'tenants-verificar-trials-vencidos': {
+        'task': 'tenants.verificar_trials_vencidos',
+        'schedule': crontab(hour='6', minute='0'),
+    },
 }
 
 # ─────────────────────────────────────────────
