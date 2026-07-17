@@ -7,6 +7,8 @@ Sicredi, WhatsApp e gerenciamento de usuários.
 import json
 import logging
 import secrets
+from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -389,6 +391,98 @@ def superadmin_liberar_cobranca(request, tenant_id):
     tenant.save(update_fields=['cobranca_liberada', 'atualizado_em'])
 
     messages.success(request, f'Cobrança liberada para {tenant.nome}. O Asaas cobrará normalmente conforme agendado.')
+    return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
+
+
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
+def superadmin_cobranca_avulsa(request, tenant_id):
+    """
+    Gera uma cobrança avulsa (payment) no Asaas pro tenant — taxa de setup,
+    cobrança pontual, valor livre. Fora do ciclo da subscription mensal.
+    """
+    from apps.billing.client import AsaasClient, AsaasError
+
+    tenant = get_object_or_404(Tenant, pk=tenant_id)
+
+    if not tenant.asaas_customer_id:
+        messages.error(request, 'Tenant sem customer Asaas — cadastro incompleto.')
+        return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
+
+    resultado = None
+
+    if request.method == 'POST':
+        descricao = request.POST.get('descricao', '').strip()
+        billing_type = request.POST.get('billing_type', 'BOLETO').upper()
+
+        try:
+            valor = Decimal(request.POST.get('valor', ''))
+        except InvalidOperation:
+            valor = None
+
+        try:
+            vencimento = datetime.strptime(request.POST.get('vencimento', ''), '%Y-%m-%d').date()
+        except ValueError:
+            vencimento = None
+
+        if valor is None or vencimento is None or not descricao:
+            messages.error(request, 'Preencha valor, descrição e vencimento corretamente.')
+        else:
+            try:
+                client = AsaasClient()
+                resultado = client.criar_cobranca(
+                    tenant.asaas_customer_id, valor, descricao, vencimento, billing_type=billing_type,
+                )
+                messages.success(request, 'Cobrança avulsa gerada com sucesso.')
+            except AsaasError as e:
+                logger.error('Erro ao criar cobrança avulsa do tenant %s: %s', tenant.schema_name, e)
+                messages.error(request, f'Erro Asaas: {e}')
+
+    return render(request, 'tenants/superadmin/cobranca_avulsa.html', {
+        'tenant': tenant,
+        'resultado': resultado,
+        'vencimento_default': (timezone.localdate() + timedelta(days=3)).isoformat(),
+    })
+
+
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
+@require_POST
+def superadmin_reativar_tenant(request, tenant_id):
+    """
+    Gera cobrança avulsa no valor da mensalidade pra um tenant inadimplente
+    voltar a pagar. Não muda status_pagamento — só o webhook Asaas
+    (PAYMENT_CONFIRMED) faz isso, quando o pagamento realmente cair.
+    """
+    from apps.billing.client import AsaasClient, AsaasError
+
+    tenant = get_object_or_404(Tenant, pk=tenant_id)
+
+    if tenant.status_pagamento != Tenant.StatusPagamento.INADIMPLENTE:
+        messages.error(request, 'Tenant não está inadimplente.')
+        return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
+
+    if not tenant.asaas_customer_id or not tenant.plano:
+        messages.error(request, 'Tenant sem customer Asaas ou sem plano — não é possível gerar cobrança.')
+        return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
+
+    vencimento = timezone.localdate() + timedelta(days=3)
+
+    try:
+        client = AsaasClient()
+        cobranca = client.criar_cobranca(
+            tenant.asaas_customer_id,
+            tenant.plano.preco_mensal,
+            f'DN Imob — {tenant.plano.get_nome_display()} — Reativação',
+            vencimento,
+        )
+        link = cobranca.get('invoiceUrl') or cobranca.get('bankSlipUrl')
+        if link:
+            messages.success(request, f'Cobrança de reativação gerada para {tenant.nome}. Link: {link}')
+        else:
+            messages.success(request, f'Cobrança de reativação gerada para {tenant.nome}.')
+    except AsaasError as e:
+        logger.error('Erro ao gerar cobrança de reativação do tenant %s: %s', tenant.schema_name, e)
+        messages.error(request, f'Erro Asaas: {e}')
+
     return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
 
 

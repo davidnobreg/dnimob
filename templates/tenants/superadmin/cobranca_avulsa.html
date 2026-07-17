@@ -1,0 +1,120 @@
+{% extends "base_admin.html" %}
+{% block title %}Cobrança avulsa — {{ tenant.nome }} — Superadmin DN Imob{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50">
+
+  {% include "components/superadmin_sidebar.html" with ativo="dashboard" %}
+
+  <!-- Main -->
+  <main class="flex-1 overflow-auto">
+
+    <!-- Header -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-900 px-8 py-10">
+      <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        <div class="animate-blob absolute -top-20 -left-10 h-72 w-72 rounded-full bg-blue-400/30 mix-blend-screen blur-3xl"></div>
+        <div class="animate-blob animation-delay-2000 absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-indigo-400/30 mix-blend-screen blur-3xl"></div>
+      </div>
+
+      <div class="relative">
+        <a href="{% url 'superadmin_tenant_detalhe' tenant.pk %}" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-100 hover:text-white transition">
+          ← Voltar para {{ tenant.nome }}
+        </a>
+        <h1 class="font-display text-2xl sm:text-3xl font-bold text-white mt-2">Cobrança avulsa</h1>
+        <p class="text-blue-100 text-sm font-mono mt-1">{{ tenant.schema_name }}</p>
+      </div>
+    </div>
+
+    <div class="p-8 max-w-2xl">
+
+      {% if messages %}
+      <div class="mb-6 space-y-2">
+        {% for msg in messages %}
+        <div class="px-4 py-3 rounded-lg text-sm font-medium
+          {% if msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+          {% elif msg.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
+          {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+          {{ msg }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if resultado %}
+      <div class="mb-6 bg-white rounded-2xl border border-emerald-200 p-6 shadow-sm">
+        <h2 class="font-display text-sm font-bold text-emerald-700 mb-3">Cobrança gerada</h2>
+        <dl class="space-y-2 text-sm">
+          {% if resultado.id %}
+          <div class="flex justify-between gap-2">
+            <dt class="text-slate-500">ID</dt>
+            <dd class="font-mono text-xs text-slate-600">{{ resultado.id }}</dd>
+          </div>
+          {% endif %}
+          {% if resultado.invoiceUrl %}
+          <div class="flex justify-between items-center gap-2">
+            <dt class="text-slate-500">Link da fatura</dt>
+            <dd>
+              <a href="{{ resultado.invoiceUrl }}" target="_blank" class="text-blue-600 font-medium hover:underline break-all">
+                {{ resultado.invoiceUrl }}
+              </a>
+            </dd>
+          </div>
+          {% endif %}
+          {% if resultado.bankSlipUrl %}
+          <div class="flex justify-between items-center gap-2">
+            <dt class="text-slate-500">Boleto</dt>
+            <dd>
+              <a href="{{ resultado.bankSlipUrl }}" target="_blank" class="text-blue-600 font-medium hover:underline break-all">
+                {{ resultado.bankSlipUrl }}
+              </a>
+            </dd>
+          </div>
+          {% endif %}
+        </dl>
+      </div>
+      {% endif %}
+
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+        <form method="post" class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label class="mb-1.5 block text-sm font-bold text-slate-700">Valor (R$)</label>
+            <input type="number" name="valor" step="0.01" min="0.01" required
+                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-700 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15">
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-sm font-bold text-slate-700">Descrição</label>
+            <input type="text" name="descricao" required
+                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-700 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15">
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-sm font-bold text-slate-700">Vencimento</label>
+            <input type="date" name="vencimento" value="{{ vencimento_default }}" required
+                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-700 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15">
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-sm font-bold text-slate-700">Forma de pagamento</label>
+            <select name="billing_type"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-700 transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15">
+              <option value="BOLETO">Boleto</option>
+              <option value="PIX">Pix</option>
+              <option value="CREDIT_CARD">Cartão de Crédito</option>
+            </select>
+          </div>
+
+          <div class="flex justify-end border-t border-gray-100 pt-6">
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-all duration-300">
+              Gerar cobrança
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

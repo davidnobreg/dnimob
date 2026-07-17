@@ -48,6 +48,8 @@ urlpatterns = [
     path('admin-master/tenant/<int:tenant_id>/liberar-cobranca/', tv.superadmin_liberar_cobranca, name='superadmin_liberar_cobranca'),
     path('admin-master/tenant/<int:tenant_id>/asaas/', tv.superadmin_asaas_pagamento, name='superadmin_asaas_pagamento'),
     path('admin-master/tenant/<int:tenant_id>/asaas/cartao/', tv.superadmin_asaas_cartao, name='superadmin_asaas_cartao'),
+    path('admin-master/tenant/<int:tenant_id>/cobranca-avulsa/', tv.superadmin_cobranca_avulsa, name='superadmin_cobranca_avulsa'),
+    path('admin-master/tenant/<int:tenant_id>/reativar/', tv.superadmin_reativar_tenant, name='superadmin_reativar_tenant'),
     # dentro do urlpatterns, antes do admin-master/
     path('admin-master/login/', auth_views.LoginView.as_view(
         template_name='tenants/superadmin_login.html',

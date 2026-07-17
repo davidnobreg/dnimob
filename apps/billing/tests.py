@@ -98,6 +98,32 @@ class AsaasClientTests(TestCase):
 		self.assertEqual(resultado['id'], 'sub_VXJBYgP2u0eO')
 
 	@patch('requests.Session.post')
+	def test_criar_cobranca_monta_payload_correto(self, mock_post):
+		mock_post.return_value = _resp(200, {'id': 'pay_abc'})
+
+		self.client_asaas.criar_cobranca(
+			'cus_123', 150, 'Taxa de setup', date(2026, 8, 1), billing_type='PIX',
+		)
+
+		url = mock_post.call_args.args[0]
+		payload = mock_post.call_args.kwargs['json']
+		self.assertTrue(url.endswith('/payments'))
+		self.assertEqual(payload['customer'], 'cus_123')
+		self.assertEqual(payload['billingType'], 'PIX')
+		self.assertEqual(payload['value'], 150.0)
+		self.assertEqual(payload['dueDate'], '2026-08-01')
+		self.assertEqual(payload['description'], 'Taxa de setup')
+
+	@patch('requests.Session.post')
+	def test_criar_cobranca_retorna_resposta_parseada(self, mock_post):
+		mock_post.return_value = _resp(200, {'id': 'pay_xyz', 'invoiceUrl': 'https://asaas.com/i/pay_xyz'})
+
+		resultado = self.client_asaas.criar_cobranca('cus_123', 99.9, 'Cobrança pontual', date(2026, 8, 1))
+
+		self.assertEqual(resultado['id'], 'pay_xyz')
+		self.assertEqual(resultado['invoiceUrl'], 'https://asaas.com/i/pay_xyz')
+
+	@patch('requests.Session.post')
 	def test_erro_400_vira_asaas_api_error_com_mensagem(self, mock_post):
 		mock_post.return_value = _resp(400, {
 			'errors': [{'code': 'invalid_cpfCnpj', 'description': 'O CPF/CNPJ informado é inválido.'}],

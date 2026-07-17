@@ -99,6 +99,24 @@ class AsaasClient:
 		logger.info('Asaas criar_subscription: customer=%s valor=%s ciclo=%s', customer_id, valor, ciclo)
 		return self._post('/subscriptions', payload, contexto='criar subscription')
 
+	def criar_cobranca(self, customer_id, valor, descricao, vencimento, billing_type='BOLETO'):
+		"""
+		Cria cobrança avulsa (payment) no Asaas — fora do ciclo de uma
+		subscription. Usada pra taxa de setup, cobrança pontual ou
+		reativação de tenant inadimplente.
+		`vencimento`: date do Python. `billing_type`: 'BOLETO' | 'PIX' | 'CREDIT_CARD'.
+		Retorna o dict da resposta (contém 'id', 'invoiceUrl', 'bankSlipUrl').
+		"""
+		payload = {
+			'customer': customer_id,
+			'billingType': billing_type,
+			'value': float(valor),
+			'dueDate': vencimento.strftime('%Y-%m-%d'),
+			'description': descricao,
+		}
+		logger.info('Asaas criar_cobranca: customer=%s valor=%s', customer_id, valor)
+		return self._post('/payments', payload, contexto='criar cobrança avulsa')
+
 	def obter_subscription(self, subscription_id):
 		"""Consulta os dados atuais de uma subscription (inclui billingType)."""
 		return self._get(f'/subscriptions/{subscription_id}', contexto='consultar subscription')

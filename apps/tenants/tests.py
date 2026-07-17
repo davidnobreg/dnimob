@@ -5,6 +5,7 @@ Testes do app tenants (schema public — SHARED_APPS, TestCase comum,
 sem TenantTestCase, já que Plano/Tenant/Domain vivem no schema public).
 """
 from datetime import date, timedelta
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import requests
@@ -22,7 +23,8 @@ from .services import verificar_status_whatsapp
 from .tasks import verificar_trials_vencidos
 from .views import (
     config_sicredi, landing, recriar_instancia_whatsapp,
-    superadmin_asaas_pagamento, superadmin_liberar_cobranca, superadmin_tenant_detalhe,
+    superadmin_asaas_pagamento, superadmin_cobranca_avulsa, superadmin_liberar_cobranca,
+    superadmin_reativar_tenant, superadmin_tenant_detalhe,
 )
 
 
@@ -557,6 +559,131 @@ class SuperadminLiberarCobrancaTests(TenantTestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn('/admin-master/login/', response.url)
+
+
+class SuperadminCobrancaAvulsaTests(TenantTestCase):
+    """Cobrança avulsa (payment) fora do ciclo da subscription mensal."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        Usuario = get_user_model()
+        self.superuser = Usuario.objects.create_user(
+            username='super-cobranca', password='senha123', is_superuser=True, is_staff=True,
+        )
+        self.tenant.asaas_customer_id = 'cus_avulsa'
+        self.tenant.save()
+
+    def _request(self, method, data=None):
+        request = getattr(self.factory, method)(
+            f'/admin-master/tenant/{self.tenant.pk}/cobranca-avulsa/', data=data or {},
+        )
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        request.user = self.superuser
+        request._messages = FallbackStorage(request)
+        return request
+
+    @override_settings(ROOT_URLCONF='config.urls_public')
+    def test_get_exibe_formulario(self):
+        response = superadmin_cobranca_avulsa(self._request('get'), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Gerar cobran', response.content)
+
+    @override_settings(
+        ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox',
+        ROOT_URLCONF='config.urls_public',
+    )
+    @patch('requests.Session.post')
+    def test_post_gera_cobranca_e_exibe_link(self, mock_post):
+        mock_post.return_value = _resp(200, {
+            'id': 'pay_123', 'invoiceUrl': 'https://asaas.com/i/pay_123',
+        })
+
+        response = superadmin_cobranca_avulsa(self._request('post', {
+            'valor': '150.00', 'descricao': 'Taxa de setup', 'vencimento': '2026-08-01',
+            'billing_type': 'BOLETO',
+        }), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'asaas.com/i/pay_123', response.content)
+
+        payload = mock_post.call_args.kwargs['json']
+        self.assertEqual(payload['customer'], 'cus_avulsa')
+        self.assertEqual(payload['value'], 150.0)
+        self.assertEqual(payload['description'], 'Taxa de setup')
+
+    @override_settings(ROOT_URLCONF='config.urls_public')
+    def test_sem_customer_asaas_redireciona(self):
+        self.tenant.asaas_customer_id = ''
+        self.tenant.save()
+
+        response = superadmin_cobranca_avulsa(self._request('get'), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 302)
+
+
+class SuperadminReativarTenantTests(TenantTestCase):
+    """Reativação de tenant inadimplente gera cobrança da mensalidade — não muda status_pagamento (aguarda webhook)."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        Usuario = get_user_model()
+        self.superuser = Usuario.objects.create_user(
+            username='super-reativar', password='senha123', is_superuser=True, is_staff=True,
+        )
+        self.plano, _ = Plano.objects.get_or_create(
+            nome=Plano.BASICO, defaults={'preco_mensal': Decimal('99.90')},
+        )
+        self.tenant.plano = self.plano
+        self.tenant.asaas_customer_id = 'cus_reativar'
+        self.tenant.status_pagamento = Tenant.StatusPagamento.INADIMPLENTE
+        self.tenant.save()
+
+    def _request(self):
+        request = self.factory.post(f'/admin-master/tenant/{self.tenant.pk}/reativar/')
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        request.user = self.superuser
+        request._messages = FallbackStorage(request)
+        return request
+
+    @override_settings(
+        ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox',
+        ROOT_URLCONF='config.urls_public',
+    )
+    @patch('requests.Session.post')
+    def test_gera_cobranca_de_reativacao_com_valor_do_plano(self, mock_post):
+        mock_post.return_value = _resp(200, {'id': 'pay_reativ', 'invoiceUrl': 'https://asaas.com/i/pay_reativ'})
+
+        response = superadmin_reativar_tenant(self._request(), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 302)
+        payload = mock_post.call_args.kwargs['json']
+        self.assertEqual(payload['value'], float(self.plano.preco_mensal))
+        self.assertIn('Reativação', payload['description'])
+
+    @override_settings(
+        ASAAS_API_URL='https://api-sandbox.asaas.com/v3', ASAAS_API_KEY='chave-teste-sandbox',
+        ROOT_URLCONF='config.urls_public',
+    )
+    @patch('requests.Session.post')
+    def test_nao_muda_status_pagamento(self, mock_post):
+        mock_post.return_value = _resp(200, {'id': 'pay_reativ'})
+
+        superadmin_reativar_tenant(self._request(), tenant_id=self.tenant.pk)
+
+        self.tenant.refresh_from_db()
+        self.assertEqual(self.tenant.status_pagamento, Tenant.StatusPagamento.INADIMPLENTE)
+
+    @override_settings(ROOT_URLCONF='config.urls_public')
+    def test_bloqueia_se_tenant_nao_esta_inadimplente(self):
+        self.tenant.status_pagamento = Tenant.StatusPagamento.ATIVO
+        self.tenant.save()
+
+        response = superadmin_reativar_tenant(self._request(), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 302)
 
 
 class SuperadminTenantDetalhePagamentosTests(TenantTestCase):

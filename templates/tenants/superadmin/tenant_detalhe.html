@@ -231,6 +231,29 @@
           </div>
           {% endif %}
 
+          {% if tenant.asaas_customer_id %}
+          <div class="mt-2 space-y-2">
+            <a
+              href="{% url 'superadmin_cobranca_avulsa' tenant.pk %}"
+              class="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white
+                     font-medium py-2 px-4 rounded-lg transition-all duration-300 text-sm"
+            >
+              💰 Gerar cobrança avulsa
+            </a>
+
+            {% if tenant.status_pagamento == 'inadimplente' %}
+            <form method="post" action="{% url 'superadmin_reativar_tenant' tenant.pk %}">
+              {% csrf_token %}
+              <button type="submit"
+                      class="block w-full text-center bg-amber-500 hover:bg-amber-600 text-white
+                             font-medium py-2 px-4 rounded-lg transition-all duration-300 text-sm">
+                🔄 Reativar — gerar cobrança de R$ {{ tenant.plano.preco_mensal }}
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          {% endif %}
+
         </div>
       </div>
 
