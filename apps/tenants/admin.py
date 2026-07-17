@@ -33,6 +33,10 @@ class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
         ('Identificação', {'fields': ('schema_name', 'nome', 'cnpj', 'email', 'telefone')}),
         ('Endereço', {'fields': ('endereco', 'cidade', 'estado', 'cep')}),
         ('Plano e Status', {'fields': ('plano', 'ativo', 'trial', 'trial_expira', 'assinatura_expira', 'status_assinatura')}),
+        ('Billing (Asaas)', {'fields': (
+            'status_pagamento', 'asaas_customer_id', 'asaas_subscription_id',
+            'asaas_graca_ate', 'cobranca_liberada',
+        )}),
         ('Visual', {'fields': ('logo', 'cor_primaria', 'cor_secundaria', 'cor_acento'), 'classes': ('collapse',)}),
         ('Metadados', {'fields': ('criado_em', 'atualizado_em'), 'classes': ('collapse',)}),
     )
