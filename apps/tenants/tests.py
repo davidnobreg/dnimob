@@ -21,7 +21,7 @@ from .models import ConfigSicredi, InstanciaWhatsApp, Plano, Tenant
 from .services import verificar_status_whatsapp
 from .views import (
     config_sicredi, landing, recriar_instancia_whatsapp,
-    superadmin_asaas_pagamento, superadmin_tenant_detalhe,
+    superadmin_asaas_pagamento, superadmin_liberar_cobranca, superadmin_tenant_detalhe,
 )
 
 
@@ -417,6 +417,60 @@ class SuperadminAsaasPagamentoTests(TenantTestCase):
 
     def test_superadmin_asaas_pagamento_nao_acessivel_por_tenant_admin(self):
         response = superadmin_asaas_pagamento(self._request('get', self.admin_tenant), tenant_id=self.tenant.pk)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin-master/login/', response.url)
+
+
+class SuperadminLiberarCobrancaTests(TenantTestCase):
+    """
+    Botão "Liberar cobrança" no admin-master — marca auditoria do superadmin,
+    não confirma pagamento (isso é o webhook).
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        Usuario = get_user_model()
+        self.superuser = Usuario.objects.create_user(
+            username='super-libera', password='senha123', is_superuser=True, is_staff=True,
+        )
+        self.admin_tenant = Usuario.objects.create_user(
+            username='admin-tenant-libera', password='senha123', is_staff=True,
+        )
+
+    def _request(self, user):
+        request = self.factory.post(f'/admin-master/tenant/{self.tenant.pk}/liberar-cobranca/')
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        request.user = user
+        request._messages = FallbackStorage(request)
+        return request
+
+    @override_settings(ROOT_URLCONF='config.urls_public')
+    def test_libera_cobranca_com_subscription(self):
+        self.tenant.asaas_subscription_id = 'sub_789'
+        self.tenant.save()
+
+        response = superadmin_liberar_cobranca(self._request(self.superuser), tenant_id=self.tenant.pk)
+
+        self.tenant.refresh_from_db()
+        self.assertTrue(self.tenant.cobranca_liberada)
+        self.assertEqual(response.status_code, 302)
+
+    @override_settings(ROOT_URLCONF='config.urls_public')
+    def test_nao_libera_sem_subscription_asaas(self):
+        response = superadmin_liberar_cobranca(self._request(self.superuser), tenant_id=self.tenant.pk)
+
+        self.tenant.refresh_from_db()
+        self.assertFalse(self.tenant.cobranca_liberada)
+        self.assertEqual(response.status_code, 302)
+
+    @override_settings(ROOT_URLCONF='config.urls_public')
+    def test_nao_acessivel_por_tenant_admin(self):
+        self.tenant.asaas_subscription_id = 'sub_789'
+        self.tenant.save()
+
+        response = superadmin_liberar_cobranca(self._request(self.admin_tenant), tenant_id=self.tenant.pk)
 
         self.assertEqual(response.status_code, 302)
         self.assertIn('/admin-master/login/', response.url)

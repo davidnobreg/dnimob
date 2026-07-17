@@ -191,6 +191,9 @@ def superadmin_dashboard(request):
     lista_inadimplentes = tenants_financeiro.filter(
         status_pagamento='inadimplente'
     ).order_by('nome')
+    aguardando_auditoria = tenants_financeiro.exclude(
+        asaas_subscription_id=''
+    ).filter(cobranca_liberada=False).count()
 
     context = {
         'tenants': tenants,
@@ -206,6 +209,7 @@ def superadmin_dashboard(request):
         'receita_mensal': receita_mensal,
         'por_plano': por_plano,
         'lista_inadimplentes': lista_inadimplentes,
+        'aguardando_auditoria': aguardando_auditoria,
     }
     return render(request, 'tenants/superadmin/dashboard.html', context)
 
@@ -365,6 +369,27 @@ def superadmin_asaas_cartao(request, tenant_id):
     except AsaasError as e:
         logger.error('Erro ao associar cartão do tenant %s: %s', tenant.schema_name, e)
         return JsonResponse({'ok': False, 'erro': 'Erro ao associar cartão. Tente novamente.'}, status=502)
+
+
+@user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')
+@require_POST
+def superadmin_liberar_cobranca(request, tenant_id):
+    """
+    Marca que o superadmin auditou o cadastro e libera a cobrança recorrente
+    no Asaas. Não confirma pagamento — o tenant segue em trial/pendente até
+    o pagamento ser confirmado via webhook.
+    """
+    tenant = get_object_or_404(Tenant, pk=tenant_id)
+
+    if not tenant.asaas_subscription_id:
+        messages.error(request, 'Tenant sem subscription Asaas — cadastro incompleto.')
+        return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
+
+    tenant.cobranca_liberada = True
+    tenant.save(update_fields=['cobranca_liberada', 'atualizado_em'])
+
+    messages.success(request, f'Cobrança liberada para {tenant.nome}. O Asaas cobrará normalmente conforme agendado.')
+    return redirect('superadmin_tenant_detalhe', tenant_id=tenant_id)
 
 
 @user_passes_test(lambda u: u.is_superuser, login_url='/admin-master/login/')

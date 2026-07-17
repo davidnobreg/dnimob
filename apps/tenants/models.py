@@ -94,6 +94,12 @@ class Tenant(TenantMixin):
         help_text='Data limite do período de graça após inadimplência. '
                   'Quando setar: decisão pendente (TODO Fatia 2+).'
     )
+    cobranca_liberada = models.BooleanField(
+        'Cobrança liberada',
+        default=False,
+        help_text='Marca que o superadmin auditou o cadastro e liberou a '
+                  'cobrança recorrente no Asaas. Não significa pagamento confirmado.',
+    )
 
     # Aceite de Termos de Uso e Política de Privacidade
     aceite_termos_em = models.DateTimeField('Aceite dos termos em', null=True, blank=True)

@@ -199,7 +199,22 @@
           </div>
 
           {% if tenant.asaas_subscription_id %}
-          <div class="mt-4 pt-4 border-t border-gray-100">
+          <div class="mt-4 pt-4 border-t border-gray-100 space-y-2">
+            {% if tenant.cobranca_liberada %}
+              <span class="block w-full text-center bg-emerald-50 text-emerald-700 border border-emerald-200
+                           font-medium py-2 px-4 rounded-lg text-sm">
+                ✅ Cobrança liberada
+              </span>
+            {% else %}
+              <form method="post" action="{% url 'superadmin_liberar_cobranca' tenant.pk %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white
+                               font-medium py-2 px-4 rounded-lg transition-all duration-300 text-sm">
+                  Liberar cobrança
+                </button>
+              </form>
+            {% endif %}
             <a
               href="{% url 'superadmin_asaas_pagamento' tenant.pk %}"
               class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white

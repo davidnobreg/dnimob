@@ -109,6 +109,13 @@
           </div>
           <p class="text-sm text-slate-500 mt-1">Em trial</p>
         </div>
+        <div class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl {% if aguardando_auditoria > 0 %}border-amber-300{% else %}hover:border-amber-200{% endif %}">
+          <div class="flex items-center justify-between">
+            <p class="text-4xl font-bold {% if aguardando_auditoria > 0 %}text-amber-600{% else %}text-slate-400{% endif %}">{{ aguardando_auditoria }}</p>
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white text-lg shadow-md shadow-amber-400/20 transition-transform duration-300 group-hover:scale-110">🔍</div>
+          </div>
+          <p class="text-sm text-slate-500 mt-1">Aguardando auditoria</p>
+        </div>
       </div>
 
       <!-- Distribuição por plano -->
