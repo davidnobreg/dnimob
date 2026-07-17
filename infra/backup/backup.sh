@@ -1,6 +1,20 @@
 #!/bin/sh
 set -e
 
+# Carregar variáveis do .envDnimob se existir (fallback quando o Portainer
+# não define DB_NAME/DB_USER/DB_PASSWORD no ambiente do serviço backup)
+if [ -f /app/configuration/.envDnimob ]; then
+	export $(grep -v '^#' /app/configuration/.envDnimob \
+		| grep -E '^(DB_NAME|DB_USER|DB_PASSWORD|BACKUP_AWS_ACCESS_KEY_ID|BACKUP_AWS_SECRET_ACCESS_KEY)=' \
+		| sed 's/\r//' \
+		| xargs)
+	POSTGRES_DB="${POSTGRES_DB:-$DB_NAME}"
+	POSTGRES_USER="${POSTGRES_USER:-$DB_USER}"
+	POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$DB_PASSWORD}"
+	AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-$BACKUP_AWS_ACCESS_KEY_ID}"
+	AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$BACKUP_AWS_SECRET_ACCESS_KEY}"
+fi
+
 # Variáveis injetadas via environment:
 # POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT_URL, BACKUP_BUCKET

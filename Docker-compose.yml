@@ -136,6 +136,9 @@ services:
       BACKUP_BUCKET: dnimob-backup-prod
       AWS_DEFAULT_REGION: us-east-005
 
+    volumes:
+      - configuration:/app/configuration
+
     networks:
       - app_network
 
