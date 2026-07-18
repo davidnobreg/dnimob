@@ -34,14 +34,26 @@ EVENTOS_STATUS = {
 
 def _validar_token(request):
 	"""
-	Valida o token de autenticação do webhook, enviado pelo Asaas no
-	header 'asaas-access-token' (configurado no painel Asaas).
+	Valida o token de autenticação do webhook enviado pelo Asaas no
+	header 'asaas-access-token'.
+
+	Em produção (ASAAS_WEBHOOK_TOKEN_REQUIRED=True), token vazio = rejeita.
+	Em dev (DEBUG=True), token vazio = aceita (facilita testes locais).
 	"""
-	token_enviado = request.headers.get('asaas-access-token', '')
 	token_esperado = settings.ASAAS_WEBHOOK_TOKEN
+	token_required = getattr(settings, 'ASAAS_WEBHOOK_TOKEN_REQUIRED', not settings.DEBUG)
+
 	if not token_esperado:
-		logger.warning('ASAAS_WEBHOOK_TOKEN não configurado — webhook sem autenticação')
+		if token_required:
+			logger.error(
+				'ASAAS_WEBHOOK_TOKEN não configurado em produção — '
+				'requisição rejeitada por segurança'
+			)
+			return False
+		logger.warning('ASAAS_WEBHOOK_TOKEN não configurado — aceitando em modo dev')
 		return True
+
+	token_enviado = request.headers.get('asaas-access-token', '')
 	return token_enviado == token_esperado
 
 

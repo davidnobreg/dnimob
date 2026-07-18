@@ -325,6 +325,26 @@ class WebhookAsaasTest(TenantTestCase):
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(json.loads(resp.content)['tenant'], 'não encontrado')
 
+	@override_settings(ASAAS_WEBHOOK_TOKEN='', ASAAS_WEBHOOK_TOKEN_REQUIRED=True)
+	def test_webhook_rejeita_quando_token_nao_configurado_em_producao(self):
+		"""Token vazio em produção deve retornar 401, não aceitar."""
+		resp = self._post_webhook({
+			'event': 'PAYMENT_CONFIRMED',
+			'payment': {'subscription': 'sub_123', 'customer': 'cus_123'},
+		}, token='')
+
+		self.assertEqual(resp.status_code, 401)
+
+	@override_settings(ASAAS_WEBHOOK_TOKEN='', ASAAS_WEBHOOK_TOKEN_REQUIRED=False)
+	def test_webhook_aceita_quando_token_nao_configurado_em_dev(self):
+		"""Token vazio em dev deve aceitar (facilita testes locais)."""
+		resp = self._post_webhook({
+			'event': 'PAYMENT_CREATED',
+		}, token='')
+
+		# Evento não mapeado retorna 200 com ignorado=True
+		self.assertEqual(resp.status_code, 200)
+
 
 class AcessoPermitidoTest(TenantTestCase):
 	"""

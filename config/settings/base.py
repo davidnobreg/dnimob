@@ -288,6 +288,7 @@ SITE_BASE_URL = env('SITE_BASE_URL', default='https://dnsoftware.com.br')
 ASAAS_API_URL = env('ASAAS_API_URL', default='https://api-sandbox.asaas.com/v3')
 ASAAS_API_KEY = env('ASAAS_API_KEY', default='')
 ASAAS_WEBHOOK_TOKEN = env('ASAAS_WEBHOOK_TOKEN', default='')
+ASAAS_WEBHOOK_TOKEN_REQUIRED = not DEBUG
 
 # Chave pública (Asaas.js, tokenização de cartão no frontend) — diferente da
 # API key privada. Painel Asaas → Integrações → Chaves de API.
