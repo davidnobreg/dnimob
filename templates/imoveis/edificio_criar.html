@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastrar Prédio{% endblock %}
+
+{% block breadcrumb %}
+    <span class="text-gray-300">/</span>
+    <a href="{% url 'imovel_lista' %}" class="text-gray-600 hover:text-primary-600">Imóveis</a>
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-600">Cadastrar Prédio</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    {# Cabeçalho #}
+    <div class="flex items-center gap-3">
+        <a href="{% url 'imovel_lista' %}" class="text-gray-400 hover:text-gray-600">
+            <i class="ti ti-arrow-left text-lg"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Cadastrar Prédio</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Cadastre o edifício e todas as unidades de uma vez.</p>
+        </div>
+    </div>
+
+    {% csrf_token %}
+
+    {# Indicador de steps #}
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="flex items-center justify-between" id="step-indicator">
+            <div class="step-dot flex-1 flex items-center gap-2" data-step-dot="1">
+                <span class="step-num flex items-center justify-center w-8 h-8 rounded-full bg-primary-600 text-white text-sm font-semibold">1</span>
+                <span class="text-sm font-medium text-gray-700 hidden sm:inline">Edifício</span>
+            </div>
+            <div class="flex-1 h-0.5 bg-gray-200 mx-2"></div>
+            <div class="step-dot flex-1 flex items-center gap-2" data-step-dot="2">
+                <span class="step-num flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm font-semibold">2</span>
+                <span class="text-sm font-medium text-gray-500 hidden sm:inline">Andares</span>
+            </div>
+            <div class="flex-1 h-0.5 bg-gray-200 mx-2"></div>
+            <div class="step-dot flex-1 flex items-center gap-2" data-step-dot="3">
+                <span class="step-num flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm font-semibold">3</span>
+                <span class="text-sm font-medium text-gray-500 hidden sm:inline">Unidades</span>
+            </div>
+            <div class="flex-1 h-0.5 bg-gray-200 mx-2"></div>
+            <div class="step-dot flex-1 flex items-center gap-2" data-step-dot="4">
+                <span class="step-num flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-sm font-semibold">4</span>
+                <span class="text-sm font-medium text-gray-500 hidden sm:inline">Resumo</span>
+            </div>
+        </div>
+    </div>
+
+    {# Alerta de erro geral #}
+    <div id="alerta-erro" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700"></div>
+
+    {# ── STEP 1 — Dados do Edifício ── #}
+    <div class="wizard-step bg-white rounded-xl border border-gray-200 p-6 space-y-4" data-step="1">
+        <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+            <i class="ti ti-building text-base text-gray-400"></i> Dados do Edifício
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Edifício *</label>
+                <input type="text" id="ed_nome" class="form-input" placeholder="Ex: Residencial Jardins">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                <select id="ed_tipo" class="form-select">
+                    {% for valor, label in tipo_choices %}
+                        <option value="{{ valor }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                <input type="text" id="ed_cep" class="form-input" placeholder="00000-000">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Logradouro</label>
+                <input type="text" id="ed_logradouro" class="form-input">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                <input type="text" id="ed_bairro" class="form-input">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                <input type="text" id="ed_cidade" class="form-input">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <select id="ed_estado" class="form-select">
+                    <option value="">Selecione...</option>
+                    <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
+                    <option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
+                    <option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
+                    <option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+                    <option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
+                    <option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
+                    <option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
+                    <option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+                    <option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Proprietário</label>
+                <select id="ed_proprietario" class="form-select">
+                    <option value="">Sem proprietário</option>
+                    {% for p in proprietarios %}
+                        <option value="{{ p.id }}">{{ p.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
+                <select id="ed_responsavel" class="form-select">
+                    <option value="">Sem responsável</option>
+                    {% for u in responsaveis %}
+                        <option value="{{ u.id }}">{{ u.nome_display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo padrão das unidades</label>
+                <select id="ed_tipo_imovel_padrao" class="form-select">
+                    {% for valor, label in tipo_imovel_choices %}
+                        <option value="{{ valor }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Finalidade padrão das unidades</label>
+                <select id="ed_finalidade_padrao" class="form-select">
+                    {% for valor, label in finalidade_choices %}
+                        <option value="{{ valor }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    {# ── STEP 2 — Configuração dos Andares ── #}
+    <div class="wizard-step hidden bg-white rounded-xl border border-gray-200 p-6 space-y-4" data-step="2">
+        <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+            <i class="ti ti-stairs text-base text-gray-400"></i> Configuração dos Andares
+        </h2>
+
+        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+            <input type="checkbox" id="tem_terreo" class="form-checkbox">
+            Tem térreo?
+        </label>
+        <div id="bloco-terreo" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 pl-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Unidades no térreo</label>
+                <input type="number" id="terreo_qtd" class="form-input" min="1" value="1">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nº de andares</label>
+                <input type="number" id="num_andares" class="form-input" min="1" value="1">
+            </div>
+        </div>
+
+        <div>
+            <p class="text-sm font-medium text-gray-700 mb-2">Todos os andares têm a mesma quantidade de unidades?</p>
+            <div class="flex gap-4">
+                <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                    <input type="radio" name="mesma_qtd" id="mesma_qtd_sim" value="sim" checked> Sim
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                    <input type="radio" name="mesma_qtd" id="mesma_qtd_nao" value="nao"> Não
+                </label>
+            </div>
+        </div>
+
+        <div id="bloco-qtd-unica" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Unidades por andar</label>
+                <input type="number" id="unidades_por_andar" class="form-input" min="1" value="2">
+            </div>
+        </div>
+
+        <div id="bloco-qtd-por-andar" class="hidden space-y-2">
+            <p class="text-sm font-medium text-gray-700">Unidades por andar</p>
+            <div id="tabela-andares" class="space-y-2"></div>
+        </div>
+    </div>
+
+    {# ── STEP 3 — Grid editável das unidades ── #}
+    <div class="wizard-step hidden bg-white rounded-xl border border-gray-200 p-6 space-y-4" data-step="3">
+        <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+            <i class="ti ti-list-details text-base text-gray-400"></i> Unidades
+        </h2>
+        <div id="grid-unidades" class="space-y-6"></div>
+    </div>
+
+    {# ── STEP 4 — Resumo ── #}
+    <div class="wizard-step hidden bg-white rounded-xl border border-gray-200 p-6 space-y-4" data-step="4">
+        <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+            <i class="ti ti-checklist text-base text-gray-400"></i> Resumo
+        </h2>
+        <div id="resumo-conteudo" class="space-y-4 text-sm text-gray-700"></div>
+
+        <div id="resultado-sucesso" class="hidden bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700"></div>
+        <div id="resultado-erro" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700"></div>
+    </div>
+
+    {# Botões de navegação #}
+    <div class="sticky bottom-0 -mx-4 sm:mx-0 flex items-center justify-between gap-3 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur sm:rounded-xl sm:border sm:px-6 sm:shadow-sm">
+        <button type="button" id="btn-voltar" class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition hidden">
+            Voltar
+        </button>
+        <div class="flex-1"></div>
+        <button type="button" id="btn-avancar" class="px-6 py-2 text-sm font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition">
+            Avançar
+        </button>
+        <button type="button" id="btn-confirmar" class="hidden px-6 py-2 text-sm font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition">
+            Confirmar e Salvar
+        </button>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let currentStep = 1;
+    const totalSteps = 4;
+    let unidades = []; // estado das unidades geradas no step 3
+
+    const btnVoltar    = document.getElementById('btn-voltar');
+    const btnAvancar   = document.getElementById('btn-avancar');
+    const btnConfirmar = document.getElementById('btn-confirmar');
+    const alertaErro   = document.getElementById('alerta-erro');
+
+    function mostrarErro(msg) {
+        alertaErro.textContent = msg;
+        alertaErro.classList.remove('hidden');
+    }
+    function limparErro() {
+        alertaErro.classList.add('hidden');
+        alertaErro.textContent = '';
+    }
+
+    function mostrarStep(n) {
+        document.querySelectorAll('.wizard-step').forEach(el => {
+            el.classList.toggle('hidden', el.dataset.step !== String(n));
+        });
+        document.querySelectorAll('[data-step-dot]').forEach(el => {
+            const num = el.querySelector('.step-num');
+            const ativo = el.dataset.stepDot <= String(n);
+            num.classList.toggle('bg-primary-600', ativo);
+            num.classList.toggle('text-white', ativo);
+            num.classList.toggle('bg-gray-200', !ativo);
+            num.classList.toggle('text-gray-500', !ativo);
+        });
+        btnVoltar.classList.toggle('hidden', n === 1);
+        btnAvancar.classList.toggle('hidden', n === totalSteps);
+        btnConfirmar.classList.toggle('hidden', n !== totalSteps);
+    }
+
+    // ── CEP autopreenchimento (Step 1) ──────────────────────────────
+    const cepInput = document.getElementById('ed_cep');
+    cepInput.addEventListener('blur', async function () {
+        const cep = this.value.replace(/\D/g, '');
+        if (cep.length !== 8) return;
+        this.value = cep.replace(/(\d{5})(\d{3})/, '$1-$2');
+        try {
+            const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const d = await r.json();
+            if (!d.erro) {
+                document.getElementById('ed_logradouro').value = d.logradouro || '';
+                document.getElementById('ed_bairro').value = d.bairro || '';
+                document.getElementById('ed_cidade').value = d.localidade || '';
+                document.getElementById('ed_estado').value = d.uf || '';
+            }
+        } catch (e) {}
+    });
+
+    // ── Step 2 — Térreo ──────────────────────────────────────────────
+    const temTerreo   = document.getElementById('tem_terreo');
+    const blocoTerreo  = document.getElementById('bloco-terreo');
+    temTerreo.addEventListener('change', function () {
+        blocoTerreo.classList.toggle('hidden', !this.checked);
+    });
+
+    // ── Step 2 — Mesma quantidade por andar? ─────────────────────────
+    const mesmaQtdSim = document.getElementById('mesma_qtd_sim');
+    const mesmaQtdNao = document.getElementById('mesma_qtd_nao');
+    const blocoQtdUnica   = document.getElementById('bloco-qtd-unica');
+    const blocoQtdPorAndar = document.getElementById('bloco-qtd-por-andar');
+    const numAndaresInput = document.getElementById('num_andares');
+    const tabelaAndares    = document.getElementById('tabela-andares');
+
+    function atualizarModoQtd() {
+        const nao = mesmaQtdNao.checked;
+        blocoQtdUnica.classList.toggle('hidden', nao);
+        blocoQtdPorAndar.classList.toggle('hidden', !nao);
+        if (nao) gerarTabelaAndares();
+    }
+    mesmaQtdSim.addEventListener('change', atualizarModoQtd);
+    mesmaQtdNao.addEventListener('change', atualizarModoQtd);
+    numAndaresInput.addEventListener('input', function () {
+        if (mesmaQtdNao.checked) gerarTabelaAndares();
+    });
+
+    function gerarTabelaAndares() {
+        const numAndares = parseInt(numAndaresInput.value) || 0;
+        const atuais = {};
+        tabelaAndares.querySelectorAll('input[data-andar]').forEach(inp => {
+            atuais[inp.dataset.andar] = inp.value;
+        });
+        tabelaAndares.innerHTML = '';
+        for (let i = 1; i <= numAndares; i++) {
+            const linha = document.createElement('div');
+            linha.className = 'flex items-center gap-3';
+            linha.innerHTML = `
+                <span class="text-sm text-gray-600 w-20">Andar ${i}</span>
+                <input type="number" class="form-input" min="0" data-andar="${i}" value="${atuais[i] || 2}">
+            `;
+            tabelaAndares.appendChild(linha);
+        }
+    }
+
+    // ── Step 3 — Gerar grid de unidades ─────────────────────────────
+    function gerarUnidades() {
+        unidades = [];
+        const tipoPadrao = document.getElementById('ed_tipo_imovel_padrao').value;
+        const finalidadePadrao = document.getElementById('ed_finalidade_padrao').value;
+
+        if (temTerreo.checked) {
+            const qtd = parseInt(document.getElementById('terreo_qtd').value) || 0;
+            for (let j = 1; j <= qtd; j++) {
+                unidades.push({
+                    andar: 'Térreo',
+                    numero: 'T' + String(j).padStart(2, '0'),
+                    complemento: 'Térreo ' + String(j).padStart(2, '0'),
+                    nome_imovel: '',
+                    tipo: 'outro',
+                    finalidade: finalidadePadrao,
+                    quartos: 0, suites: 0, banheiros: 0, vagas: 0,
+                    valor_aluguel: '', valor_venda: '',
+                });
+            }
+        }
+
+        const numAndares = parseInt(numAndaresInput.value) || 0;
+        for (let i = 1; i <= numAndares; i++) {
+            let qtdAndar;
+            if (mesmaQtdNao.checked) {
+                const inp = tabelaAndares.querySelector(`input[data-andar="${i}"]`);
+                qtdAndar = parseInt(inp ? inp.value : 0) || 0;
+            } else {
+                qtdAndar = parseInt(document.getElementById('unidades_por_andar').value) || 0;
+            }
+            for (let j = 1; j <= qtdAndar; j++) {
+                unidades.push({
+                    andar: 'Andar ' + i,
+                    numero: String(i * 100 + j),
+                    complemento: 'Apto ' + (i * 100 + j),
+                    nome_imovel: '',
+                    tipo: tipoPadrao,
+                    finalidade: finalidadePadrao,
+                    quartos: 0, suites: 0, banheiros: 0, vagas: 0,
+                    valor_aluguel: '', valor_venda: '',
+                });
+            }
+        }
+
+        renderGrid();
+    }
+
+    const tipoImovelChoices = {{ tipo_imovel_choices|safe }};
+    const finalidadeChoices = {{ finalidade_choices|safe }};
+
+    function optionsTipo(selecionado) {
+        return tipoImovelChoices.map(([v, l]) =>
+            `<option value="${v}" ${v === selecionado ? 'selected' : ''}>${l}</option>`
+        ).join('');
+    }
+    function optionsFinalidade(selecionado) {
+        return finalidadeChoices.map(([v, l]) =>
+            `<option value="${v}" ${v === selecionado ? 'selected' : ''}>${l}</option>`
+        ).join('');
+    }
+
+    function renderGrid() {
+        const container = document.getElementById('grid-unidades');
+        container.innerHTML = '';
+
+        const andares = [...new Set(unidades.map(u => u.andar))];
+        andares.forEach(andar => {
+            const grupo = document.createElement('div');
+            grupo.className = 'border border-gray-200 rounded-xl overflow-hidden';
+
+            let linhas = '';
+            unidades.forEach((u, idx) => {
+                if (u.andar !== andar) return;
+                linhas += `
+                <div class="grid grid-cols-2 md:grid-cols-9 gap-2 p-3 border-b border-gray-100 items-center" data-unidade-idx="${idx}">
+                    <input type="text" class="form-input text-sm" data-campo="numero" value="${u.numero}" placeholder="Número">
+                    <input type="text" class="form-input text-sm" data-campo="complemento" value="${u.complemento}" placeholder="Complemento">
+                    <input type="text" class="form-input text-sm md:col-span-2" data-campo="nome_imovel" value="${u.nome_imovel}" placeholder="Nome (opcional)">
+                    <select class="form-select text-sm" data-campo="tipo">${optionsTipo(u.tipo)}</select>
+                    <input type="number" class="form-input text-sm" data-campo="quartos" value="${u.quartos}" min="0" title="Quartos">
+                    <input type="number" class="form-input text-sm" data-campo="banheiros" value="${u.banheiros}" min="0" title="Banheiros">
+                    <input type="number" class="form-input text-sm" data-campo="vagas" value="${u.vagas}" min="0" title="Vagas">
+                    <input type="number" class="form-input text-sm" data-campo="valor_aluguel" value="${u.valor_aluguel}" min="0" step="0.01" placeholder="Aluguel R$">
+                </div>`;
+            });
+
+            grupo.innerHTML = `
+                <div class="bg-gray-50 px-3 py-2 flex items-center justify-between">
+                    <span class="text-sm font-semibold text-gray-700">${andar}</span>
+                    <button type="button" class="text-xs text-primary-600 hover:underline" data-add-andar="${andar}">
+                        + Adicionar unidade
+                    </button>
+                </div>
+                ${linhas}
+            `;
+            container.appendChild(grupo);
+        });
+
+        // Listeners de edição dos campos
+        container.querySelectorAll('[data-unidade-idx]').forEach(linha => {
+            const idx = parseInt(linha.dataset.unidadeIdx);
+            linha.querySelectorAll('[data-campo]').forEach(campo => {
+                campo.addEventListener('input', function () {
+                    unidades[idx][this.dataset.campo] = this.value;
+                });
+            });
+        });
+
+        // Adicionar unidade extra no andar
+        container.querySelectorAll('[data-add-andar]').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const andar = this.dataset.addAndar;
+                const tipoPadrao = document.getElementById('ed_tipo_imovel_padrao').value;
+                const finalidadePadrao = document.getElementById('ed_finalidade_padrao').value;
+                const doAndar = unidades.filter(u => u.andar === andar);
+                const seq = doAndar.length + 1;
+                const numero = andar === 'Térreo'
+                    ? 'T' + String(seq).padStart(2, '0')
+                    : (parseInt(andar.replace('Andar ', '')) * 100 + seq).toString();
+                unidades.push({
+                    andar: andar,
+                    numero: numero,
+                    complemento: andar === 'Térreo' ? 'Térreo ' + String(seq).padStart(2, '0') : 'Apto ' + numero,
+                    nome_imovel: '',
+                    tipo: andar === 'Térreo' ? 'outro' : tipoPadrao,
+                    finalidade: finalidadePadrao,
+                    quartos: 0, suites: 0, banheiros: 0, vagas: 0,
+                    valor_aluguel: '', valor_venda: '',
+                });
+                renderGrid();
+            });
+        });
+    }
+
+    // ── Step 4 — Resumo ──────────────────────────────────────────────
+    function renderResumo() {
+        const nome = document.getElementById('ed_nome').value;
+        const logradouro = document.getElementById('ed_logradouro').value;
+        const bairro = document.getElementById('ed_bairro').value;
+        const cidade = document.getElementById('ed_cidade').value;
+        const estado = document.getElementById('ed_estado').value;
+        const propSelect = document.getElementById('ed_proprietario');
+        const propNome = propSelect.options[propSelect.selectedIndex].text;
+
+        const contagem = {};
+        unidades.forEach(u => { contagem[u.andar] = (contagem[u.andar] || 0) + 1; });
+
+        let contagemHtml = Object.entries(contagem).map(
+            ([andar, qtd]) => `<li>${andar}: ${qtd} unidade${qtd > 1 ? 's' : ''}</li>`
+        ).join('');
+
+        document.getElementById('resumo-conteudo').innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Edifício</p>
+                    <p class="font-medium text-gray-900">${nome}</p>
+                    <p class="text-gray-500">${logradouro}, ${bairro} — ${cidade}/${estado}</p>
+                    <p class="text-gray-500">Proprietário: ${propNome}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold mb-1">Unidades (total: ${unidades.length})</p>
+                    <ul class="list-disc list-inside">${contagemHtml}</ul>
+                </div>
+            </div>
+        `;
+    }
+
+    // ── Validação por step ────────────────────────────────────────────
+    function validarStep(n) {
+        limparErro();
+        if (n === 1) {
+            if (!document.getElementById('ed_nome').value.trim()) {
+                mostrarErro('Informe o nome do edifício.');
+                return false;
+            }
+        }
+        if (n === 3) {
+            const semNumero = unidades.some(u => !u.numero.trim());
+            if (semNumero) {
+                mostrarErro('Todas as unidades precisam de número.');
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // ── Navegação ─────────────────────────────────────────────────────
+    btnAvancar.addEventListener('click', function () {
+        if (!validarStep(currentStep)) return;
+
+        if (currentStep === 2) gerarUnidades();
+        if (currentStep === 3) renderResumo();
+
+        currentStep = Math.min(currentStep + 1, totalSteps);
+        mostrarStep(currentStep);
+    });
+
+    btnVoltar.addEventListener('click', function () {
+        limparErro();
+        currentStep = Math.max(currentStep - 1, 1);
+        mostrarStep(currentStep);
+    });
+
+    // ── Confirmar e salvar ────────────────────────────────────────────
+    btnConfirmar.addEventListener('click', async function () {
+        limparErro();
+        const resultadoSucesso = document.getElementById('resultado-sucesso');
+        const resultadoErro = document.getElementById('resultado-erro');
+        resultadoSucesso.classList.add('hidden');
+        resultadoErro.classList.add('hidden');
+
+        const payload = {
+            edificio: {
+                nome: document.getElementById('ed_nome').value,
+                tipo: document.getElementById('ed_tipo').value,
+                cep: document.getElementById('ed_cep').value,
+                logradouro: document.getElementById('ed_logradouro').value,
+                bairro: document.getElementById('ed_bairro').value,
+                cidade: document.getElementById('ed_cidade').value,
+                estado: document.getElementById('ed_estado').value,
+                proprietario_id: document.getElementById('ed_proprietario').value || null,
+                responsavel_id: document.getElementById('ed_responsavel').value || null,
+                tipo_imovel_padrao: document.getElementById('ed_tipo_imovel_padrao').value,
+                finalidade_padrao: document.getElementById('ed_finalidade_padrao').value,
+            },
+            unidades: unidades,
+        };
+
+        btnConfirmar.disabled = true;
+        btnConfirmar.textContent = 'Salvando...';
+
+        try {
+            const resp = await fetch('{% url "edificio_criar" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: JSON.stringify(payload),
+            });
+            const dados = await resp.json();
+
+            if (resp.ok && dados.sucesso) {
+                resultadoSucesso.innerHTML = `
+                    Prédio <strong>${dados.edificio_codigo}</strong> cadastrado com sucesso!
+                    ${dados.total_unidades} unidade(s) criada(s).
+                    <a href="{% url 'imovel_lista' %}" class="underline font-medium ml-1">Ver imóveis</a>
+                `;
+                resultadoSucesso.classList.remove('hidden');
+                btnConfirmar.classList.add('hidden');
+                btnVoltar.classList.add('hidden');
+            } else {
+                let msg = dados.erro || 'Erro ao salvar.';
+                if (dados.detalhes && dados.detalhes.length) {
+                    msg += '<ul class="list-disc list-inside mt-2">' +
+                        dados.detalhes.map(d => `<li>Unidade ${d.unidade}: ${d.erro}</li>`).join('') +
+                        '</ul>';
+                }
+                resultadoErro.innerHTML = msg;
+                resultadoErro.classList.remove('hidden');
+                btnConfirmar.disabled = false;
+                btnConfirmar.textContent = 'Confirmar e Salvar';
+            }
+        } catch (e) {
+            resultadoErro.textContent = 'Erro de conexão ao salvar.';
+            resultadoErro.classList.remove('hidden');
+            btnConfirmar.disabled = false;
+            btnConfirmar.textContent = 'Confirmar e Salvar';
+        }
+    });
+
+    mostrarStep(1);
+});
+</script>
+{% endblock %}

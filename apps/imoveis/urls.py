@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('',                                    views.imovel_lista,      name='imovel_lista'),
     path('novo/',                               views.imovel_criar,      name='imovel_criar'),
+    path('edificios/novo/',                     views.edificio_criar,    name='edificio_criar'),
     path('<int:pk>/',                           views.imovel_detalhe,    name='imovel_detalhe'),
     path('<int:pk>/editar/',                    views.imovel_editar,     name='imovel_editar'),
     path('<int:pk>/excluir/',                   views.imovel_excluir,    name='imovel_excluir'),

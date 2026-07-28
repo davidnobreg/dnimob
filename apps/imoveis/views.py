@@ -1,13 +1,19 @@
+import json
+
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
-from .models import Imovel, FotoImovel
+from .models import Imovel, FotoImovel, Proprietario, Edificio, IMOVEL_TIPO_CHOICES, IMOVEL_FINALIDADE_CHOICES
 from .forms import ImovelForm, FotoImovelForm, FiltroImovelForm
+
+Usuario = get_user_model()
 
 
 @login_required
@@ -104,6 +110,100 @@ def imovel_criar(request):
         'form':   form,
         'titulo': 'Cadastrar Imóvel',
         'acao':   'Cadastrar',
+    })
+
+
+@login_required
+def edificio_criar(request):
+    if request.method == 'POST':
+        return _edificio_criar_post(request)
+
+    proprietarios = Proprietario.objects.all().order_by('nome')
+    responsaveis  = Usuario.objects.filter(is_active=True).order_by('first_name', 'username')
+    context = {
+        'proprietarios':       proprietarios,
+        'responsaveis':        responsaveis,
+        'tipo_choices':        Edificio.TIPO_CHOICES,
+        'tipo_imovel_choices': IMOVEL_TIPO_CHOICES,
+        'finalidade_choices':  IMOVEL_FINALIDADE_CHOICES,
+    }
+    return render(request, 'imoveis/edificio_criar.html', context)
+
+
+def _edificio_criar_post(request):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'erro': 'JSON inválido'}, status=400)
+
+    edificio_data = data.get('edificio', {})
+    unidades_data = data.get('unidades', [])
+
+    if not edificio_data or not edificio_data.get('nome', '').strip() or not unidades_data:
+        return JsonResponse({'erro': 'Dados incompletos'}, status=400)
+
+    erros = []
+
+    try:
+        with transaction.atomic():
+            edificio = Edificio(
+                nome=edificio_data.get('nome', ''),
+                tipo=edificio_data.get('tipo', 'residencial'),
+                cep=edificio_data.get('cep', ''),
+                logradouro=edificio_data.get('logradouro', ''),
+                bairro=edificio_data.get('bairro', ''),
+                cidade=edificio_data.get('cidade', ''),
+                estado=edificio_data.get('estado', ''),
+                tipo_imovel_padrao=edificio_data.get('tipo_imovel_padrao', 'apartamento'),
+                finalidade_padrao=edificio_data.get('finalidade_padrao', 'aluguel'),
+            )
+            proprietario_id = edificio_data.get('proprietario_id')
+            if proprietario_id:
+                edificio.proprietario_id = proprietario_id
+            responsavel_id = edificio_data.get('responsavel_id')
+            if responsavel_id:
+                edificio.responsavel_id = responsavel_id
+            edificio.save()
+
+            for i, u in enumerate(unidades_data):
+                try:
+                    imovel = Imovel(
+                        edificio=edificio,
+                        proprietario=edificio.proprietario,
+                        cep=edificio.cep,
+                        logradouro=edificio.logradouro,
+                        bairro=edificio.bairro,
+                        cidade=edificio.cidade,
+                        estado=edificio.estado,
+                        complemento=u.get('complemento', ''),
+                        nome_imovel=u.get('nome_imovel', ''),
+                        numero=u.get('numero', ''),
+                        tipo=u.get('tipo', edificio.tipo_imovel_padrao),
+                        finalidade=u.get('finalidade', edificio.finalidade_padrao),
+                        quartos=u.get('quartos') or 0,
+                        suites=u.get('suites') or 0,
+                        banheiros=u.get('banheiros') or 0,
+                        vagas=u.get('vagas') or 0,
+                        valor_aluguel=u.get('valor_aluguel') or 0,
+                        valor_venda=u.get('valor_venda') or 0,
+                        responsavel=edificio.responsavel,
+                        status='disponivel',
+                    )
+                    imovel.save()
+                except Exception as e:
+                    erros.append({'unidade': i + 1, 'erro': str(e)})
+
+            if erros:
+                raise Exception('Erros nas unidades')
+
+    except Exception as e:
+        return JsonResponse({'erro': str(e), 'detalhes': erros}, status=400)
+
+    return JsonResponse({
+        'sucesso':        True,
+        'edificio_id':    edificio.id,
+        'edificio_codigo': edificio.codigo,
+        'total_unidades': len(unidades_data),
     })
 
 

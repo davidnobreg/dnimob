@@ -23,11 +23,18 @@
         {% endif %}
       </p>
     </div>
-    <a href="{% url 'imovel_criar' %}"
-       class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition">
-      <i class="ti ti-plus text-base"></i>
-      Novo imóvel
-    </a>
+    <div class="flex gap-2">
+      <a href="{% url 'edificio_criar' %}"
+         class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
+        <i class="ti ti-building text-base"></i>
+        Cadastrar prédio
+      </a>
+      <a href="{% url 'imovel_criar' %}"
+         class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition">
+        <i class="ti ti-plus text-base"></i>
+        Novo imóvel
+      </a>
+    </div>
   </div>
 
   {# ── Cards de resumo ── #}
