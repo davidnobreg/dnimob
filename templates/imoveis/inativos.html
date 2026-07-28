@@ -94,7 +94,7 @@
             {{ imovel.cidade }}/{{ imovel.estado }}
           </td>
           <td class="px-4 py-3 text-gray-600 hidden lg:table-cell">
-            {{ imovel.proprietario_nome|default:"—" }}
+            {{ imovel.proprietario.nome|default:"—" }}
           </td>
           <td class="px-4 py-3 hidden lg:table-cell">
             {% if imovel.valor_aluguel %}

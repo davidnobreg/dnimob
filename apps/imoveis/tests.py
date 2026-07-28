@@ -17,7 +17,7 @@ class NomeImovelTests(TenantTestCase):
         dados = dict(
             tipo='apartamento', finalidade='aluguel', status='disponivel',
             cep='60000000', logradouro='Rua Teste', numero='100', bairro='Centro',
-            cidade='Fortaleza', estado='CE', proprietario_nome='João Silva',
+            cidade='Fortaleza', estado='CE',
             quartos=0, suites=0, banheiros=1, vagas=0, mobilia='sem',
             valor_aluguel='1500.00', valor_condominio='0', valor_iptu='0',
         )

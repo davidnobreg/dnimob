@@ -123,9 +123,9 @@
 
 <div class="section">
     <div class="section-title">I — Das Partes</div>
-    <p><strong>LOCADOR (Proprietário):</strong> {{ contrato.imovel.proprietario_nome }},
-        CPF/CNPJ: {{ contrato.imovel.proprietario_cpf_cnpj|default:"—" }},
-        {% if contrato.imovel.proprietario_email %}e-mail: {{ contrato.imovel.proprietario_email }}{% endif %}
+    <p><strong>LOCADOR (Proprietário):</strong> {{ contrato.imovel.proprietario.nome|default:"—" }},
+        CPF/CNPJ: {{ contrato.imovel.proprietario.cpf_cnpj|default:"—" }},
+        {% if contrato.imovel.proprietario.email %}e-mail: {{ contrato.imovel.proprietario.email }}{% endif %}
     </p>
     <br>
     <p><strong>LOCATÁRIO (Inquilino):</strong> {{ contrato.inquilino.nome }},
@@ -252,7 +252,7 @@
 <div class="assinaturas">
     <div class="assinatura-bloco">
         <div class="assinatura-linha"></div>
-        <p>{{ contrato.imovel.proprietario_nome }}</p>
+        <p>{{ contrato.imovel.proprietario.nome|default:"—" }}</p>
         <p>LOCADOR</p>
     </div>
     <div class="assinatura-bloco">

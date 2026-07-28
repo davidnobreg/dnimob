@@ -13,7 +13,7 @@ from django.urls import reverse
 from django_tenants.test.cases import TenantTestCase
 
 from apps.contratos.models import Contrato
-from apps.imoveis.models import Imovel
+from apps.imoveis.models import Imovel, Proprietario
 from apps.inquilinos.models import Inquilino
 
 from .models import ContratoDocumentoGerado, ModeloDocumento, VariavelDocumento
@@ -82,11 +82,14 @@ class ContratoDocumentoGeradoTests(TenantTestCase):
 class RenderizacaoModeloTests(TenantTestCase):
 
     def setUp(self):
+        self.proprietario = Proprietario.objects.create(
+            nome='Maria Souza', cpf_cnpj='11122233344',
+        )
         self.imovel = Imovel.objects.create(
             codigo='IM-0001', tipo='apartamento', cep='60000000',
             logradouro='Rua Teste', numero='100', bairro='Centro',
             cidade='Fortaleza', estado='CE',
-            proprietario_nome='Maria Souza', proprietario_cpf_cnpj='11122233344',
+            proprietario=self.proprietario,
         )
         self.inquilino = Inquilino.objects.create(
             tipo='pf', nome='Rodrigo Oliveira', cpf='02738306006',

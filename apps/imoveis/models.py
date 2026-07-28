@@ -184,10 +184,6 @@ class Imovel(models.Model):
     valor_iptu    = models.DecimalField('IPTU Mensal (R$)', max_digits=10, decimal_places=2, default=0)
 
     # Proprietário
-    proprietario_nome   = models.CharField('Nome do Proprietário', max_length=200)
-    proprietario_cpf_cnpj = models.CharField('CPF/CNPJ', max_length=18, blank=True)
-    proprietario_telefone = models.CharField('Telefone', max_length=20, blank=True)
-    proprietario_email    = models.EmailField('E-mail', blank=True)
     proprietario = models.ForeignKey(
         'Proprietario',
         on_delete=models.SET_NULL,

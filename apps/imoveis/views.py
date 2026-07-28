@@ -34,7 +34,7 @@ def imovel_lista(request):
                 Q(bairro__icontains=q) |
                 Q(cidade__icontains=q) |
                 Q(logradouro__icontains=q) |
-                Q(proprietario_nome__icontains=q)
+                Q(proprietario__nome__icontains=q)
             )
         if status:
             qs = Imovel.objects.filter(status=status)  # filtro explícito mostra inativo tbm
@@ -44,7 +44,7 @@ def imovel_lista(request):
                     Q(bairro__icontains=q) |
                     Q(cidade__icontains=q) |
                     Q(logradouro__icontains=q) |
-                    Q(proprietario_nome__icontains=q)
+                    Q(proprietario__nome__icontains=q)
                 )
         if tipo:
             qs = qs.filter(tipo=tipo)
@@ -80,6 +80,23 @@ def imovel_detalhe(request, pk):
     })
 
 
+def _herdar_endereco_edificio(imovel):
+    """Se um edifício foi selecionado e o endereço não foi preenchido, herda do edifício."""
+    if not imovel.edificio_id:
+        return
+    edificio = imovel.edificio
+    if not imovel.cep:
+        imovel.cep = edificio.cep
+    if not imovel.logradouro:
+        imovel.logradouro = edificio.logradouro
+    if not imovel.bairro:
+        imovel.bairro = edificio.bairro
+    if not imovel.cidade:
+        imovel.cidade = edificio.cidade
+    if not imovel.estado:
+        imovel.estado = edificio.estado
+
+
 @login_required
 def imovel_criar(request):
     if request.method == 'POST':
@@ -88,6 +105,7 @@ def imovel_criar(request):
             imovel = form.save(commit=False)
             if not imovel.responsavel_id:
                 imovel.responsavel = request.user
+            _herdar_endereco_edificio(imovel)
             imovel.save()
 
             fotos = request.FILES.getlist('fotos')
@@ -107,9 +125,11 @@ def imovel_criar(request):
         form = ImovelForm()
 
     return render(request, 'imoveis/form.html', {
-        'form':   form,
-        'titulo': 'Cadastrar Imóvel',
-        'acao':   'Cadastrar',
+        'form':          form,
+        'titulo':        'Cadastrar Imóvel',
+        'acao':          'Cadastrar',
+        'proprietarios': Proprietario.objects.all().order_by('nome'),
+        'edificios':     Edificio.objects.all().order_by('nome'),
     })
 
 
@@ -208,13 +228,28 @@ def _edificio_criar_post(request):
 
 
 @login_required
+def edificio_dados_ajax(request, pk):
+    edificio = get_object_or_404(Edificio, pk=pk)
+    return JsonResponse({
+        'cep':              edificio.cep,
+        'logradouro':       edificio.logradouro,
+        'bairro':           edificio.bairro,
+        'cidade':           edificio.cidade,
+        'estado':           edificio.estado,
+        'proprietario_id':  edificio.proprietario_id,
+    })
+
+
+@login_required
 def imovel_editar(request, pk):
     imovel = get_object_or_404(Imovel, pk=pk)
 
     if request.method == 'POST':
         form = ImovelForm(request.POST, request.FILES, instance=imovel)
         if form.is_valid():
-            form.save()
+            imovel = form.save(commit=False)
+            _herdar_endereco_edificio(imovel)
+            imovel.save()
 
             fotos        = request.FILES.getlist('fotos')
             ultima_ordem = imovel.fotos.count()
@@ -233,10 +268,12 @@ def imovel_editar(request, pk):
         form = ImovelForm(instance=imovel)
 
     return render(request, 'imoveis/form.html', {
-        'form':   form,
-        'imovel': imovel,
-        'titulo': f'Editar Imóvel {imovel.codigo}',
-        'acao':   'Salvar alterações',
+        'form':          form,
+        'imovel':        imovel,
+        'titulo':        f'Editar Imóvel {imovel.codigo}',
+        'acao':          'Salvar alterações',
+        'proprietarios': Proprietario.objects.all().order_by('nome'),
+        'edificios':     Edificio.objects.all().order_by('nome'),
     })
 
 
@@ -276,7 +313,7 @@ def imovel_inativos(request):
             Q(bairro__icontains=q) |
             Q(cidade__icontains=q) |
             Q(logradouro__icontains=q) |
-            Q(proprietario_nome__icontains=q)
+            Q(proprietario__nome__icontains=q)
         )
     if tipo:
         qs = qs.filter(tipo=tipo)

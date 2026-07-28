@@ -165,21 +165,21 @@
       <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">Proprietário</h2>
       <dl class="space-y-3 text-sm">
         <dt class="text-gray-500">Nome</dt>
-        <dd class="font-medium">{{ imovel.proprietario_nome }}</dd>
-        {% if imovel.proprietario_cpf_cnpj %}
+        <dd class="font-medium">{{ imovel.proprietario.nome|default:"—" }}</dd>
+        {% if imovel.proprietario.cpf_cnpj %}
         <dt class="text-gray-500">CPF/CNPJ</dt>
-        <dd class="font-medium font-mono">{{ imovel.proprietario_cpf_cnpj }}</dd>
+        <dd class="font-medium font-mono">{{ imovel.proprietario.cpf_cnpj }}</dd>
         {% endif %}
-        {% if imovel.proprietario_telefone %}
+        {% if imovel.proprietario.telefone %}
         <dt class="text-gray-500">Telefone</dt>
         <dd class="font-medium">
-          <a class="hover:underline" href="tel:{{ imovel.proprietario_telefone }}">{{ imovel.proprietario_telefone }}</a>
+          <a class="hover:underline" href="tel:{{ imovel.proprietario.telefone }}">{{ imovel.proprietario.telefone }}</a>
         </dd>
         {% endif %}
-        {% if imovel.proprietario_email %}
+        {% if imovel.proprietario.email %}
         <dt class="text-gray-500">E-mail</dt>
         <dd class="font-medium">
-          <a class="hover:underline" href="mailto:{{ imovel.proprietario_email }}">{{ imovel.proprietario_email }}</a>
+          <a class="hover:underline" href="mailto:{{ imovel.proprietario.email }}">{{ imovel.proprietario.email }}</a>
         </dd>
         {% endif %}
       </dl>

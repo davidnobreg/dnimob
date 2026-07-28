@@ -75,10 +75,10 @@ def construir_contexto(contrato):
         'imovel': {
             'endereco_completo': imovel.get_endereco_completo(),
             'tipo': imovel.get_tipo_display(),
-            'proprietario_nome': imovel.proprietario_nome,
-            'proprietario_cpf_cnpj': imovel.proprietario_cpf_cnpj,
-            'proprietario_telefone': imovel.proprietario_telefone,
-            'proprietario_email': imovel.proprietario_email,
+            'proprietario_nome': imovel.proprietario.nome if imovel.proprietario else '',
+            'proprietario_cpf_cnpj': imovel.proprietario.cpf_cnpj if imovel.proprietario else '',
+            'proprietario_telefone': imovel.proprietario.telefone if imovel.proprietario else '',
+            'proprietario_email': imovel.proprietario.email if imovel.proprietario else '',
         },
         'contrato': {
             'numero': contrato.numero,

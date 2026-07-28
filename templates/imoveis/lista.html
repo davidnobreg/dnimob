@@ -143,6 +143,11 @@
             <p class="text-xs text-gray-500">{{ imovel.get_tipo_display }} — {{ imovel.bairro }}</p>
             {% endif %}
             <p class="text-xs text-gray-500 mt-0.5">{{ imovel.cidade }}/{{ imovel.estado }}</p>
+            {% if imovel.edificio %}
+            <p class="text-xs text-primary-600 mt-0.5">
+              <i class="ti ti-building text-sm"></i> {{ imovel.edificio.nome }}
+            </p>
+            {% endif %}
           </div>
         </div>
 

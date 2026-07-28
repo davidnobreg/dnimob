@@ -1,5 +1,5 @@
 from django import forms
-from .models import Imovel, FotoImovel
+from .models import Imovel, FotoImovel, Proprietario, Edificio
 
 
 ESTADOS_BR = [
@@ -16,25 +16,38 @@ ESTADOS_BR = [
 class ImovelForm(forms.ModelForm):
     class Meta:
         model = Imovel
-        exclude = ['criado_em', 'atualizado_em']
+        exclude = [
+            'criado_em', 'atualizado_em',
+            'proprietario_nome', 'proprietario_cpf_cnpj',
+            'proprietario_telefone', 'proprietario_email',
+        ]
         widgets = {
-            'tipo':       forms.Select(attrs={'class': 'form-select'}),
-            'finalidade': forms.Select(attrs={'class': 'form-select'}),
-            'status':     forms.Select(attrs={'class': 'form-select'}),
-            'mobilia':    forms.Select(attrs={'class': 'form-select'}),
-            'responsavel': forms.Select(attrs={'class': 'form-select'}),
-            'descricao':  forms.Textarea(attrs={'class': 'form-input', 'rows': 4}),
+            'tipo':         forms.Select(attrs={'class': 'form-select'}),
+            'finalidade':   forms.Select(attrs={'class': 'form-select'}),
+            'status':       forms.Select(attrs={'class': 'form-select'}),
+            'mobilia':      forms.Select(attrs={'class': 'form-select'}),
+            'responsavel':  forms.Select(attrs={'class': 'form-select'}),
+            'proprietario': forms.Select(attrs={'class': 'form-select'}),
+            'edificio':     forms.Select(attrs={'class': 'form-select'}),
+            'descricao':    forms.Textarea(attrs={'class': 'form-input', 'rows': 4}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['proprietario'].queryset = Proprietario.objects.all().order_by('nome')
+        self.fields['edificio'].queryset = Edificio.objects.all().order_by('nome')
+
+        # Endereço vira opcional no form quando um edifício é selecionado — a
+        # obrigatoriedade sem edifício é reforçada em clean().
+        for campo in ('cep', 'logradouro', 'bairro', 'cidade', 'estado'):
+            self.fields[campo].required = False
+
         # Aplica classe padrão nos inputs de texto/número
         text_fields = [
             'codigo', 'nome_imovel','cep','logradouro', 'numero', 'complemento','bairro',
             'cidade','area_util','area_privativa','area_total','area_construida','area_comum','quartos','suites',
             'banheiros','vagas','valor_aluguel','valor_venda',
-            'valor_condominio','valor_iptu','proprietario_nome',
-            'proprietario_cpf_cnpj','proprietario_telefone','proprietario_email',
+            'valor_condominio','valor_iptu',
         ]
         for field in text_fields:
             if field in self.fields:
@@ -90,6 +103,15 @@ class ImovelForm(forms.ModelForm):
             self.add_error('valor_aluguel', 'Informe o valor de aluguel.')
         if finalidade in ('venda', 'ambos') and not venda:
             self.add_error('valor_venda', 'Informe o valor de venda.')
+
+        # Sem edifício selecionado, endereço volta a ser obrigatório
+        if not cleaned.get('edificio'):
+            for campo, label in [
+                ('cep', 'CEP'), ('logradouro', 'Logradouro'), ('bairro', 'Bairro'),
+                ('cidade', 'Cidade'), ('estado', 'Estado'),
+            ]:
+                if not cleaned.get(campo):
+                    self.add_error(campo, f'{label} é obrigatório quando nenhum edifício é selecionado.')
         return cleaned
 
 

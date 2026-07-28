@@ -274,27 +274,20 @@
                 </div>
             </div>
 
-            {# ── Proprietário ── #}
+            {# ── Proprietário e Edifício ── #}
             <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
                 <h2 class="flex items-center gap-2 text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
-                    <i class="ti ti-user text-base text-gray-400"></i> Proprietário
+                    <i class="ti ti-user text-base text-gray-400"></i> Proprietário e Edifício
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
-                        {{ form.proprietario_nome }}
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proprietário</label>
+                        {{ form.proprietario }}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
-                        {{ form.proprietario_cpf_cnpj }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                        {{ form.proprietario_telefone }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                        {{ form.proprietario_email }}
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Edifício</label>
+                        {{ form.edificio }}
+                        <p class="text-xs text-gray-400 mt-1">Ao selecionar, o endereço é preenchido automaticamente.</p>
                     </div>
                 </div>
             </div>
@@ -403,6 +396,31 @@
                             document.querySelector('[name="bairro"]').value = d.bairro || '';
                             document.querySelector('[name="cidade"]').value = d.localidade || '';
                             document.querySelector('[name="estado"]').value = d.uf || '';
+                        }
+                    } catch (e) {
+                    }
+                });
+            }
+
+            // ── Edifício: preenche endereço automaticamente ────────────────────
+            const edificioSelect = document.querySelector('[name="edificio"]');
+            if (edificioSelect) {
+                edificioSelect.addEventListener('change', async function () {
+                    const pk = this.value;
+                    if (!pk) return;
+                    try {
+                        const url = '{% url "edificio_dados_ajax" 0 %}'.replace('0', pk);
+                        const r = await fetch(url);
+                        if (!r.ok) return;
+                        const d = await r.json();
+                        document.querySelector('[name="cep"]').value = d.cep || '';
+                        document.querySelector('[name="logradouro"]').value = d.logradouro || '';
+                        document.querySelector('[name="bairro"]').value = d.bairro || '';
+                        document.querySelector('[name="cidade"]').value = d.cidade || '';
+                        document.querySelector('[name="estado"]').value = d.estado || '';
+                        const propSelect = document.querySelector('[name="proprietario"]');
+                        if (propSelect && d.proprietario_id) {
+                            propSelect.value = d.proprietario_id;
                         }
                     } catch (e) {
                     }

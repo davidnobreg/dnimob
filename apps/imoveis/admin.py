@@ -12,18 +12,18 @@ class FotoInline(admin.TabularInline):
 class ImovelAdmin(admin.ModelAdmin):
     list_display  = ['codigo', 'tipo', 'status', 'finalidade', 'bairro', 'cidade', 'estado', 'valor_aluguel', 'criado_em']
     list_filter   = ['tipo', 'status', 'finalidade', 'estado']
-    search_fields = ['codigo', 'logradouro', 'bairro', 'cidade', 'proprietario_nome']
+    search_fields = ['codigo', 'logradouro', 'bairro', 'cidade', 'proprietario__nome']
     ordering      = ['-criado_em']
     inlines       = [FotoInline]
     actions       = ['reativar_imoveis', 'desativar_imoveis']  # ← adicionar
 
     fieldsets = (
-        ('Identificação', {'fields': ('codigo', 'tipo', 'finalidade', 'status', 'responsavel')}),
+        ('Identificação', {'fields': ('codigo', 'tipo', 'finalidade', 'status', 'responsavel', 'edificio')}),
         ('Localização', {'fields': ('cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado')}),
         ('Características', {'fields': ('area_total', 'area_construida', 'quartos', 'suites', 'banheiros', 'vagas', 'mobilia')}),
         ('Comodidades', {'fields': ('piscina', 'academia', 'churrasqueira', 'portaria', 'elevador', 'pet_friendly')}),
         ('Valores', {'fields': ('valor_aluguel', 'valor_venda', 'valor_condominio', 'valor_iptu')}),
-        ('Proprietário', {'fields': ('proprietario_nome', 'proprietario_cpf_cnpj', 'proprietario_telefone', 'proprietario_email')}),
+        ('Proprietário', {'fields': ('proprietario',)}),
         ('Extras', {'fields': ('descricao',)}),
     )
 
