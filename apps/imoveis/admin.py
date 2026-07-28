@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Imovel, FotoImovel
+from .models import Imovel, FotoImovel, Proprietario, Edificio
 
 
 class FotoInline(admin.TabularInline):
@@ -48,3 +48,28 @@ class ImovelAdmin(admin.ModelAdmin):
         if bloqueados:
             msg += f' {bloqueados} não desativado(s) por ter contrato ativo.'
         self.message_user(request, msg)
+
+
+@admin.register(Proprietario)
+class ProprietarioAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'tipo_pessoa', 'cpf_cnpj', 'telefone', 'email']
+    search_fields = ['nome', 'cpf_cnpj']
+    list_filter = ['tipo_pessoa']
+
+
+class ImovelInline(admin.TabularInline):
+    model = Imovel
+    fields = ['codigo', 'nome_imovel', 'complemento', 'tipo', 'status']
+    readonly_fields = ['codigo', 'nome_imovel', 'complemento', 'tipo', 'status']
+    extra = 0
+    can_delete = False
+    show_change_link = True
+
+
+@admin.register(Edificio)
+class EdificioAdmin(admin.ModelAdmin):
+    list_display = ['codigo', 'nome', 'tipo', 'cidade', 'estado', 'proprietario']
+    search_fields = ['codigo', 'nome', 'bairro', 'cidade']
+    list_filter = ['tipo', 'estado']
+    readonly_fields = ['codigo', 'criado_em', 'atualizado_em']
+    inlines = [ImovelInline]

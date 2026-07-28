@@ -2,17 +2,120 @@ from django.db import models
 from django.conf import settings
 
 
-class Imovel(models.Model):
-    TIPO_CHOICES = [
-        ('apartamento', 'Apartamento'),
-        ('casa',        'Casa'),
-        ('comercial',   'Comercial'),
-        ('terreno',     'Terreno'),
-        ('rural',       'Rural'),
-        ('sala',        'Sala/Escritório'),
-        ('galpao',      'Galpão'),
-        ('outro',       'Outro'),
+IMOVEL_TIPO_CHOICES = [
+    ('apartamento', 'Apartamento'),
+    ('casa',        'Casa'),
+    ('comercial',   'Comercial'),
+    ('terreno',     'Terreno'),
+    ('rural',       'Rural'),
+    ('sala',        'Sala/Escritório'),
+    ('galpao',      'Galpão'),
+    ('outro',       'Outro'),
+]
+
+IMOVEL_FINALIDADE_CHOICES = [
+    ('aluguel', 'Aluguel'),
+    ('venda',   'Venda'),
+    ('ambos',   'Aluguel e Venda'),
+]
+
+
+class Proprietario(models.Model):
+    TIPO_PESSOA_CHOICES = [
+        ('PF', 'Pessoa Física'),
+        ('PJ', 'Pessoa Jurídica'),
     ]
+
+    nome        = models.CharField('Nome', max_length=200)
+    tipo_pessoa = models.CharField('Tipo de Pessoa', max_length=2, choices=TIPO_PESSOA_CHOICES, default='PF')
+    cpf_cnpj    = models.CharField('CPF/CNPJ', max_length=20, blank=True)
+    telefone    = models.CharField('Telefone', max_length=20, blank=True)
+    email       = models.EmailField('E-mail', blank=True)
+    observacoes = models.TextField('Observações', blank=True)
+    criado_em     = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Proprietário'
+        verbose_name_plural = 'Proprietários'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class Edificio(models.Model):
+    TIPO_CHOICES = [
+        ('residencial', 'Residencial'),
+        ('comercial', 'Comercial'),
+        ('misto', 'Misto'),
+    ]
+
+    codigo        = models.CharField('Código', max_length=20, unique=True, blank=True)
+    nome          = models.CharField('Nome do Edifício', max_length=200)
+    tipo          = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES, default='residencial')
+
+    # Endereço base — herdado pelas unidades
+    cep           = models.CharField('CEP', max_length=9, blank=True)
+    logradouro    = models.CharField('Logradouro', max_length=200, blank=True)
+    bairro        = models.CharField('Bairro', max_length=100, blank=True)
+    cidade        = models.CharField('Cidade', max_length=100, blank=True)
+    estado        = models.CharField('Estado', max_length=2, blank=True)
+
+    # Proprietário padrão — herdado pelas unidades
+    proprietario  = models.ForeignKey(
+        'Proprietario',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='edificios',
+        verbose_name='Proprietário',
+    )
+
+    # Padrão das unidades
+    tipo_imovel_padrao   = models.CharField(
+        max_length=20,
+        choices=IMOVEL_TIPO_CHOICES,
+        default='apartamento',
+        verbose_name='Tipo padrão das unidades',
+    )
+    finalidade_padrao    = models.CharField(
+        max_length=20,
+        choices=IMOVEL_FINALIDADE_CHOICES,
+        default='aluguel',
+        verbose_name='Finalidade padrão das unidades',
+    )
+
+    # Controle
+    responsavel   = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='edificios',
+        verbose_name='Responsável',
+    )
+    criado_em     = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Edifício'
+        verbose_name_plural = 'Edifícios'
+        ordering = ['nome']
+
+    def __str__(self):
+        return f'{self.codigo} — {self.nome}' if self.codigo else self.nome
+
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            ultimo = Edificio.objects.order_by('-id').first()
+            proximo = (ultimo.id + 1) if ultimo else 1
+            self.codigo = f'ED-{proximo:04d}'
+        super().save(*args, **kwargs)
+
+
+class Imovel(models.Model):
+    TIPO_CHOICES = IMOVEL_TIPO_CHOICES
 
     STATUS_CHOICES = [
         ('disponivel',  'Disponível'),
@@ -22,11 +125,7 @@ class Imovel(models.Model):
         ('inativo',     'Inativo'),
     ]
 
-    FINALIDADE_CHOICES = [
-        ('aluguel', 'Aluguel'),
-        ('venda',   'Venda'),
-        ('ambos',   'Aluguel e Venda'),
-    ]
+    FINALIDADE_CHOICES = IMOVEL_FINALIDADE_CHOICES
 
     MOBILIA_CHOICES = [
         ('sem',          'Sem Mobília'),
@@ -41,6 +140,14 @@ class Imovel(models.Model):
     tipo          = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES)
     finalidade    = models.CharField('Finalidade', max_length=10, choices=FINALIDADE_CHOICES, default='aluguel')
     status        = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='disponivel')
+    edificio      = models.ForeignKey(
+        'Edificio',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='unidades',
+        verbose_name='Edifício',
+    )
 
     # Localização
     cep           = models.CharField('CEP', max_length=9)
@@ -81,6 +188,14 @@ class Imovel(models.Model):
     proprietario_cpf_cnpj = models.CharField('CPF/CNPJ', max_length=18, blank=True)
     proprietario_telefone = models.CharField('Telefone', max_length=20, blank=True)
     proprietario_email    = models.EmailField('E-mail', blank=True)
+    proprietario = models.ForeignKey(
+        'Proprietario',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='imoveis',
+        verbose_name='Proprietário',
+    )
 
     # Observações
     descricao     = models.TextField('Descrição/Observações', blank=True)
