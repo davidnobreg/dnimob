@@ -115,6 +115,20 @@ class ImovelForm(forms.ModelForm):
         return cleaned
 
 
+class ProprietarioForm(forms.ModelForm):
+    class Meta:
+        model = Proprietario
+        fields = ['nome', 'tipo_pessoa', 'cpf_cnpj', 'telefone', 'email', 'observacoes']
+        widgets = {
+            'nome':        forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nome completo'}),
+            'tipo_pessoa': forms.Select(attrs={'class': 'form-select'}),
+            'cpf_cnpj':    forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'CPF ou CNPJ'}),
+            'telefone':    forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Telefone'}),
+            'email':       forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'E-mail'}),
+            'observacoes': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
+        }
+
+
 class FotoImovelForm(forms.ModelForm):
     class Meta:
         model = FotoImovel
@@ -132,7 +146,9 @@ class FiltroImovelForm(forms.Form):
                                    widget=forms.Select(attrs={'class': 'form-select'}))
     finalidade = forms.ChoiceField(required=False, choices=[('', 'Todas as finalidades')] + Imovel.FINALIDADE_CHOICES,
                                    widget=forms.Select(attrs={'class': 'form-select'}))
-    cidade     = forms.CharField(required=False, widget=forms.TextInput(attrs={
-        'placeholder': 'Cidade',
-        'class': 'form-input',
-    }))
+    edificio     = forms.ModelChoiceField(required=False, queryset=Edificio.objects.all().order_by('nome'),
+                                          empty_label='Todos os edifícios',
+                                          widget=forms.Select(attrs={'class': 'form-select'}))
+    proprietario = forms.ModelChoiceField(required=False, queryset=Proprietario.objects.all().order_by('nome'),
+                                          empty_label='Todos os proprietários',
+                                          widget=forms.Select(attrs={'class': 'form-select'}))

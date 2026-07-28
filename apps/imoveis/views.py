@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from .models import Imovel, FotoImovel, Proprietario, Edificio, IMOVEL_TIPO_CHOICES, IMOVEL_FINALIDADE_CHOICES
-from .forms import ImovelForm, FotoImovelForm, FiltroImovelForm
+from .forms import ImovelForm, FotoImovelForm, FiltroImovelForm, ProprietarioForm
 
 Usuario = get_user_model()
 
@@ -22,11 +22,12 @@ def imovel_lista(request):
     qs = Imovel.objects.exclude(status='inativo')  # oculta inativos por padrão
 
     if form_filtro.is_valid():
-        q          = form_filtro.cleaned_data.get('q')
-        tipo       = form_filtro.cleaned_data.get('tipo')
-        status     = form_filtro.cleaned_data.get('status')
-        finalidade = form_filtro.cleaned_data.get('finalidade')
-        cidade     = form_filtro.cleaned_data.get('cidade')
+        q            = form_filtro.cleaned_data.get('q')
+        tipo         = form_filtro.cleaned_data.get('tipo')
+        status       = form_filtro.cleaned_data.get('status')
+        finalidade   = form_filtro.cleaned_data.get('finalidade')
+        edificio     = form_filtro.cleaned_data.get('edificio')
+        proprietario = form_filtro.cleaned_data.get('proprietario')
 
         if q:
             qs = qs.filter(
@@ -50,8 +51,10 @@ def imovel_lista(request):
             qs = qs.filter(tipo=tipo)
         if finalidade:
             qs = qs.filter(finalidade=finalidade)
-        if cidade:
-            qs = qs.filter(cidade__icontains=cidade)
+        if edificio:
+            qs = qs.filter(edificio=edificio)
+        if proprietario:
+            qs = qs.filter(proprietario=proprietario)
 
     paginator = Paginator(qs, 12)
     page      = paginator.get_page(request.GET.get('page'))
@@ -237,6 +240,55 @@ def edificio_dados_ajax(request, pk):
         'cidade':           edificio.cidade,
         'estado':           edificio.estado,
         'proprietario_id':  edificio.proprietario_id,
+    })
+
+
+@login_required
+def proprietario_lista(request):
+    q = request.GET.get('q', '').strip()
+    proprietarios = Proprietario.objects.all().order_by('nome')
+    if q:
+        proprietarios = proprietarios.filter(
+            Q(nome__icontains=q) |
+            Q(cpf_cnpj__icontains=q)
+        )
+    return render(request, 'imoveis/proprietario_lista.html', {
+        'proprietarios': proprietarios,
+        'q': q,
+    })
+
+
+@login_required
+def proprietario_criar(request):
+    if request.method == 'POST':
+        form = ProprietarioForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Proprietário cadastrado com sucesso.')
+            return redirect('proprietario_lista')
+    else:
+        form = ProprietarioForm()
+    return render(request, 'imoveis/proprietario_form.html', {
+        'form':   form,
+        'titulo': 'Novo Proprietário',
+    })
+
+
+@login_required
+def proprietario_editar(request, pk):
+    proprietario = get_object_or_404(Proprietario, pk=pk)
+    if request.method == 'POST':
+        form = ProprietarioForm(request.POST, instance=proprietario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Proprietário atualizado com sucesso.')
+            return redirect('proprietario_lista')
+    else:
+        form = ProprietarioForm(instance=proprietario)
+    return render(request, 'imoveis/proprietario_form.html', {
+        'form':          form,
+        'titulo':        'Editar Proprietário',
+        'proprietario':  proprietario,
     })
 
 

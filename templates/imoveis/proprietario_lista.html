@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Proprietários{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-gray-300">/</span>
+<a href="{% url 'imovel_lista' %}" class="text-gray-600 hover:text-primary-600">Imóveis</a>
+<span class="text-gray-300">/</span>
+<span class="text-gray-600">Proprietários</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+  {# ── Cabeçalho ── #}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Proprietários</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Gerencie os proprietários cadastrados</p>
+    </div>
+    <a href="{% url 'proprietario_criar' %}"
+       class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition">
+      <i class="ti ti-plus text-base"></i>
+      Novo Proprietário
+    </a>
+  </div>
+
+  {# ── Busca ── #}
+  <form method="get" class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="flex gap-3">
+      <input type="text" name="q" value="{{ q }}" placeholder="Nome, CPF ou CNPJ..."
+             class="form-input flex-1">
+      <button type="submit"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition">
+        <i class="ti ti-search text-base"></i>
+        Buscar
+      </button>
+      {% if q %}
+      <a href="{% url 'proprietario_lista' %}" class="text-xs text-gray-400 hover:text-gray-600 self-center">
+        Limpar
+      </a>
+      {% endif %}
+    </div>
+  </form>
+
+  {# ── Tabela ── #}
+  {% if proprietarios %}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Nome</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Tipo</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">CPF/CNPJ</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 hidden md:table-cell">Telefone</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500 hidden lg:table-cell">E-mail</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Imóveis</th>
+          <th class="px-4 py-3 text-right font-medium text-gray-500">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for proprietario in proprietarios %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 font-medium text-gray-800">{{ proprietario.nome }}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if proprietario.tipo_pessoa == 'PF' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %}">
+              {{ proprietario.get_tipo_pessoa_display }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-gray-600 font-mono text-xs">{{ proprietario.cpf_cnpj|default:"—" }}</td>
+          <td class="px-4 py-3 text-gray-600 hidden md:table-cell">{{ proprietario.telefone|default:"—" }}</td>
+          <td class="px-4 py-3 text-gray-600 hidden lg:table-cell">{{ proprietario.email|default:"—" }}</td>
+          <td class="px-4 py-3 text-gray-600">{{ proprietario.imoveis.count }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'proprietario_editar' proprietario.pk %}"
+               class="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline">
+              <i class="ti ti-edit text-sm"></i>
+              Editar
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl border border-gray-200 py-20 text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+    </svg>
+    {% if q %}
+    <p class="text-gray-500">Nenhum proprietário encontrado para "{{ q }}".</p>
+    {% else %}
+    <p class="text-gray-500">Nenhum proprietário cadastrado.</p>
+    <a href="{% url 'proprietario_criar' %}" class="mt-3 inline-block text-sm text-primary-600 hover:underline">
+      Cadastrar o primeiro proprietário
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
