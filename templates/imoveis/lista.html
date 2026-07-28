@@ -61,7 +61,7 @@
 
   {# ── Filtros ── #}
   <form method="get" class="bg-white rounded-xl border border-gray-200 p-4">
-    <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
       <div class="md:col-span-2">
         <label class="block text-xs font-medium text-gray-600 mb-1">Busca</label>
         {{ form_filtro.q }}
@@ -79,16 +79,20 @@
         {{ form_filtro.finalidade }}
       </div>
       <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Cidade</label>
-        {{ form_filtro.cidade }}
+        <label class="block text-xs font-medium text-gray-600 mb-1">Edifício</label>
+        {{ form_filtro.edificio }}
       </div>
-      <div class="md:col-span-6 flex items-center justify-between gap-3 pt-1">
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Proprietário</label>
+        {{ form_filtro.proprietario }}
+      </div>
+      <div class="md:col-span-4 flex items-center justify-between gap-3 pt-1">
         <button type="submit"
                 class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition">
           <i class="ti ti-filter text-base"></i>
           Filtrar
         </button>
-        {% if request.GET.q or request.GET.tipo or request.GET.status or request.GET.finalidade or request.GET.cidade %}
+        {% if request.GET.q or request.GET.tipo or request.GET.status or request.GET.finalidade or request.GET.edificio or request.GET.proprietario %}
         <a href="{% url 'imovel_lista' %}" class="text-xs text-gray-400 hover:text-gray-600">
           Limpar filtros
         </a>
