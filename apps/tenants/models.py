@@ -278,6 +278,10 @@ class InstanciaWhatsApp(models.Model):
         ('nao_encontrada', 'Não encontrada no servidor'),
     ]
 
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='instancias_whatsapp', verbose_name='Imobiliária',
+    )
     evolution_url  = models.URLField(blank=True, default='', verbose_name='URL da Evolution API',
                                      help_text='URL base da Evolution API, ex: http://192.168.1.100:8080')
     nome_instancia = models.CharField(max_length=100, unique=True, help_text='ID único na Evolution API')

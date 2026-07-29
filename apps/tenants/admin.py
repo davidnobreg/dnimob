@@ -50,8 +50,8 @@ class ConfigSicrediAdmin(admin.ModelAdmin):
 
 @admin.register(InstanciaWhatsApp)
 class InstanciaWhatsAppAdmin(admin.ModelAdmin):
-    list_display = ['nome_instancia', 'status', 'numero_telefone', 'conectado_em']
-    list_filter = ['status']
+    list_display = ['nome_instancia', 'tenant', 'status', 'numero_telefone', 'conectado_em']
+    list_filter = ['status', 'tenant']
     readonly_fields = ['qr_code', 'conectado_em', 'criado_em', 'atualizado_em']
 
 

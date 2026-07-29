@@ -342,14 +342,14 @@ def _get_client_tenant(tenant_schema: str) -> EvolutionAPIClient:
 # ---------------------------------------------------------------------------
 
 def criar_instancia_whatsapp(
-    tenant_schema: str,
+    tenant: Tenant,
     nome_instancia: str,
 ) -> InstanciaWhatsApp:
     """Cria ou atualiza a instância WhatsApp na Evolution API e salva no banco."""
-    with schema_context(tenant_schema):
+    with schema_context(tenant.schema_name):
         instancia, created = InstanciaWhatsApp.objects.get_or_create(
             nome_instancia=nome_instancia,
-            defaults={'status': 'desconectado'},
+            defaults={'status': 'desconectado', 'tenant': tenant},
         )
 
         client = EvolutionAPIClient()

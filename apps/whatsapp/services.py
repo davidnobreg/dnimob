@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 def _get_instancia():
     """Retorna a InstanciaWhatsApp do tenant atual."""
+    from django.db import connection
     from apps.tenants.models import InstanciaWhatsApp
-    return InstanciaWhatsApp.objects.first()
+    return InstanciaWhatsApp.objects.filter(tenant=connection.tenant).first()
 
 
 class EvolutionAPIClient:

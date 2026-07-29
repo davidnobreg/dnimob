@@ -591,7 +591,7 @@ def regenerar_webhook_secret_sicredi(request):
 @login_required
 @user_passes_test(is_admin)
 def config_whatsapp(request):
-    instancia = InstanciaWhatsApp.objects.first()
+    instancia = InstanciaWhatsApp.objects.filter(tenant=request.tenant).first()
 
     if request.method == 'POST':
         form = ConfigWhatsAppForm(request.POST, instance=instancia)
@@ -600,7 +600,7 @@ def config_whatsapp(request):
             dados = form.cleaned_data
             try:
                 instancia = criar_instancia_whatsapp(
-                    request.tenant.schema_name,
+                    request.tenant,
                     dados['nome_instancia'],
                 )
                 messages.success(request, 'Instância criada! Escaneie o QR Code abaixo.')
@@ -625,7 +625,7 @@ def config_whatsapp(request):
 @user_passes_test(is_admin)
 def whatsapp_qrcode(request):
     """AJAX — retorna QR code atualizado."""
-    instancia = InstanciaWhatsApp.objects.first()
+    instancia = InstanciaWhatsApp.objects.filter(tenant=request.tenant).first()
     if not instancia:
         return JsonResponse({'ok': False, 'msg': 'Nenhuma instância configurada.'})
     data = obter_qrcode_instancia(request.tenant.schema_name, instancia.nome_instancia)
@@ -636,7 +636,7 @@ def whatsapp_qrcode(request):
 @user_passes_test(is_admin)
 def whatsapp_status(request):
     """AJAX — verifica status da conexão."""
-    instancia = InstanciaWhatsApp.objects.first()
+    instancia = InstanciaWhatsApp.objects.filter(tenant=request.tenant).first()
     if not instancia:
         return JsonResponse({'status': 'desconectado'})
     status = verificar_status_whatsapp(request.tenant.schema_name, instancia.nome_instancia)
@@ -648,13 +648,13 @@ def whatsapp_status(request):
 @require_POST
 def recriar_instancia_whatsapp(request):
     """Recria no servidor Evolution API uma instância que sumiu de lá (status='nao_encontrada')."""
-    instancia = InstanciaWhatsApp.objects.first()
+    instancia = InstanciaWhatsApp.objects.filter(tenant=request.tenant).first()
     if not instancia:
         messages.error(request, 'Nenhuma instância configurada.')
         return redirect('config_whatsapp')
 
     try:
-        criar_instancia_whatsapp(request.tenant.schema_name, instancia.nome_instancia)
+        criar_instancia_whatsapp(request.tenant, instancia.nome_instancia)
         messages.success(request, 'Instância recriada! Escaneie o QR Code para conectar.')
     except EvolutionAPIError as e:
         messages.error(request, f'Erro ao recriar instância: {e}')
