@@ -28,7 +28,7 @@ class FinanceiroWhatsappTestCase(TenantTestCase):
         _criar_templates_padrao()
         InstanciaWhatsApp.objects.create(
             nome_instancia='teste', evolution_url='http://evolution.local',
-            token_api='token-teste', status='conectado',
+            token_api='token-teste', status='conectado', tenant=self.tenant,
         )
 
         self.imovel = Imovel.objects.create(

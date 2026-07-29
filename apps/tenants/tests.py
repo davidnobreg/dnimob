@@ -764,7 +764,7 @@ class WhatsAppInstanciaNaoEncontradaTests(TenantTestCase):
             username='admin-wpp-teste', password='senha123', is_staff=True,
         )
         self.instancia = InstanciaWhatsApp.objects.create(
-            nome_instancia='imob-teste', status='conectado',
+            nome_instancia='imob-teste', status='conectado', tenant=self.tenant,
         )
 
     def _http_error_response(self, status_code, text=''):
@@ -810,4 +810,4 @@ class WhatsAppInstanciaNaoEncontradaTests(TenantTestCase):
         response = recriar_instancia_whatsapp(self._request(self.admin))
 
         self.assertEqual(response.status_code, 302)
-        mock_criar.assert_called_once_with(self.tenant.schema_name, 'imob-teste')
+        mock_criar.assert_called_once_with(self.tenant, 'imob-teste')
