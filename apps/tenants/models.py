@@ -3,6 +3,8 @@ from django_tenants.models import TenantMixin, DomainMixin
 from django.utils import timezone
 import uuid
 
+from apps.core.storage import upload_to_tenant_logos
+
 
 class TipoPessoa(models.TextChoices):
     FISICA = 'PF', 'Pessoa Física'
@@ -59,7 +61,7 @@ class Tenant(TenantMixin):
     cep = models.CharField(max_length=9, blank=True)
 
     # Personalização visual
-    logo = models.ImageField(upload_to='logos/', null=True, blank=True)
+    logo = models.ImageField(upload_to=upload_to_tenant_logos, null=True, blank=True)
     cor_primaria = models.CharField(max_length=7, default='#1a56db', help_text='Hex color')
     cor_secundaria = models.CharField(max_length=7, default='#1e429f')
     cor_acento = models.CharField(max_length=7, default='#3f83f8')

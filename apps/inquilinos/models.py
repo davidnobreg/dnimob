@@ -1,5 +1,7 @@
 from django.db import models
 
+from apps.core.storage import upload_to_inquilinos_fotos
+
 
 class Inquilino(models.Model):
     TIPO_CHOICES = [
@@ -62,7 +64,7 @@ class Inquilino(models.Model):
 
     # Observações
     observacoes   = models.TextField('Observações', blank=True)
-    foto          = models.ImageField('Foto', upload_to='inquilinos/fotos/', null=True, blank=True)
+    foto          = models.ImageField('Foto', upload_to=upload_to_inquilinos_fotos, null=True, blank=True)
 
     # Controle
     criado_em     = models.DateTimeField(auto_now_add=True)

@@ -140,8 +140,7 @@ def salvar_documento_gerado(contrato, modelo, usuario):
         gerado_por=usuario,
     )
     if pdf_bytes:
-        filename = f'contrato_{contrato.numero}_{modelo.tipo}.pdf'
-        doc.arquivo_pdf.save(filename, ContentFile(pdf_bytes), save=False)
+        doc.arquivo_pdf.save('documento.pdf', ContentFile(pdf_bytes), save=False)
     doc.save()
     return doc
 

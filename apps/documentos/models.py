@@ -3,6 +3,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.core.storage import upload_to_documentos_contratos
+
 
 class ModeloDocumento(models.Model):
     TIPO_CHOICES = [
@@ -87,7 +89,7 @@ class ContratoDocumentoGerado(models.Model):
     titulo = models.CharField('Título', max_length=200)
     conteudo_final_html = models.TextField('Conteúdo renderizado')
     arquivo_pdf = models.FileField(
-        'PDF', upload_to='documentos/contratos/%Y/%m/', null=True, blank=True
+        'PDF', upload_to=upload_to_documentos_contratos, null=True, blank=True
     )
     status = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='gerado')
     gerado_em = models.DateTimeField(auto_now_add=True)

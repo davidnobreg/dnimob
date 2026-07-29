@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 
+from apps.core.storage import upload_to_imoveis_fotos
+
 
 IMOVEL_TIPO_CHOICES = [
     ('apartamento', 'Apartamento'),
@@ -259,7 +261,7 @@ class Imovel(models.Model):
 
 class FotoImovel(models.Model):
     imovel    = models.ForeignKey(Imovel, on_delete=models.CASCADE, related_name='fotos')
-    imagem    = models.ImageField('Imagem', upload_to='imoveis/fotos/')
+    imagem    = models.ImageField('Imagem', upload_to=upload_to_imoveis_fotos)
     legenda   = models.CharField('Legenda', max_length=200, blank=True)
     principal = models.BooleanField('Foto Principal', default=False)
     ordem     = models.PositiveSmallIntegerField('Ordem', default=0)

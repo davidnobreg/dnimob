@@ -2,6 +2,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from apps.core.storage import upload_to_usuarios_fotos
+
 
 class Usuario(AbstractUser):
     """Usuário do sistema. Vive no schema do tenant."""
@@ -16,7 +18,7 @@ class Usuario(AbstractUser):
 
     perfil    = models.CharField(max_length=20, choices=PERFIL_CHOICES, default='atendente')
     telefone  = models.CharField(max_length=20, blank=True)
-    foto      = models.ImageField(upload_to='usuarios/fotos/', blank=True, null=True)
+    foto      = models.ImageField(upload_to=upload_to_usuarios_fotos, blank=True, null=True)
 
     class Meta:
         verbose_name        = 'Usuário'
