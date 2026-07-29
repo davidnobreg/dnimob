@@ -1,7 +1,9 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 
 from apps.core.storage import upload_to_imoveis_fotos
+from apps.core.validators import validate_file_size
 
 
 IMOVEL_TIPO_CHOICES = [
@@ -261,7 +263,13 @@ class Imovel(models.Model):
 
 class FotoImovel(models.Model):
     imovel    = models.ForeignKey(Imovel, on_delete=models.CASCADE, related_name='fotos')
-    imagem    = models.ImageField('Imagem', upload_to=upload_to_imoveis_fotos)
+    imagem    = models.ImageField(
+    	'Imagem', upload_to=upload_to_imoveis_fotos,
+    	validators=[
+    		FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp']),
+    		validate_file_size(5),
+    	],
+    )
     legenda   = models.CharField('Legenda', max_length=200, blank=True)
     principal = models.BooleanField('Foto Principal', default=False)
     ordem     = models.PositiveSmallIntegerField('Ordem', default=0)

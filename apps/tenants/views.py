@@ -12,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db.models import Count, Sum
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login
@@ -35,6 +36,7 @@ from .forms import (
     TemplateWhatsAppForm,
 )
 from .models import ConfigSicredi, InstanciaWhatsApp, Plano, TemplateWhatsApp, Tenant
+from apps.core.validators import validate_file_size
 from .services import (
     EvolutionAPIError,
     criar_instancia_whatsapp,
@@ -821,7 +823,18 @@ def usuario_editar(request, usuario_id):
 
         # Foto
         if 'foto' in request.FILES:
-            usuario.foto = request.FILES['foto']
+            foto = request.FILES['foto']
+            try:
+                FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp'])(foto)
+                validate_file_size(2)(foto)
+                usuario.foto = foto
+            except ValidationError as e:
+                messages.error(request, e.message)
+                return render(request, 'tenants/usuario_editar.html', {
+                    'usuario': usuario,
+                    'modulos_choices': MODULO_CHOICES,
+                    'modulos_ativos': modulos_ativos,
+                })
 
         # Permissões
         usuario.is_staff  = request.POST.get('is_staff') == 'on'

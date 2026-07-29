@@ -173,6 +173,11 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Limite global de upload (maior que qualquer campo individual — deixa validators
+# do model/view darem mensagem de erro amigável antes do Django rejeitar a request)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10MB
+
 # ─────────────────────────────────────────────
 # CACHE (Redis nativo — usado pelo token Sicredi por tenant)
 # ─────────────────────────────────────────────

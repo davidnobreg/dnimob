@@ -1,9 +1,11 @@
 from django.db import models
 from django_tenants.models import TenantMixin, DomainMixin
 from django.utils import timezone
+from django.core.validators import FileExtensionValidator
 import uuid
 
 from apps.core.storage import upload_to_tenant_logos
+from apps.core.validators import validate_file_size
 
 
 class TipoPessoa(models.TextChoices):
@@ -61,7 +63,13 @@ class Tenant(TenantMixin):
     cep = models.CharField(max_length=9, blank=True)
 
     # Personalização visual
-    logo = models.ImageField(upload_to=upload_to_tenant_logos, null=True, blank=True)
+    logo = models.ImageField(
+    	upload_to=upload_to_tenant_logos, null=True, blank=True,
+    	validators=[
+    		FileExtensionValidator(['jpg', 'jpeg', 'png', 'svg', 'webp']),
+    		validate_file_size(1),
+    	],
+    )
     cor_primaria = models.CharField(max_length=7, default='#1a56db', help_text='Hex color')
     cor_secundaria = models.CharField(max_length=7, default='#1e429f')
     cor_acento = models.CharField(max_length=7, default='#3f83f8')

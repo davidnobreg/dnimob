@@ -1,8 +1,10 @@
 """apps/core/models.py"""
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.core.validators import FileExtensionValidator
 
 from apps.core.storage import upload_to_usuarios_fotos
+from apps.core.validators import validate_file_size
 
 
 class Usuario(AbstractUser):
@@ -18,7 +20,13 @@ class Usuario(AbstractUser):
 
     perfil    = models.CharField(max_length=20, choices=PERFIL_CHOICES, default='atendente')
     telefone  = models.CharField(max_length=20, blank=True)
-    foto      = models.ImageField(upload_to=upload_to_usuarios_fotos, blank=True, null=True)
+    foto      = models.ImageField(
+    	upload_to=upload_to_usuarios_fotos, blank=True, null=True,
+    	validators=[
+    		FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp']),
+    		validate_file_size(2),
+    	],
+    )
 
     class Meta:
         verbose_name        = 'Usuário'

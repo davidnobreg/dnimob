@@ -1,6 +1,8 @@
 from django.db import models
+from django.core.validators import FileExtensionValidator
 
 from apps.core.storage import upload_to_inquilinos_fotos
+from apps.core.validators import validate_file_size
 
 
 class Inquilino(models.Model):
@@ -64,7 +66,13 @@ class Inquilino(models.Model):
 
     # Observações
     observacoes   = models.TextField('Observações', blank=True)
-    foto          = models.ImageField('Foto', upload_to=upload_to_inquilinos_fotos, null=True, blank=True)
+    foto          = models.ImageField(
+    	'Foto', upload_to=upload_to_inquilinos_fotos, null=True, blank=True,
+    	validators=[
+    		FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp']),
+    		validate_file_size(2),
+    	],
+    )
 
     # Controle
     criado_em     = models.DateTimeField(auto_now_add=True)

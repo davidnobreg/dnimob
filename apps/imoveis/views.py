@@ -9,11 +9,31 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
 
 from .models import Imovel, FotoImovel, Proprietario, Edificio, IMOVEL_TIPO_CHOICES, IMOVEL_FINALIDADE_CHOICES
 from .forms import ImovelForm, FotoImovelForm, FiltroImovelForm, ProprietarioForm
+from apps.core.validators import validate_file_size
 
 Usuario = get_user_model()
+
+FOTO_IMOVEL_EXT_VALIDATOR = FileExtensionValidator(['jpg', 'jpeg', 'png', 'webp'])
+FOTO_IMOVEL_SIZE_VALIDATOR = validate_file_size(5)
+
+
+def _validar_fotos_imovel(request, fotos):
+    """Valida extensão e tamanho de cada foto, descartando as inválidas.
+    Retorna a lista de arquivos válidos."""
+    validas = []
+    for foto in fotos:
+        try:
+            FOTO_IMOVEL_EXT_VALIDATOR(foto)
+            FOTO_IMOVEL_SIZE_VALIDATOR(foto)
+            validas.append(foto)
+        except ValidationError as e:
+            messages.error(request, f'{foto.name}: {e.message}')
+    return validas
 
 
 @login_required
@@ -111,7 +131,7 @@ def imovel_criar(request):
             _herdar_endereco_edificio(imovel)
             imovel.save()
 
-            fotos = request.FILES.getlist('fotos')
+            fotos = _validar_fotos_imovel(request, request.FILES.getlist('fotos'))
             for i, foto in enumerate(fotos):
                 FotoImovel.objects.create(
                     imovel=imovel,
@@ -303,7 +323,7 @@ def imovel_editar(request, pk):
             _herdar_endereco_edificio(imovel)
             imovel.save()
 
-            fotos        = request.FILES.getlist('fotos')
+            fotos        = _validar_fotos_imovel(request, request.FILES.getlist('fotos'))
             ultima_ordem = imovel.fotos.count()
             for i, foto in enumerate(fotos):
                 FotoImovel.objects.create(
