@@ -87,4 +87,44 @@
 
   </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // ── Máscara CPF/CNPJ dinâmica ──────────────────────────────────
+  function mascararCpfCnpj(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 14);
+    if (v.length > 11) {
+      v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+    } else {
+      if (v.length > 9)      v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+      else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+      else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+    }
+    input.value = v;
+  }
+
+  // ── Máscara Telefone (fixo/celular dinâmica) ───────────────────
+  function mascararTelefone(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 10)     v = v.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    input.value = v;
+  }
+
+  const cpfCnpjInput = document.getElementById('id_cpf_cnpj');
+  if (cpfCnpjInput) {
+    mascararCpfCnpj(cpfCnpjInput);
+    cpfCnpjInput.addEventListener('input', function () { mascararCpfCnpj(this); });
+  }
+
+  const telefoneInput = document.getElementById('id_telefone');
+  if (telefoneInput) {
+    mascararTelefone(telefoneInput);
+    telefoneInput.addEventListener('input', function () { mascararTelefone(this); });
+  }
+
+});
+</script>
 {% endblock %}
