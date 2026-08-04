@@ -182,4 +182,53 @@
     </div>
   </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  function mascararCpfCnpj(input, tipo) {
+    let v = input.value.replace(/\D/g, '');
+    if (tipo === 'cnpj') {
+      v = v.slice(0, 14);
+      if (v.length > 12)      v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+      else if (v.length > 8)  v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+      else if (v.length > 5)  v = v.replace(/^(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+      else if (v.length > 2)  v = v.replace(/^(\d{2})(\d{0,3})/, '$1.$2');
+    } else {
+      v = v.slice(0, 11);
+      if (v.length > 9)      v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+      else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+      else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+    }
+    input.value = v;
+  }
+
+  function mascararTelefone(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 10)     v = v.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    input.value = v;
+  }
+
+  const cpfInput = document.getElementById('id_cpf');
+  if (cpfInput) {
+    mascararCpfCnpj(cpfInput, 'cpf');
+    cpfInput.addEventListener('input', function () { mascararCpfCnpj(this, 'cpf'); });
+  }
+
+  const cnpjInput = document.getElementById('id_cnpj');
+  if (cnpjInput) {
+    mascararCpfCnpj(cnpjInput, 'cnpj');
+    cnpjInput.addEventListener('input', function () { mascararCpfCnpj(this, 'cnpj'); });
+  }
+
+  const telefoneInput = document.getElementById('id_telefone');
+  if (telefoneInput) {
+    mascararTelefone(telefoneInput);
+    telefoneInput.addEventListener('input', function () { mascararTelefone(this); });
+  }
+
+});
+</script>
 {% endblock %}
