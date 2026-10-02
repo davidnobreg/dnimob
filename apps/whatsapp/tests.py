@@ -5,7 +5,7 @@ Testes das funções notificar_* (apps.whatsapp.services). Os agendamentos
 diários que as chamam (lembrete de vencimento, cobrança de atraso) vivem
 em apps.financeiro.tasks — ver apps/financeiro/tests.py.
 """
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -222,3 +222,27 @@ class TenantEmTaskCeleryTests(WhatsappTestCase):
         self.assertEqual(log.evento, LogMensagem.Evento.PARCELA_VENCIDA)
         self.assertEqual(log.parcela_id, parcela.pk)
         self.assertIn('Imobiliária não identificada', log.erro_detalhe)
+
+
+class FormatacaoValorMensagemTests(WhatsappTestCase):
+
+    def test_mensagem_de_atraso_usa_valor_em_formato_brasileiro(self):
+        from apps.tenants.services import _criar_templates_padrao
+        _criar_templates_padrao()
+        TemplateWhatsApp.objects.filter(evento='atraso_3').update(
+            mensagem='{valor}|{encargos}|{valor_com_encargos}',
+        )
+        parcela = Parcela.objects.create(
+            contrato=self.contrato, numero=1,
+            data_vencimento=date.today() - timedelta(days=3), valor=Decimal('1234.50'),
+            competencia='01/2026',
+        )
+
+        with patch('apps.whatsapp.services.enviar_mensagem', return_value=True) as mock_enviar:
+            notificar_parcela_vencida(parcela)
+
+        valor, encargos, total = mock_enviar.call_args.kwargs['mensagem'].split('|')
+        self.assertEqual(valor, '1.234,50')
+        self.assertRegex(encargos, r'^\d{1,3}(\.\d{3})*,\d{2}$')
+        self.assertRegex(total, r'^1\.\d{3},\d{2}$')
+        self.assertNotIn('1,234', mock_enviar.call_args.kwargs['mensagem'])

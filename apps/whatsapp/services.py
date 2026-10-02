@@ -8,6 +8,8 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
+from apps.core.formatacao import formatar_valor_br
+
 logger = logging.getLogger(__name__)
 
 
@@ -183,7 +185,7 @@ def notificar_lembrete_vencimento(parcela) -> bool:
     from apps.tenants.services import renderizar_template
     texto = renderizar_template('vence_amanha', {
         'nome_inquilino': parcela.contrato.inquilino.nome,
-        'valor': f'{parcela.valor_total:,.2f}',
+        'valor': formatar_valor_br(parcela.valor_total),
         'data_vencimento': parcela.data_vencimento.strftime('%d/%m/%Y'),
         'codigo_barras': codigo_barras,
         'mes_referencia': parcela.competencia,
@@ -211,7 +213,7 @@ def notificar_vencimento_hoje(parcela) -> bool:
     from apps.tenants.services import renderizar_template
     texto = renderizar_template('vence_hoje', {
         'nome_inquilino': parcela.contrato.inquilino.nome,
-        'valor': f'{parcela.valor_total:,.2f}',
+        'valor': formatar_valor_br(parcela.valor_total),
         'data_vencimento': parcela.data_vencimento.strftime('%d/%m/%Y'),
         'codigo_barras': codigo_barras,
         'mes_referencia': parcela.competencia,
@@ -257,9 +259,9 @@ def notificar_parcela_vencida(parcela) -> bool:
     texto = renderizar_template(evento_template, {
         'nome_inquilino': parcela.contrato.inquilino.nome,
         'nome_imobiliaria': nome_imobiliaria,
-        'valor': f'{(parcela.valor_total - parcela.valor_multa):,.2f}',
-        'encargos': f'{parcela.valor_multa:,.2f}',
-        'valor_com_encargos': f'{parcela.valor_total:,.2f}',
+        'valor': formatar_valor_br(parcela.valor_total - parcela.valor_multa),
+        'encargos': formatar_valor_br(parcela.valor_multa),
+        'valor_com_encargos': formatar_valor_br(parcela.valor_total),
         'data_vencimento': parcela.data_vencimento.strftime('%d/%m/%Y'),
         'endereco_imovel': str(parcela.contrato.imovel),
     })
@@ -281,7 +283,7 @@ def notificar_pagamento_confirmado(parcela) -> bool:
     from apps.tenants.services import renderizar_template
     texto = renderizar_template('pagamento_confirmado', {
         'nome_inquilino': parcela.contrato.inquilino.nome,
-        'valor': f'{parcela.valor_total:,.2f}',
+        'valor': formatar_valor_br(parcela.valor_total),
         'mes_referencia': parcela.competencia,
     })
     if not texto:
