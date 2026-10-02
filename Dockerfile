@@ -20,6 +20,20 @@ RUN apt-get update && \
         nano \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# LibreOffice (Writer, sem GUI) para converter .docx -> PDF no worker da fila `docx`.
+# fonts-liberation: métrico-compatível com Times New Roman / Arial.
+# fonts-crosextra-carlito / -caladea: métrico-compatíveis com Calibri / Cambria.
+# Sem JRE: não é necessário para docx -> pdf.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libreoffice-writer-nogui \
+        fonts-liberation \
+        fonts-crosextra-carlito \
+        fonts-crosextra-caladea \
+        fontconfig \
+    && fc-cache -f \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 COPY requirements/base.txt requirements/base.txt
 COPY requirements/prod.txt requirements/prod.txt
 RUN pip install --upgrade pip && \

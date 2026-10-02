@@ -69,6 +69,48 @@ services:
       restart_policy:
         condition: on-failure
 
+  # ── Celery Worker — fila docx (LibreOffice: .docx → PDF) ────────
+  docx_worker:
+    image: davidnobrega/dnimob:latest
+
+    command: celery -A config worker -Q docx --concurrency=1 -n docx@%h --loglevel=info
+
+    # PID 1 real (tini): reapa o soffice.bin morto no timeout, senão vira zumbi
+    init: true
+
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - SENTRY_DSN=${SENTRY_DSN}
+
+    volumes:
+      - dnimob_logs:/app/logs
+      - dnimob_media:/app/media
+      - configuration:/app/configuration
+
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d docx@$$HOSTNAME --timeout 10"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+
+    networks:
+      - app_network
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+        reservations:
+          memory: 512M
+
   # ── Celery Beat (agendador) ─────────────────────────────────────
   beat:
     image: davidnobrega/dnimob:latest

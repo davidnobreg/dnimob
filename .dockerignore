@@ -1,0 +1,20 @@
+# Contexto de build da imagem (Dockerfile faz COPY . .)
+# Segredos e config: em produção vêm do volume `configuration` e do ambiente
+.git
+.gitignore
+.gitattributes
+.venv
+.venv_old
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.pytest_cache
+.idea
+.vscode
+.claude
+graphify-out
+CLAUDE.local.md
+**/.env*
+configuration/
+media/
+node_modules
