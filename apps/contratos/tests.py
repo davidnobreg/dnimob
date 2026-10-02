@@ -330,3 +330,31 @@ class ContratoDetalheModelosDocumentoTests(TenantTestCase):
 
         self.assertNotIn(inativo, list(resp.context['modelos_documento']))
         self.assertEqual(resp.context['modelo_predefinido_id'], '')
+
+    def test_pre_selecionado_e_o_de_contrato_mesmo_com_recibo_predefinido(self):
+        recibo = ModeloDocumento.objects.create(
+            titulo='Aaa Recibo', tipo='recibo', arquivo='tenants/x/documentos/modelos/r.docx', predefinido=True,
+        )
+        contrato = ModeloDocumento.objects.create(
+            titulo='Zzz Contrato', tipo='contrato', arquivo='tenants/x/documentos/modelos/c.docx', predefinido=True,
+        )
+
+        resp = self.client.get(
+            reverse('contrato_detalhe', args=[self.contrato.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertEqual(resp.context['modelo_predefinido_id'], str(contrato.pk))
+        self.assertIn(recibo, list(resp.context['modelos_documento'])[:2])
+
+    def test_so_recibo_predefinido_nao_pre_seleciona_nada(self):
+        recibo = ModeloDocumento.objects.create(
+            titulo='Recibo', tipo='recibo', arquivo='tenants/x/documentos/modelos/r.docx', predefinido=True,
+        )
+
+        resp = self.client.get(
+            reverse('contrato_detalhe', args=[self.contrato.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertEqual(list(resp.context['modelos_documento'])[0], recibo)
+        self.assertEqual(resp.context['modelo_predefinido_id'], '')
+        self.assertContains(resp, "modeloSelecionado: ''")

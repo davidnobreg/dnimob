@@ -79,9 +79,10 @@ def contrato_detalhe(request, pk):
     modelos_documento = list(
         ModeloDocumento.objects.filter(ativo=True).order_by('tipo', 'titulo')
     )
-    # Predefinido do tipo primeiro (sort estável preserva a ordem atual no resto); sem predefinido, nada muda.
+    # Predefinidos (de qualquer tipo) primeiro; sort estável preserva a ordem atual no resto.
     modelos_documento.sort(key=lambda m: not m.predefinido)
-    modelo_predefinido = next((m for m in modelos_documento if m.predefinido), None)
+    # Só o predefinido do tipo contrato vem pré-selecionado.
+    modelo_predefinido = next((m for m in modelos_documento if m.predefinido and m.tipo == 'contrato'), None)
 
     return render(request, 'contratos/detalhe.html', {
         'contrato': contrato,
