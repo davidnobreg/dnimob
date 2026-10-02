@@ -136,33 +136,6 @@ services:
       restart_policy:
         condition: on-failure
 
-  # ── Flower (monitor Celery) ─────────────────────────────────────
-  flower:
-    image: davidnobrega/dnimob:latest
-
-    command: celery -A config flower --port=5556 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme}
-
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.prod
-
-    #ports:
-      #- "5556:5556"
-
-    volumes:
-      - dnimob_logs:/app/logs
-      - configuration:/app/configuration
-
-    networks:
-      - app_network
-
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: on-failure
-
   # ── Backup PostgreSQL → Backblaze B2 ───────────────────────────
   backup:
     image: davidnobrega/dnimob-backup:latest

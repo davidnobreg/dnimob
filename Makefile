@@ -7,7 +7,7 @@ help:
 	@echo "  Configuração inicial:"
 	@echo "    make network          Cria a rede Docker externa (1x apenas)"
 	@echo "    make build            Build das imagens"
-	@echo "    make up               Sobe web, celery, celery-beat, flower"
+	@echo "    make up               Sobe web, celery, celery-beat"
 	@echo ""
 	@echo "  Banco de dados:"
 	@echo "    make migrate-shared   Migrations do schema public (1x no início)"
