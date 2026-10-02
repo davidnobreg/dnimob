@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy:
     name: Build e Deploy DNImob
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout do codigo
@@ -28,7 +28,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/dnimob:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/dnimob:${{ github.sha }}
@@ -41,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./infra/backup
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/dnimob-backup:latest
           cache-from: type=gha
