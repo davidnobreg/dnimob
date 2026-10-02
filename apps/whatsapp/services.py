@@ -15,7 +15,13 @@ def _get_instancia():
     """Retorna a InstanciaWhatsApp do tenant atual."""
     from django.db import connection
     from apps.tenants.models import InstanciaWhatsApp
-    return InstanciaWhatsApp.objects.filter(tenant=connection.tenant).first()
+    # Por schema_name: em tasks Celery o tenant da conexão é um FakeTenant, que não serve de filtro de FK.
+    return (
+        InstanciaWhatsApp.objects
+        .filter(tenant__schema_name=connection.schema_name)
+        .order_by('id')
+        .first()
+    )
 
 
 class EvolutionAPIClient:
@@ -225,7 +231,24 @@ def notificar_parcela_vencida(parcela) -> bool:
     if not numero or len(numero) < 12:
         return False
 
-    from django.db import connection
+    from apps.core.tenancy import get_tenant_atual
+    from .models import LogMensagem
+
+    try:
+        nome_imobiliaria = get_tenant_atual().nome
+    except Exception as exc:
+        logger.exception('Não foi possível identificar a imobiliária para a parcela %s', parcela.pk)
+        LogMensagem.objects.create(
+            evento=LogMensagem.Evento.PARCELA_VENCIDA,
+            destinatario=numero,
+            nome_contato=parcela.contrato.inquilino.nome,
+            mensagem='',
+            status=LogMensagem.Status.ERRO,
+            erro_detalhe=f'Imobiliária não identificada: {exc}'[:500],
+            contrato_id=parcela.contrato_id,
+            parcela_id=parcela.pk,
+        )
+        return False
 
     dias = (timezone.now().date() - parcela.data_vencimento).days
     evento_template = f'atraso_{dias}' if dias in (3, 7, 15) else 'atraso_3'
@@ -233,7 +256,7 @@ def notificar_parcela_vencida(parcela) -> bool:
     from apps.tenants.services import renderizar_template
     texto = renderizar_template(evento_template, {
         'nome_inquilino': parcela.contrato.inquilino.nome,
-        'nome_imobiliaria': connection.tenant.nome,
+        'nome_imobiliaria': nome_imobiliaria,
         'valor': f'{(parcela.valor_total - parcela.valor_multa):,.2f}',
         'encargos': f'{parcela.valor_multa:,.2f}',
         'valor_com_encargos': f'{parcela.valor_total:,.2f}',

@@ -215,7 +215,9 @@ class SicrediClient:
 
 	def _beneficiario_final(self):
 		"""Dados da imobiliária (tenant atual) — obrigatório no payload."""
-		tenant = connection.tenant
+		from apps.core.tenancy import get_tenant_atual
+
+		tenant = get_tenant_atual()
 		return {
 			'tipoPessoa': 'PESSOA_JURIDICA',
 			'documento': _so_digitos(getattr(tenant, 'cnpj', '')),

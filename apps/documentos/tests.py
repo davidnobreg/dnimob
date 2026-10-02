@@ -24,10 +24,11 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.conf import settings
 from django.contrib.messages import get_messages
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django_tenants.postgresql_backend.base import FakeTenant
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.utils import get_public_schema_name, schema_context
 from celery.exceptions import SoftTimeLimitExceeded
@@ -1656,3 +1657,28 @@ class VariavelNovaEmTenantExistenteTests(StorageTemporarioMixin, TenantTestCase)
 
         self.assertIn('variáveis novas=1', saida.getvalue())
         self.assertFalse(VariavelDocumento.objects.filter(slug='inquilino.fiador_texto').exists())
+
+
+class TaskGerarDocumentoSobFakeTenantTests(StorageTemporarioMixin, TenantTestCase):
+    """O worker ativa o schema com schema_context: connection.tenant é um FakeTenant durante toda a geração."""
+
+    def test_geracao_completa_sob_fake_tenant(self):
+        contrato = criar_contrato_teste()
+        modelo = criar_modelo_docx(montar_docx([['{{ contrato.numero }}']]))
+        documento = ContratoDocumentoGerado.objects.create(
+            contrato=contrato, modelo=modelo, titulo='Doc', status='pendente',
+        )
+        tipos_vistos = []
+
+        def converter(docx_bytes):
+            tipos_vistos.append(type(connection.tenant))
+            return b'%PDF-fake'
+
+        with patch('apps.documentos.tasks.converter_docx_para_pdf', side_effect=converter),                 patch('apps.documentos.tasks.sentry_sdk'):
+            gerar_documento_docx(self.tenant.schema_name, str(documento.pk))
+
+        documento.refresh_from_db()
+        self.assertEqual(tipos_vistos, [FakeTenant])
+        self.assertEqual(documento.status, 'gerado')
+        self.assertTrue(documento.arquivo_pdf)
+        self.assertIn(f'tenants/{self.tenant.schema_name}/documentos/contratos/', documento.arquivo_pdf.name)

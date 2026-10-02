@@ -19,13 +19,15 @@ from django.db import connection
 from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django_tenants.postgresql_backend.base import FakeTenant
 from django_tenants.test.cases import TenantTestCase
+from django_tenants.utils import schema_context
 
 from apps.contratos.models import Contrato, Parcela
 from apps.financeiro.models import Lancamento
 from apps.imoveis.models import Imovel
 from apps.inquilinos.models import Inquilino
-from apps.tenants.models import ConfigSicredi
+from apps.tenants.models import ConfigSicredi, Tenant
 
 from .client import SicrediAPIError, SicrediAuthError, SicrediClient
 from .models import Boleto
@@ -983,3 +985,41 @@ class WebhookMovimentoDesconhecidoTests(WebhookHTTPTestCase):
 	def test_movimento_desconhecido_via_http_retorna_200(self):
 		resp = self.client.post(self.url, data=json.dumps(self._payload()), content_type='application/json')
 		self.assertEqual(resp.status_code, 200)
+
+
+# ── Tenant em task Celery (FakeTenant) ──────────────────────────────────────
+
+class BeneficiarioFinalSobFakeTenantTests(SicrediTestCase):
+	"""Em tasks o schema é ativado com schema_context e connection.tenant vira FakeTenant."""
+
+	def test_beneficiario_final_traz_dados_do_tenant_real(self):
+		Tenant.objects.filter(pk=self.tenant.pk).update(
+			cnpj='12.345.678/0001-95', endereco='Av. Principal, 10', cidade='Fortaleza',
+			estado='CE', cep='60000-000',
+		)
+
+		with schema_context(self.tenant.schema_name):
+			self.assertIsInstance(connection.tenant, FakeTenant)
+			beneficiario = self.sicredi_client._beneficiario_final()
+
+		self.assertEqual(beneficiario['documento'], '12345678000195')
+		self.assertEqual(beneficiario['nome'], 'Imobiliaria Teste')  # config.beneficiario tem prioridade
+		self.assertEqual(beneficiario['logradouro'], 'Av. Principal, 10')
+		self.assertEqual(beneficiario['cidade'], 'Fortaleza')
+		self.assertEqual(beneficiario['uf'], 'CE')
+		self.assertEqual(beneficiario['cep'], '60000000')
+
+	def test_nome_cai_no_do_tenant_quando_config_sem_beneficiario(self):
+		self.config.beneficiario = ''
+
+		with schema_context(self.tenant.schema_name):
+			beneficiario = self.sicredi_client._beneficiario_final()
+
+		self.assertEqual(beneficiario['nome'], self.tenant.nome)
+
+	def test_campos_vazios_no_tenant_mantem_os_defaults(self):
+		with schema_context(self.tenant.schema_name):
+			beneficiario = self.sicredi_client._beneficiario_final()
+
+		self.assertEqual(beneficiario['logradouro'], 'NAO INFORMADO')
+		self.assertEqual(beneficiario['documento'], '')
