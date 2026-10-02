@@ -277,3 +277,16 @@ class ContratoDetalheModelosDocumentoTests(TenantTestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn('modelos_documento', resp.context)
         self.assertIn(self.modelo, list(resp.context['modelos_documento']))
+
+    def test_select_lista_modelos_com_e_sem_arquivo(self):
+        com_arquivo = ModeloDocumento.objects.create(
+            titulo='Modelo Docx', tipo='contrato', arquivo='tenants/x/documentos/modelos/a.docx',
+        )
+
+        resp = self.client.get(
+            reverse('contrato_detalhe', args=[self.contrato.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        modelos = list(resp.context['modelos_documento'])
+        self.assertIn(self.modelo, modelos)
+        self.assertIn(com_arquivo, modelos)

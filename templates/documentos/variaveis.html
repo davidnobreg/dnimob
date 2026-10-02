@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Variáveis de Documento{% endblock %}
+
+{% block page_header %}
+<div class="flex items-center justify-between">
+	<div>
+		<h1 class="text-xl font-semibold text-gray-900">Variáveis de Documento</h1>
+		<p class="text-sm text-gray-500">Copie as variáveis abaixo e cole no seu contrato ao editá-lo no Word ou LibreOffice.</p>
+	</div>
+	<a href="{% url 'documentos:lista_modelos' %}"
+	   class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2 transition-colors">
+		<i class="ti ti-arrow-left text-base"></i> Modelos
+	</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div x-data="{
+		busca: '',
+		copiado: '',
+		copiar(slug) {
+			navigator.clipboard.writeText('{' + '{ ' + slug + ' }' + '}').then(() => {
+				this.copiado = slug
+				setTimeout(() => { if (this.copiado === slug) this.copiado = '' }, 1500)
+			})
+		},
+		visivel(label, slug) {
+			const b = this.busca.trim().toLowerCase()
+			return !b || label.toLowerCase().includes(b) || slug.toLowerCase().includes(b)
+		},
+	}" class="space-y-4">
+
+	<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+		{% verbatim %}Use apenas <code class="font-mono">{{ variavel }}</code>. Blocos <code class="font-mono">{% %}</code> não são permitidos.{% endverbatim %}
+	</div>
+
+	<section id="modelos-exemplo" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+		<div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+			<h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Modelos de exemplo</h2>
+		</div>
+		<div class="px-4 py-3 space-y-3">
+			<p class="text-sm text-gray-600">Baixe, edite no Word ou LibreOffice e envie como novo modelo.</p>
+			<div class="flex flex-wrap gap-2">
+				{% for exemplo in exemplos %}
+				<a href="{{ exemplo.url }}"
+				   class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2 transition-colors">
+					<i class="ti ti-download text-base"></i> {{ exemplo.titulo }}
+				</a>
+				{% endfor %}
+			</div>
+			<div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+				Use Times New Roman ou Arial para que o PDF mantenha a paginação do Word
+			</div>
+		</div>
+	</section>
+
+	<input type="search" x-model="busca" placeholder="Buscar por nome ou variável..." class="form-input w-full">
+
+	{% for categoria in categorias %}
+	<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+		<div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+			<h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ categoria.rotulo }}</h2>
+		</div>
+		<ul class="divide-y divide-gray-100">
+			{% for variavel in categoria.variaveis %}
+			<li x-show="visivel('{{ variavel.label|escapejs }}', '{{ variavel.slug|escapejs }}')"
+			    class="flex items-center justify-between gap-4 px-4 py-3">
+				<div class="min-w-0">
+					<p class="text-sm font-medium text-gray-800">{{ variavel.label }}</p>
+					<code class="text-xs font-mono text-gray-500">{{ variavel.slug }}</code>
+				</div>
+				<button type="button" @click="copiar('{{ variavel.slug|escapejs }}')"
+				        class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-md border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 transition-colors"
+				        :class="copiado === '{{ variavel.slug|escapejs }}' ? 'border-green-300 text-green-700 bg-green-50' : ''">
+					<i class="ti ti-copy text-sm"></i>
+					<span x-text="copiado === '{{ variavel.slug|escapejs }}' ? 'Copiado!' : 'Copiar'"></span>
+				</button>
+			</li>
+			{% endfor %}
+		</ul>
+	</div>
+	{% empty %}
+	<p class="text-sm text-gray-500">Nenhuma variável cadastrada.</p>
+	{% endfor %}
+</div>
+{% endblock %}

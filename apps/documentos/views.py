@@ -1,37 +1,151 @@
 import json
+import logging
+from datetime import timedelta
 
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
-from django.http import Http404, HttpResponse, JsonResponse
+from django.db import connection
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_POST
+from django.utils.text import slugify
+from django.views.decorators.http import require_GET, require_POST
 
 from apps.contratos.models import Contrato
 
+from .forms import ModeloDocumentoUploadForm, SubstituirArquivoModeloForm
 from .models import (
 	ContratoDocumentoGerado,
 	ModeloDocumento,
 	ModeloDocumentoHistorico,
 	VariavelDocumento,
 )
-from .services import RE_TAG_PROIBIDA, salvar_documento_gerado
+from .services import (
+	MODELOS_PADRAO_DOCX,
+	RE_TAG_PROIBIDA,
+	caminho_modelo_padrao_docx,
+	salvar_documento_gerado,
+)
+from .tasks import gerar_documento_docx
+
+logger = logging.getLogger(__name__)
+
+TIMEOUT_GERACAO = timedelta(minutes=5)
+CONTENT_TYPE_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+
+def _render_lista(request, form_novo=None):
+	return render(request, 'documentos/lista_modelos.html', {
+		'modelos': ModeloDocumento.objects.filter(ativo=True),
+		'form_novo': form_novo or ModeloDocumentoUploadForm(),
+		'abrir_modal': form_novo is not None,
+		'max_mb': settings.DOCUMENTO_MODELO_MAX_MB,
+	})
+
+
+def _avisar_desconhecidas(request, analise):
+	desconhecidas = analise['desconhecidas']
+	if not desconhecidas:
+		return
+	nomes = ', '.join(desconhecidas[:10])
+	extra = f' e mais {len(desconhecidas) - 10}' if len(desconhecidas) > 10 else ''
+	messages.warning(
+		request,
+		f'Variáveis fora do catálogo (não serão preenchidas): {nomes}{extra}.',
+	)
 
 
 @login_required
 def lista_modelos(request):
-	modelos = ModeloDocumento.objects.filter(ativo=True)
-	return render(request, 'documentos/lista_modelos.html', {'modelos': modelos})
+	return _render_lista(request)
+
+
+@login_required
+def variaveis_documento(request):
+	variaveis = VariavelDocumento.objects.filter(ativo=True).order_by('categoria', 'label')
+	rotulos = dict(VariavelDocumento.CATEGORIA_CHOICES)
+	grupos = {}
+	for variavel in variaveis:
+		grupos.setdefault(variavel.categoria, []).append(variavel)
+	categorias = [
+		{'chave': chave, 'rotulo': rotulos.get(chave, chave), 'variaveis': itens}
+		for chave, itens in grupos.items()
+	]
+	exemplos = [
+		{'tipo': tipo, 'titulo': dados['titulo'], 'url': reverse('documentos:download_modelo_exemplo', args=[tipo])}
+		for tipo, dados in MODELOS_PADRAO_DOCX.items()
+	]
+	return render(request, 'documentos/variaveis.html', {'categorias': categorias, 'exemplos': exemplos})
+
+
+@login_required
+@require_GET
+def download_modelo_exemplo(request, tipo):
+	# `tipo` só vale se for chave da lista fixa; o caminho vem do pacote, nunca da URL.
+	if tipo not in MODELOS_PADRAO_DOCX:
+		raise Http404('Modelo de exemplo inexistente.')
+	caminho = caminho_modelo_padrao_docx(tipo)
+	return FileResponse(
+		open(caminho, 'rb'),
+		as_attachment=True,
+		filename=caminho.name,
+		content_type=CONTENT_TYPE_DOCX,
+	)
 
 
 @login_required
 @require_POST
 def criar_modelo(request):
-	titulo = request.POST.get('titulo', '').strip()
-	tipo = request.POST.get('tipo', 'outro')
-	if titulo:
-		modelo = ModeloDocumento.objects.create(titulo=titulo, tipo=tipo)
-		return redirect('documentos:editor_modelo', pk=modelo.pk)
+	form = ModeloDocumentoUploadForm(request.POST, request.FILES)
+	if not form.is_valid():
+		return _render_lista(request, form_novo=form)
+	modelo = form.save()
+	messages.success(request, f'Modelo "{modelo.titulo}" criado.')
+	_avisar_desconhecidas(request, form.analise)
+	return redirect('documentos:lista_modelos')
+
+
+@login_required
+def download_modelo(request, pk):
+	modelo = get_object_or_404(ModeloDocumento, pk=pk)
+	if not modelo.arquivo:
+		raise Http404('Modelo sem arquivo.')
+
+	arquivo = modelo.arquivo.storage.open(modelo.arquivo.name, 'rb')
+	nome = f'{slugify(modelo.titulo) or "modelo"}.docx'
+	return FileResponse(
+		arquivo,
+		as_attachment=True,
+		filename=nome,
+		content_type=CONTENT_TYPE_DOCX,
+	)
+
+
+@login_required
+@require_POST
+def substituir_arquivo_modelo(request, pk):
+	modelo = get_object_or_404(ModeloDocumento, pk=pk)
+	nome_antigo = modelo.arquivo.name if modelo.arquivo else ''
+	storage = modelo.arquivo.storage
+
+	form = SubstituirArquivoModeloForm(request.POST, request.FILES, instance=modelo)
+	if not form.is_valid():
+		for erro in form.errors.get('arquivo', []):
+			messages.error(request, erro)
+		return redirect('documentos:lista_modelos')
+
+	modelo = form.save()
+	if nome_antigo and nome_antigo != modelo.arquivo.name:
+		try:
+			storage.delete(nome_antigo)
+		except Exception:
+			logger.warning('Falha ao remover arquivo antigo do modelo %s: %s', modelo.pk, nome_antigo, exc_info=True)
+	messages.success(request, f'Arquivo do modelo "{modelo.titulo}" substituído.')
+	_avisar_desconhecidas(request, form.analise)
 	return redirect('documentos:lista_modelos')
 
 
@@ -97,6 +211,20 @@ def gerar_documento(request):
 		pk=payload.get('contrato_id'),
 	)
 
+	if modelo.arquivo:
+		documento = ContratoDocumentoGerado.objects.create(
+			contrato=contrato,
+			modelo=modelo,
+			titulo=f'{modelo.titulo} — Contrato {contrato.numero}',
+			status='pendente',
+			gerado_por=request.user,
+		)
+		gerar_documento_docx.delay(connection.schema_name, str(documento.pk))
+		return JsonResponse(
+			{'id': str(documento.pk), 'status_url': reverse('documentos:status_documento', args=[documento.pk])},
+			status=202,
+		)
+
 	documento = salvar_documento_gerado(contrato, modelo, request.user)
 
 	if not documento.arquivo_pdf:
@@ -111,13 +239,30 @@ def gerar_documento(request):
 def download_documento(request, pk):
 	documento = get_object_or_404(ContratoDocumentoGerado, pk=pk)
 
-	if not documento.arquivo_pdf:
+	if documento.status != 'gerado' or not documento.arquivo_pdf:
 		raise Http404('Documento sem PDF gerado.')
 
 	response = HttpResponse(documento.arquivo_pdf.read(), content_type='application/pdf')
 	filename = documento.arquivo_pdf.name.rsplit('/', 1)[-1]
 	response['Content-Disposition'] = f'attachment; filename="{filename}"'
 	return response
+
+
+@login_required
+@require_GET
+def status_documento(request, pk):
+	documento = get_object_or_404(ContratoDocumentoGerado, pk=pk)
+
+	if documento.status in ('pendente', 'processando') and timezone.now() - documento.gerado_em > TIMEOUT_GERACAO:
+		documento.status = 'erro'
+		documento.erro_msg = 'Tempo esgotado na geração do documento.'
+		documento.save(update_fields=['status', 'erro_msg'])
+
+	download_url = None
+	if documento.status == 'gerado' and documento.arquivo_pdf:
+		download_url = reverse('documentos:download_documento', args=[documento.pk])
+
+	return JsonResponse({'status': documento.status, 'erro': documento.erro_msg, 'download_url': download_url})
 
 
 @login_required

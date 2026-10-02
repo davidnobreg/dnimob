@@ -153,5 +153,10 @@
     "model": "documentos.variaveldocumento",
     "pk": 31,
     "fields": {"slug": "data.data_atual_extenso", "label": "Data Atual por Extenso", "categoria": "data", "ativo": true}
+  },
+  {
+    "model": "documentos.variaveldocumento",
+    "pk": 32,
+    "fields": {"slug": "inquilino.fiador_texto", "label": "Texto do Fiador (cláusula completa)", "categoria": "fiador", "ativo": true}
   }
 ]

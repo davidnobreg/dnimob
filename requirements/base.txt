@@ -19,6 +19,7 @@ redis==5.2.0
 xhtml2pdf==0.2.17
 Pillow==11.0.0
 python-docx==1.1.2
+docxtpl==0.20.2
 openpyxl==3.1.5
 qrcode==8.0
 reportlab==4.2.5

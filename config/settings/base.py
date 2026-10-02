@@ -178,6 +178,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10MB
 
+# Modelos de documento (.docx enviados pelo tenant)
+DOCUMENTO_MODELO_MAX_MB = 2
+DOCUMENTO_MODELO_MAX_DESCOMPACTADO_MB = 20   # proteção contra zip bomb
+DOCUMENTO_MODELO_MAX_ENTRADAS_ZIP = 500
+
+# Conversão .docx -> PDF via LibreOffice headless (worker da fila `docx`)
+DOCUMENTO_SOFFICE_BIN = env('DOCUMENTO_SOFFICE_BIN', default='soffice')
+DOCUMENTO_SOFFICE_TIMEOUT = 60
+
 # ─────────────────────────────────────────────
 # CACHE (Redis nativo — usado pelo token Sicredi por tenant)
 # ─────────────────────────────────────────────
@@ -200,6 +209,7 @@ CELERY_RESULT_EXTENDED = True
 # Tasks da integração Sicredi rodam na fila financeiro
 CELERY_TASK_ROUTES = {
 	'apps.sicredi.tasks.*': {'queue': 'financeiro'},
+	'apps.documentos.tasks.*': {'queue': 'docx'},
 }
 
 from celery.schedules import crontab

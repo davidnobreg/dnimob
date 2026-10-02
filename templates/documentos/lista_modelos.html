@@ -2,33 +2,68 @@
 {% block title %}Modelos de Documento{% endblock %}
 
 {% block page_header %}
-<div class="flex items-center justify-between" x-data="{ modalNovoModelo: false }">
+<div class="flex items-center justify-between" x-data="{
+		modalNovoModelo: {{ abrir_modal|yesno:'true,false' }},
+		erroArquivo: '',
+		maxMb: {{ max_mb }},
+		checarArquivo(input) {
+			const f = input.files[0]
+			this.erroArquivo = ''
+			if (!f) return
+			if (!f.name.toLowerCase().endsWith('.docx')) {
+				this.erroArquivo = 'Envie um arquivo .docx.'
+				input.value = ''
+			} else if (f.size > this.maxMb * 1024 * 1024) {
+				this.erroArquivo = 'Arquivo acima de ' + this.maxMb + ' MB.'
+				input.value = ''
+			}
+		},
+	}">
 	<div>
 		<h1 class="text-xl font-semibold text-gray-900">Modelos de Documento</h1>
 		<p class="text-sm text-gray-500">Contratos, distratos e recibos usados na geração de documentos.</p>
 	</div>
-	<button type="button" @click="modalNovoModelo = true"
-	        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 transition-colors">
-		<i class="ti ti-plus text-base"></i> Novo Modelo
-	</button>
+	<div class="flex items-center gap-2">
+		<a href="{% url 'documentos:variaveis' %}"
+		   class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold px-4 py-2 transition-colors">
+			<i class="ti ti-braces text-base"></i> Variáveis
+		</a>
+		<button type="button" @click="modalNovoModelo = true"
+		        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 transition-colors">
+			<i class="ti ti-plus text-base"></i> Novo Modelo
+		</button>
+	</div>
 
 	<div x-show="modalNovoModelo" x-cloak
 	     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 	     @keydown.escape.window="modalNovoModelo = false">
 		<div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" @click.outside="modalNovoModelo = false">
 			<h3 class="text-lg font-semibold text-gray-900 mb-4">Novo Modelo de Documento</h3>
-			<form method="post" action="{% url 'documentos:criar_modelo' %}">
+			<form method="post" action="{% url 'documentos:criar_modelo' %}" enctype="multipart/form-data">
 				{% csrf_token %}
 				<label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
-				<input type="text" name="titulo" required class="form-input w-full mb-4" placeholder="Ex: Contrato Residencial Padrão">
+				<input type="text" name="titulo" required maxlength="200" value="{{ form_novo.titulo.value|default:'' }}"
+				       class="form-input w-full mb-1" placeholder="Ex: Contrato Residencial Padrão">
+				{% for erro in form_novo.titulo.errors %}<p class="text-xs text-red-600 mb-2">{{ erro }}</p>{% endfor %}
 
-				<label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+				<label class="block text-sm font-medium text-gray-700 mb-1 mt-3">Tipo</label>
 				<select name="tipo" class="form-input w-full mb-4">
-					<option value="contrato">Contrato de Locação</option>
-					<option value="distrato">Distrato</option>
-					<option value="recibo">Recibo de Pagamento</option>
-					<option value="outro">Outro</option>
+					{% for valor, rotulo in form_novo.fields.tipo.choices %}
+					<option value="{{ valor }}" {% if form_novo.tipo.value == valor %}selected{% endif %}>{{ rotulo }}</option>
+					{% endfor %}
 				</select>
+
+				<label class="block text-sm font-medium text-gray-700 mb-1">Arquivo (.docx)</label>
+				<input type="file" name="arquivo" required accept=".docx"
+				       @change="checarArquivo($event.target)"
+				       class="block w-full text-sm text-gray-600 mb-1">
+				<p x-show="erroArquivo" x-text="erroArquivo" class="text-xs text-red-600 mb-1"></p>
+				{% for erro in form_novo.arquivo.errors %}<p class="text-xs text-red-600 mb-1">{{ erro }}</p>{% endfor %}
+				<p class="text-xs text-gray-500 mb-4">
+					Máximo de {{ max_mb }} MB. {% verbatim %}Use apenas <code class="font-mono">{{ variavel }}</code> no texto.{% endverbatim %}
+					<a href="{% url 'documentos:variaveis' %}" target="_blank" class="text-blue-600 hover:underline">Ver variáveis disponíveis</a>
+					· <a href="{% url 'documentos:variaveis' %}#modelos-exemplo" target="_blank" class="text-blue-600 hover:underline">Baixar modelos de exemplo</a>
+				</p>
 
 				<div class="flex justify-end gap-3">
 					<button type="button" @click="modalNovoModelo = false"
@@ -37,7 +72,7 @@
 					</button>
 					<button type="submit"
 					        class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-						Criar e Editar
+						Criar modelo
 					</button>
 				</div>
 			</form>
@@ -71,11 +106,30 @@
 				<td class="px-4 py-3 text-gray-600">{{ modelo.get_tipo_display }}</td>
 				<td class="px-4 py-3 text-gray-500">{{ modelo.atualizado_em|date:"d/m/Y H:i" }}</td>
 				<td class="px-4 py-3 text-right">
-					<a href="{% url 'documentos:editor_modelo' modelo.pk %}"
-					   class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium">
-						<i class="ti ti-edit text-base"></i> Editar
-					</a>
-				</td>
+						{% if modelo.arquivo %}
+						<div class="inline-flex items-center gap-4"
+						     x-data="{ erro: '' }">
+							<a href="{% url 'documentos:download_modelo' modelo.pk %}"
+							   class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium">
+								<i class="ti ti-download text-base"></i> Baixar
+							</a>
+							<form method="post" action="{% url 'documentos:substituir_arquivo_modelo' modelo.pk %}" enctype="multipart/form-data">
+								{% csrf_token %}
+								<input type="file" name="arquivo" accept=".docx" class="hidden" x-ref="arq"
+								       @change="const f = $el.files[0]; if (f && f.size > {{ max_mb }} * 1024 * 1024) { alert('Arquivo acima de {{ max_mb }} MB.'); $el.value = '' } else if (f) { $el.form.submit() }">
+								<button type="button" @click="$refs.arq.click()"
+								        class="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 font-medium">
+									<i class="ti ti-refresh text-base"></i> Substituir arquivo
+								</button>
+							</form>
+						</div>
+						{% else %}
+						<a href="{% url 'documentos:editor_modelo' modelo.pk %}"
+						   class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium">
+							<i class="ti ti-edit text-base"></i> Editar
+						</a>
+						{% endif %}
+					</td>
 			</tr>
 			{% empty %}
 			<tr>

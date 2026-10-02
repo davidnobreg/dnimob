@@ -3,7 +3,9 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from apps.core.storage import upload_to_documentos_contratos
+from apps.core.storage import upload_to_documentos_contratos, upload_to_documentos_modelos
+
+from .validators import ValidarDocx, validar_extensao_docx, validar_tamanho_modelo
 
 
 class ModeloDocumento(models.Model):
@@ -18,6 +20,10 @@ class ModeloDocumento(models.Model):
     titulo = models.CharField('Título', max_length=200)
     tipo = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES, default='outro')
     conteudo_html = models.TextField('Conteúdo', blank=True, default='')
+    arquivo = models.FileField(
+        'Arquivo .docx', upload_to=upload_to_documentos_modelos, null=True, blank=True,
+        validators=[validar_extensao_docx, validar_tamanho_modelo, ValidarDocx()],
+    )
     ativo = models.BooleanField('Ativo', default=True)
     padrao = models.BooleanField(
         'Padrão do sistema', default=False,
@@ -75,6 +81,8 @@ class VariavelDocumento(models.Model):
 
 class ContratoDocumentoGerado(models.Model):
     STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('processando', 'Processando'),
         ('gerado', 'Gerado'),
         ('erro', 'Erro na geração'),
     ]
@@ -87,11 +95,12 @@ class ContratoDocumentoGerado(models.Model):
         ModeloDocumento, on_delete=models.SET_NULL, null=True, related_name='documentos_gerados'
     )
     titulo = models.CharField('Título', max_length=200)
-    conteudo_final_html = models.TextField('Conteúdo renderizado')
+    conteudo_final_html = models.TextField('Conteúdo renderizado', blank=True, default='')
     arquivo_pdf = models.FileField(
         'PDF', upload_to=upload_to_documentos_contratos, null=True, blank=True
     )
     status = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='gerado')
+    erro_msg = models.TextField('Mensagem de erro', blank=True, default='')
     gerado_em = models.DateTimeField(auto_now_add=True)
     gerado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True

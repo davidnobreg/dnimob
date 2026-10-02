@@ -36,6 +36,10 @@ def upload_to_documentos_contratos(instance, filename):
 	return f'{_tenant_prefix()}/documentos/contratos/{now.year}/{now.month:02d}/{uuid.uuid4().hex}{ext}'
 
 
+def upload_to_documentos_modelos(instance, filename):
+	return f'{_tenant_prefix()}/documentos/modelos/{uuid.uuid4().hex}.docx'
+
+
 def upload_to_tenant_logos(instance, filename):
 	ext = os.path.splitext(filename)[1].lower()
 	schema = getattr(instance, 'schema_name', None) or 'shared'
