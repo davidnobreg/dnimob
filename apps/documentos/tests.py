@@ -1182,6 +1182,122 @@ class BackfillModelosPadraoDocxTests(StorageTemporarioMixin, TenantTestCase):
         self.assertIn('Resumo: criados=3 já existentes=0 variáveis novas=32 erros=0', saida.getvalue())
 
 
+class ArquivarModelosLegadosTests(StorageTemporarioMixin, TenantTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.schema = self.tenant.schema_name
+        self.legados = {
+            tipo: ModeloDocumento.objects.create(
+                titulo=dados['titulo'].removesuffix(' (DOCX)'), tipo=tipo, padrao=True,
+                conteudo_html=f'<p>legado {tipo}</p>',
+            )
+            for tipo, dados in MODELOS_PADRAO_DOCX.items()
+        }
+        self.personalizado = ModeloDocumento.objects.create(
+            titulo='Meu contrato', tipo='contrato', padrao=False, conteudo_html='<p>do cliente</p>',
+        )
+        criar_modelos_padrao_docx()
+
+    def _rodar(self, **kwargs):
+        saida = io.StringIO()
+        call_command('arquivar_modelos_legados', stdout=saida, stderr=io.StringIO(), **kwargs)
+        return saida.getvalue()
+
+    def _ativo(self, modelo):
+        return ModeloDocumento.objects.get(pk=modelo.pk).ativo
+
+    def _tenant_sem_schema(self, nome='imob_a_falha'):
+        tenant = Tenant(
+            schema_name=nome, nome='Sem schema', email='x@y.com',
+            plano=Plano.objects.filter(ativo=True).first(), provisionamento_status='pronto',
+        )
+        tenant.auto_create_schema = False
+        with schema_context(get_public_schema_name()):
+            tenant.save()
+        return tenant
+
+    def test_sem_schema_nem_all_aborta(self):
+        with self.assertRaises(CommandError):
+            self._rodar()
+
+    def test_padrao_com_equivalente_docx_e_desativado(self):
+        saida = self._rodar(schema=self.schema)
+
+        for legado in self.legados.values():
+            self.assertFalse(self._ativo(legado))
+        self.assertTrue(self._ativo(self.personalizado))
+        self.assertEqual(ModeloDocumento.objects.filter(ativo=True).exclude(arquivo='').count(), 3)
+        self.assertEqual(ModeloDocumento.objects.count(), 7)
+        self.assertIn('desativados=3', saida)
+
+    def test_sem_equivalente_docx_e_ignorado(self):
+        ModeloDocumento.objects.get(titulo=MODELOS_PADRAO_DOCX['distrato']['titulo']).delete()
+
+        saida = self._rodar(schema=self.schema)
+
+        self.assertTrue(self._ativo(self.legados['distrato']))
+        self.assertFalse(self._ativo(self.legados['contrato']))
+        self.assertIn('ignorados (sem equivalente DOCX)=1', saida)
+        self.assertIn('Resumo: desativados=2 ignorados=1', saida)
+
+    def test_equivalente_docx_inativo_nao_conta(self):
+        ModeloDocumento.objects.filter(titulo=MODELOS_PADRAO_DOCX['recibo']['titulo']).update(ativo=False)
+
+        self._rodar(schema=self.schema)
+
+        self.assertTrue(self._ativo(self.legados['recibo']))
+
+    def test_personalizado_so_e_listado(self):
+        saida = self._rodar(all=True)
+
+        self.assertTrue(self._ativo(self.personalizado))
+        self.assertIn(str(self.personalizado.pk), saida)
+        self.assertIn('Meu contrato', saida)
+        self.assertIn(f'conteudo_html={len(self.personalizado.conteudo_html)} chars', saida)
+        self.assertIn('personalizados listados=1', saida)
+
+    def test_incluir_personalizados_com_schema_desativa(self):
+        self._rodar(schema=self.schema, incluir_personalizados=True)
+
+        self.assertFalse(self._ativo(self.personalizado))
+        self.assertEqual(ModeloDocumento.objects.count(), 7)
+
+    def test_incluir_personalizados_com_all_aborta(self):
+        with self.assertRaises(CommandError):
+            self._rodar(all=True, incluir_personalizados=True)
+
+        self.assertTrue(self._ativo(self.personalizado))
+        self.assertTrue(all(self._ativo(m) for m in self.legados.values()))
+
+    def test_segunda_execucao_e_noop(self):
+        self._rodar(schema=self.schema, incluir_personalizados=True)
+        estado = list(ModeloDocumento.objects.order_by('pk').values_list('pk', 'ativo', 'atualizado_em'))
+
+        saida = self._rodar(schema=self.schema, incluir_personalizados=True)
+
+        self.assertEqual(list(ModeloDocumento.objects.order_by('pk').values_list('pk', 'ativo', 'atualizado_em')), estado)
+        self.assertIn('Resumo: desativados=0 ignorados=0 personalizados=0 erros=0', saida)
+
+    def test_dry_run_nao_grava(self):
+        estado = list(ModeloDocumento.objects.order_by('pk').values_list('pk', 'ativo', 'atualizado_em'))
+
+        saida = self._rodar(schema=self.schema, incluir_personalizados=True, dry_run=True)
+
+        self.assertEqual(list(ModeloDocumento.objects.order_by('pk').values_list('pk', 'ativo', 'atualizado_em')), estado)
+        self.assertIn('DRY-RUN', saida)
+        self.assertIn('desativados=4', saida)
+
+    def test_falha_em_um_tenant_nao_interrompe_os_outros_e_sai_com_erro(self):
+        self._tenant_sem_schema()
+
+        with self.assertRaises(CommandError) as ctx:
+            self._rodar(all=True)
+
+        self.assertIn('1 tenant(s) com erro', str(ctx.exception))
+        self.assertFalse(any(self._ativo(m) for m in self.legados.values()))
+
+
 class DownloadModeloExemploTests(TenantTestCase):
 
     def setUp(self):
