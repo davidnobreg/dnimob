@@ -360,11 +360,14 @@ def criar_modelos_padrao_docx(dry_run=False):
     Garante os modelos .docx padrão no schema corrente. Idempotente por item:
     só cria o que não existe (padrao=True, com arquivo, mesmo título).
     Nunca altera nem remove modelos existentes.
-    Retorna {'criados': [títulos], 'existentes': [títulos]}; com dry_run não grava.
+    Cada modelo criado vira `predefinido` do seu tipo SOMENTE se o tenant ainda não tem
+    predefinido ativo nesse tipo.
+    Retorna {'criados': [títulos], 'existentes': [títulos], 'predefinidos': [títulos]};
+    com dry_run não grava (predefinidos conta o que seria marcado).
     """
     from .models import ModeloDocumento
 
-    resultado = {'criados': [], 'existentes': []}
+    resultado = {'criados': [], 'existentes': [], 'predefinidos': []}
     for tipo, dados in MODELOS_PADRAO_DOCX.items():
         existe = (
             ModeloDocumento.objects.filter(padrao=True, titulo=dados['titulo'])
@@ -373,8 +376,11 @@ def criar_modelos_padrao_docx(dry_run=False):
         if existe:
             resultado['existentes'].append(dados['titulo'])
             continue
+        predefinir = not ModeloDocumento.objects.filter(tipo=tipo, predefinido=True, ativo=True).exists()
         if not dry_run:
-            modelo = ModeloDocumento(titulo=dados['titulo'], tipo=tipo, padrao=True, ativo=True)
+            modelo = ModeloDocumento(
+                titulo=dados['titulo'], tipo=tipo, padrao=True, ativo=True, predefinido=predefinir,
+            )
             modelo.arquivo.save(
                 dados['arquivo'],
                 ContentFile(caminho_modelo_padrao_docx(tipo).read_bytes()),
@@ -386,6 +392,8 @@ def criar_modelos_padrao_docx(dry_run=False):
                 modelo.arquivo.storage.delete(modelo.arquivo.name)
                 raise
         resultado['criados'].append(dados['titulo'])
+        if predefinir:
+            resultado['predefinidos'].append(dados['titulo'])
     return resultado
 
 

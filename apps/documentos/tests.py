@@ -23,7 +23,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.conf import settings
-from django.db import IntegrityError
+from django.contrib.messages import get_messages
+from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -1296,6 +1297,189 @@ class ArquivarModelosLegadosTests(StorageTemporarioMixin, TenantTestCase):
 
         self.assertIn('1 tenant(s) com erro', str(ctx.exception))
         self.assertFalse(any(self._ativo(m) for m in self.legados.values()))
+
+
+class ModeloPredefinidoTests(StorageTemporarioMixin, TenantTestCase):
+
+    def setUp(self):
+        super().setUp()
+        User = get_user_model()
+        User.objects.create_user(username='tester', password='senha123')
+        self.client.login(username='tester', password='senha123')
+        self.a = self._docx('Contrato A', 'contrato')
+        self.b = self._docx('Contrato B', 'contrato')
+        self.recibo = self._docx('Recibo A', 'recibo')
+
+    def _docx(self, titulo, tipo, **kwargs):
+        modelo = ModeloDocumento(titulo=titulo, tipo=tipo, **kwargs)
+        modelo.arquivo.save('m.docx', ContentFile(b'x'), save=False)
+        modelo.save()
+        return modelo
+
+    def _definir(self, modelo, logado=True):
+        if not logado:
+            self.client.logout()
+        return self.client.post(
+            reverse('documentos:definir_predefinido', args=[modelo.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+    def _predefinidos(self, tipo):
+        return set(ModeloDocumento.objects.filter(tipo=tipo, predefinido=True).values_list('titulo', flat=True))
+
+    def test_marca_e_mostra_mensagem_e_redireciona(self):
+        resp = self._definir(self.a)
+
+        self.assertRedirects(resp, reverse('documentos:lista_modelos'), fetch_redirect_response=False)
+        self.assertEqual(self._predefinidos('contrato'), {'Contrato A'})
+        msgs = [str(m) for m in get_messages(resp.wsgi_request)]
+        self.assertTrue(any('Contrato A' in m for m in msgs))
+
+    def test_trocar_mantem_um_so_por_tipo(self):
+        self._definir(self.a)
+        self._definir(self.recibo)
+        self._definir(self.b)
+
+        self.assertEqual(self._predefinidos('contrato'), {'Contrato B'})
+        self.assertEqual(self._predefinidos('recibo'), {'Recibo A'})
+
+    def test_marcar_o_ja_predefinido_e_idempotente(self):
+        self._definir(self.a)
+        self._definir(self.a)
+
+        self.assertEqual(self._predefinidos('contrato'), {'Contrato A'})
+
+    def test_modelo_sem_arquivo_e_recusado(self):
+        html = ModeloDocumento.objects.create(titulo='HTML', tipo='contrato', conteudo_html='<p>x</p>')
+
+        self._definir(html)
+
+        self.assertFalse(ModeloDocumento.objects.get(pk=html.pk).predefinido)
+
+    def test_modelo_inativo_e_recusado(self):
+        ModeloDocumento.objects.filter(pk=self.b.pk).update(ativo=False)
+
+        self._definir(self.b)
+
+        self.assertFalse(ModeloDocumento.objects.get(pk=self.b.pk).predefinido)
+
+    def test_anonimo_e_redirecionado_para_login(self):
+        resp = self._definir(self.a, logado=False)
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('login', resp['Location'])
+        self.assertFalse(ModeloDocumento.objects.get(pk=self.a.pk).predefinido)
+
+    def test_get_nao_e_permitido(self):
+        resp = self.client.get(reverse('documentos:definir_predefinido', args=[self.a.pk]), HTTP_HOST=self.domain.domain)
+
+        self.assertEqual(resp.status_code, 405)
+
+    def test_constraint_impede_dois_ativos_predefinidos_no_mesmo_tipo(self):
+        ModeloDocumento.objects.filter(pk=self.a.pk).update(predefinido=True)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ModeloDocumento.objects.filter(pk=self.b.pk).update(predefinido=True)
+
+    def test_desativar_via_save_desmarca_predefinido(self):
+        self._definir(self.a)
+        modelo = ModeloDocumento.objects.get(pk=self.a.pk)
+
+        modelo.ativo = False
+        modelo.save(update_fields=['ativo'])
+
+        self.assertEqual(self._predefinidos('contrato'), set())
+        self._definir(self.b)
+        self.assertEqual(self._predefinidos('contrato'), {'Contrato B'})
+
+    def test_excluir_predefinido_deixa_tipo_sem_predefinido(self):
+        self._definir(self.a)
+
+        ModeloDocumento.objects.get(pk=self.a.pk).delete()
+
+        self.assertEqual(self._predefinidos('contrato'), set())
+
+    def test_lista_mostra_botao_e_selo(self):
+        self._definir(self.a)
+
+        html = self.client.get(reverse('documentos:lista_modelos'), HTTP_HOST=self.domain.domain).content.decode()
+
+        self.assertEqual(html.count('Padrão da imobiliária'), 1)
+        self.assertEqual(html.count('Definir como padrão'), 2)  # b e recibo; a já é o padrão
+        self.assertIn(reverse('documentos:definir_predefinido', args=[self.b.pk]), html)
+        self.assertNotIn(reverse('documentos:definir_predefinido', args=[self.a.pk]), html)
+
+    def test_lista_nao_oferece_botao_para_modelo_sem_arquivo(self):
+        html_modelo = ModeloDocumento.objects.create(titulo='HTML', tipo='outro', conteudo_html='<p>x</p>')
+
+        html = self.client.get(reverse('documentos:lista_modelos'), HTTP_HOST=self.domain.domain).content.decode()
+
+        self.assertNotIn(reverse('documentos:definir_predefinido', args=[html_modelo.pk]), html)
+
+
+class PredefinidoNosModelosPadraoTests(StorageTemporarioMixin, TenantTestCase):
+
+    def _predefinidos(self):
+        return set(ModeloDocumento.objects.filter(predefinido=True, ativo=True).values_list('tipo', flat=True))
+
+    def test_tenant_novo_marca_um_por_tipo(self):
+        resultado = criar_modelos_padrao_docx()
+
+        self.assertEqual(self._predefinidos(), {'contrato', 'distrato', 'recibo'})
+        self.assertEqual(len(resultado['predefinidos']), 3)
+
+    def test_nao_marca_quando_tipo_ja_tem_predefinido(self):
+        custom = ModeloDocumento(titulo='Meu contrato', tipo='contrato', predefinido=True)
+        custom.arquivo.save('c.docx', ContentFile(b'x'), save=False)
+        custom.save()
+
+        resultado = criar_modelos_padrao_docx()
+
+        self.assertEqual(
+            list(ModeloDocumento.objects.filter(tipo='contrato', predefinido=True)), [custom],
+        )
+        self.assertEqual(self._predefinidos(), {'contrato', 'distrato', 'recibo'})
+        self.assertNotIn(MODELOS_PADRAO_DOCX['contrato']['titulo'], resultado['predefinidos'])
+
+    def test_predefinido_inativo_nao_bloqueia(self):
+        antigo = ModeloDocumento.objects.create(titulo='Antigo', tipo='contrato', ativo=False)
+        ModeloDocumento.objects.filter(pk=antigo.pk).update(predefinido=True)
+
+        criar_modelos_padrao_docx()
+
+        self.assertTrue(ModeloDocumento.objects.get(titulo=MODELOS_PADRAO_DOCX['contrato']['titulo']).predefinido)
+
+    def test_dry_run_conta_sem_gravar(self):
+        resultado = criar_modelos_padrao_docx(dry_run=True)
+
+        self.assertEqual(len(resultado['predefinidos']), 3)
+        self.assertEqual(ModeloDocumento.objects.count(), 0)
+
+    def test_segunda_execucao_nao_muda_nada(self):
+        criar_modelos_padrao_docx()
+        estado = list(ModeloDocumento.objects.order_by('pk').values_list('pk', 'predefinido', 'ativo'))
+
+        resultado = criar_modelos_padrao_docx()
+
+        self.assertEqual(list(ModeloDocumento.objects.order_by('pk').values_list('pk', 'predefinido', 'ativo')), estado)
+        self.assertEqual(resultado['predefinidos'], [])
+
+    def test_nao_remarca_se_o_cliente_trocou_o_predefinido(self):
+        criar_modelos_padrao_docx()
+        ModeloDocumento.objects.filter(tipo='contrato').update(predefinido=False)
+
+        criar_modelos_padrao_docx()  # DOCX já existe: não é criação, não marca de novo
+
+        self.assertEqual(self._predefinidos(), {'distrato', 'recibo'})
+
+    def test_comando_backfill_reporta_predefinidos(self):
+        saida = io.StringIO()
+        call_command(
+            'backfill_modelos_padrao_docx', schema=self.tenant.schema_name, dry_run=True,
+            stdout=saida, stderr=io.StringIO(),
+        )
+
+        self.assertIn('predefinidos=3', saida.getvalue())
+        self.assertEqual(ModeloDocumento.objects.count(), 0)
 
 
 class DownloadModeloExemploTests(TenantTestCase):

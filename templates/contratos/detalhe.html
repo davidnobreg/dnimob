@@ -4,7 +4,7 @@
 {% block title %}Contrato {{ contrato.numero }}{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto space-y-6" x-data="{ modalDocumento: false, modeloSelecionado: '', gerando: false, progresso: '' }">
+<div class="max-w-5xl mx-auto space-y-6" x-data="{ modalDocumento: false, modeloSelecionado: '{{ modelo_predefinido_id }}', gerando: false, progresso: '' }">
 
   {# Navegação #}
   <div class="flex items-center gap-3">
@@ -354,7 +354,7 @@
     <select x-model="modeloSelecionado" class="form-input w-full mb-4">
       <option value="">Selecione um modelo...</option>
       {% for modelo in modelos_documento %}
-      <option value="{{ modelo.pk }}">{{ modelo.titulo }}</option>
+      <option value="{{ modelo.pk }}">{{ modelo.titulo }}{% if modelo.predefinido %} (padrão){% endif %}</option>
       {% endfor %}
     </select>
 

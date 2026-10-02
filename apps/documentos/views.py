@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
-from django.db import connection
+from django.db import connection, transaction
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -106,6 +106,22 @@ def criar_modelo(request):
 	modelo = form.save()
 	messages.success(request, f'Modelo "{modelo.titulo}" criado.')
 	_avisar_desconhecidas(request, form.analise)
+	return redirect('documentos:lista_modelos')
+
+
+@login_required
+@require_POST
+def definir_predefinido(request, pk):
+	with transaction.atomic():
+		modelo = get_object_or_404(ModeloDocumento.objects.select_for_update(), pk=pk)
+		if not modelo.ativo or not modelo.arquivo:
+			messages.error(request, 'Só modelos ativos com arquivo .docx podem ser o padrão da imobiliária.')
+			return redirect('documentos:lista_modelos')
+		ModeloDocumento.objects.filter(tipo=modelo.tipo, predefinido=True).exclude(pk=modelo.pk).update(predefinido=False)
+		if not modelo.predefinido:
+			modelo.predefinido = True
+			modelo.save(update_fields=['predefinido'])
+	messages.success(request, f'"{modelo.titulo}" definido como padrão para {modelo.get_tipo_display()}.')
 	return redirect('documentos:lista_modelos')
 
 

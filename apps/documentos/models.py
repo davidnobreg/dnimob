@@ -1,6 +1,7 @@
 import uuid
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.storage import upload_to_documentos_contratos, upload_to_documentos_modelos
@@ -29,6 +30,10 @@ class ModeloDocumento(models.Model):
         'Padrão do sistema', default=False,
         help_text='Modelos padrão não podem ser excluídos, apenas editados.'
     )
+    predefinido = models.BooleanField(
+        'Padrão da imobiliária', default=False,
+        help_text='Modelo pré-selecionado na geração de documentos do tipo. Um por tipo.'
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -36,6 +41,21 @@ class ModeloDocumento(models.Model):
         verbose_name = 'Modelo de Documento'
         verbose_name_plural = 'Modelos de Documento'
         ordering = ['tipo', 'titulo']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tipo'], condition=Q(predefinido=True, ativo=True),
+                name='documentos_modelo_um_predefinido_ativo_por_tipo',
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        # Modelo inativo não pode ficar como predefinido do tipo.
+        if not self.ativo and self.predefinido:
+            self.predefinido = False
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None and 'predefinido' not in update_fields:
+                kwargs['update_fields'] = [*update_fields, 'predefinido']
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.get_tipo_display()} — {self.titulo}'

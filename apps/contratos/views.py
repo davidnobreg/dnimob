@@ -76,13 +76,19 @@ def contrato_detalhe(request, pk):
         'atrasadas': parcelas.filter(status='atrasado').count(),
     }
 
-    modelos_documento = ModeloDocumento.objects.filter(ativo=True).order_by('tipo', 'titulo')
+    modelos_documento = list(
+        ModeloDocumento.objects.filter(ativo=True).order_by('tipo', 'titulo')
+    )
+    # Predefinido do tipo primeiro (sort estável preserva a ordem atual no resto); sem predefinido, nada muda.
+    modelos_documento.sort(key=lambda m: not m.predefinido)
+    modelo_predefinido = next((m for m in modelos_documento if m.predefinido), None)
 
     return render(request, 'contratos/detalhe.html', {
         'contrato': contrato,
         'parcelas': parcelas,
         'resumo':   resumo,
         'modelos_documento': modelos_documento,
+        'modelo_predefinido_id': str(modelo_predefinido.pk) if modelo_predefinido else '',
     })
 
 

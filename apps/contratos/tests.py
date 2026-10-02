@@ -290,3 +290,43 @@ class ContratoDetalheModelosDocumentoTests(TenantTestCase):
         modelos = list(resp.context['modelos_documento'])
         self.assertIn(self.modelo, modelos)
         self.assertIn(com_arquivo, modelos)
+
+
+    def test_select_traz_predefinido_primeiro_e_selecionado(self):
+        predef = ModeloDocumento.objects.create(
+            titulo='Zeta DOCX', tipo='contrato', arquivo='tenants/x/documentos/modelos/z.docx', predefinido=True,
+        )
+
+        resp = self.client.get(
+            reverse('contrato_detalhe', args=[self.contrato.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        modelos = list(resp.context['modelos_documento'])
+        self.assertEqual(modelos[0], predef)
+        self.assertIn(self.modelo, modelos)
+        self.assertEqual(resp.context['modelo_predefinido_id'], str(predef.pk))
+        self.assertContains(resp, f"modeloSelecionado: '{predef.pk}'")
+
+    def test_select_sem_predefinido_mantem_ordem_e_nada_selecionado(self):
+        outro = ModeloDocumento.objects.create(titulo='Aaa', tipo='contrato', conteudo_html='<p>x</p>')
+
+        resp = self.client.get(
+            reverse('contrato_detalhe', args=[self.contrato.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertEqual(list(resp.context['modelos_documento']), [outro, self.modelo])
+        self.assertEqual(resp.context['modelo_predefinido_id'], '')
+        self.assertContains(resp, "modeloSelecionado: ''")
+
+    def test_select_ignora_predefinido_inativo(self):
+        inativo = ModeloDocumento.objects.create(
+            titulo='Inativo', tipo='contrato', arquivo='tenants/x/documentos/modelos/i.docx', ativo=False,
+        )
+        ModeloDocumento.objects.filter(pk=inativo.pk).update(predefinido=True)
+
+        resp = self.client.get(
+            reverse('contrato_detalhe', args=[self.contrato.pk]), HTTP_HOST=self.domain.domain,
+        )
+
+        self.assertNotIn(inativo, list(resp.context['modelos_documento']))
+        self.assertEqual(resp.context['modelo_predefinido_id'], '')

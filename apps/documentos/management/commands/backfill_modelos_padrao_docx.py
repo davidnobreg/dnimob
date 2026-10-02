@@ -38,7 +38,7 @@ class Command(BaseCommand):
 		if dry_run:
 			self.stdout.write('DRY-RUN: nada será gravado.')
 
-		total_criados = total_existentes = total_variaveis = erros = 0
+		total_criados = total_existentes = total_variaveis = total_predefinidos = erros = 0
 		for tenant in tenants:
 			try:
 				with schema_context(tenant.schema_name), transaction.atomic():
@@ -53,12 +53,16 @@ class Command(BaseCommand):
 			total_criados += criados
 			total_existentes += existentes
 			total_variaveis += variaveis
+			predefinidos = len(resultado['predefinidos'])
+			total_predefinidos += predefinidos
 			self.stdout.write(
-				f'[{tenant.schema_name}] criados={criados} já existentes={existentes} variáveis novas={variaveis} erros=0'
+				f'[{tenant.schema_name}] criados={criados} já existentes={existentes} variáveis novas={variaveis} erros=0 '
+				f'predefinidos={predefinidos}'
 			)
 
 		self.stdout.write(
-			f'Resumo: criados={total_criados} já existentes={total_existentes} variáveis novas={total_variaveis} erros={erros}'
+			f'Resumo: criados={total_criados} já existentes={total_existentes} variáveis novas={total_variaveis} erros={erros} '
+			f'predefinidos={total_predefinidos}'
 		)
 		if erros:
 			raise CommandError(f'{erros} tenant(s) com erro.')

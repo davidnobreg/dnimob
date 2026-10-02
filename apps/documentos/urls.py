@@ -10,6 +10,7 @@ urlpatterns = [
 	path('exemplos/<str:tipo>/download/', views.download_modelo_exemplo, name='download_modelo_exemplo'),
 	path('novo/', views.criar_modelo, name='criar_modelo'),
 	path('<uuid:pk>/download/', views.download_modelo, name='download_modelo'),
+	path('<uuid:pk>/predefinido/', views.definir_predefinido, name='definir_predefinido'),
 	path('<uuid:pk>/arquivo/', views.substituir_arquivo_modelo, name='substituir_arquivo_modelo'),
 	path('<uuid:pk>/editar/', views.editor_modelo, name='editor_modelo'),
 	path('<uuid:pk>/salvar/', views.salvar_modelo, name='salvar_modelo'),
