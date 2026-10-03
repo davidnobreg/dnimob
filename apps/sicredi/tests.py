@@ -646,6 +646,32 @@ class ReconciliarLiquidadosDiaTests(SicrediTestCase):
 		self.assertEqual(resultado, {'total': 1, 'recuperados': 0, 'nao_encontrados': 1})
 
 
+class TasksTenantTaskTests(SicrediTestCase):
+
+	@patch('apps.sicredi.tasks.reconciliar_liquidados_dia')
+	def test_reconciliar_recebe_dia_str_correto_com_schema_como_primeiro_arg(self, mock_reconciliar):
+		mock_reconciliar.return_value = {'total': 0, 'recuperados': 0, 'nao_encontrados': 0}
+		from .tasks import reconciliar_liquidados_dia_task
+
+		reconciliar_liquidados_dia_task.apply(args=[self.tenant.schema_name, '2026-07-10']).get()
+
+		mock_reconciliar.assert_called_once_with(date(2026, 7, 10), cpf_cnpj_beneficiario_final=None)
+
+	def test_falha_ao_agendar_boleto_no_signal_loga_e_envia_ao_sentry(self):
+		erro = ConnectionError('broker fora')
+		with patch('apps.sicredi.tasks.gerar_boleto_parcela_task.apply_async', side_effect=erro), 				patch('apps.sicredi.signals.sentry_sdk.capture_exception') as capturar, 				self.assertLogs('apps.sicredi', level='ERROR') as logs:
+			parcela = Parcela.objects.create(
+				contrato=self.contrato, numero=2,
+				data_vencimento=date.today() + timedelta(days=40),
+				valor=Decimal('1500.00'),
+			)
+
+		self.assertTrue(Parcela.objects.filter(pk=parcela.pk).exists())
+		capturar.assert_called_once_with(erro)
+		self.assertIn('Falha ao agendar gerar_boleto_parcela_task', logs.output[0])
+		self.assertIn('ConnectionError', logs.output[0])
+
+
 # ── Webhook ───────────────────────────────────────────────────────────────────
 
 @override_settings(SICREDI_WEBHOOK_SECRET_REQUIRED=False)

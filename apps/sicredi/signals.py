@@ -5,6 +5,7 @@ somente se houver ConfigSicredi ativa para o tenant.
 """
 import logging
 
+import sentry_sdk
 from django.db import connection
 from django.db.models.signals import post_save
 
@@ -28,8 +29,9 @@ def _on_parcela_created(sender, instance, created, **kwargs):
 			countdown=10,  # aguarda commit da parcela/contrato
 		)
 		logger.info('Sicredi: boleto agendado para parcela %s (schema=%s)', instance.pk, schema)
-	except Exception as e:
-		logger.error('Falha ao agendar gerar_boleto_parcela_task para parcela %s (schema=%s): %s', instance.pk, schema, e)
+	except Exception as exc:
+		logger.exception('Falha ao agendar gerar_boleto_parcela_task para parcela %s (schema=%s)', instance.pk, schema)
+		sentry_sdk.capture_exception(exc)
 
 
 def connect_signals():

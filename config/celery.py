@@ -15,6 +15,9 @@ class TenantTask(app.Task):
     O primeiro argumento deve ser sempre schema_name.
     """
     abstract = True
+    # __call__ consome o schema_name e a função da task não o declara; o check_arguments
+    # do .delay()/.apply_async() validaria (e rejeitaria) contra a assinatura da função.
+    typing = False
 
     def __call__(self, schema_name, *args, **kwargs):
         from django_tenants.utils import schema_context

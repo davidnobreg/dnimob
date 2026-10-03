@@ -1,6 +1,8 @@
 """apps/core/tests.py"""
+import inspect
 import re
 from pathlib import Path
+from unittest.mock import patch
 
 from django.conf import settings
 from django.db import connection
@@ -11,6 +13,7 @@ from django_tenants.utils import schema_context
 
 from apps.core.tenancy import get_tenant_atual
 from apps.tenants.models import Tenant
+from config.celery import TenantTask, app as celery_app
 
 
 class GetTenantAtualTests(TenantTestCase):
@@ -59,3 +62,26 @@ class SemConnectionTenantTests(SimpleTestCase):
 						achados.append(f'{arquivo.relative_to(base)}:{numero}')
 
 		self.assertEqual(achados, [], 'Use get_tenant_atual() em vez de connection.tenant.')
+
+
+class TenantTaskDelayTests(SimpleTestCase):
+	"""`.delay(schema_name, ...)` é a convenção de toda task com base=TenantTask."""
+
+	def _tasks_tenant(self):
+		celery_app.loader.import_default_modules()
+		return {nome: task for nome, task in celery_app.tasks.items() if isinstance(task, TenantTask)}
+
+	def test_todas_as_tasks_tenant_aceitam_delay_com_schema(self):
+		tasks = self._tasks_tenant()
+		self.assertIn('apps.documentos.tasks.gerar_documento_docx', tasks)
+		self.assertIn('apps.sicredi.tasks.gerar_boleto_parcela_task', tasks)
+
+		for nome, task in tasks.items():
+			obrigatorios = [
+				p for p in inspect.signature(task.run).parameters.values()
+				if p.default is p.empty and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+			]
+			args = ('imob_teste', *range(len(obrigatorios)))
+			with self.subTest(task=nome), patch('celery.app.base.Celery.send_task') as send_task:
+				task.delay(*args)
+				self.assertEqual(send_task.call_args.args[1], args)
