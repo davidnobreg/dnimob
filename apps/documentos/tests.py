@@ -926,6 +926,31 @@ class ViewsGeracaoDocxTests(StorageTemporarioMixin, TenantTestCase):
         self.assertEqual(resp.json()['status_url'], reverse('documentos:status_documento', args=[doc.pk]))
         delay.assert_called_once_with(self.tenant.schema_name, str(doc.pk))
 
+    @patch('apps.documentos.tasks.converter_docx_para_pdf', return_value=b'%PDF-fake')
+    def test_delay_real_em_modo_eager_gera_documento(self, conv):
+        conf = gerar_documento_docx.app.conf
+        conf.task_always_eager = True
+        conf.task_eager_propagates = True
+        self.addCleanup(setattr, conf, 'task_always_eager', False)
+        self.addCleanup(setattr, conf, 'task_eager_propagates', False)
+
+        resp = self._gerar(self.modelo_docx)
+
+        self.assertEqual(resp.status_code, 202)
+        doc = ContratoDocumentoGerado.objects.get()
+        self.assertEqual(doc.status, 'gerado')
+        conv.assert_called_once()
+
+    def test_assinatura_da_task_aceita_schema_e_documento_id(self):
+        with patch('celery.app.base.Celery.send_task') as send_task:
+            gerar_documento_docx.delay(self.tenant.schema_name, '00000000-0000-0000-0000-000000000000')
+
+        send_task.assert_called_once()
+        self.assertEqual(
+            send_task.call_args.args[1],
+            (self.tenant.schema_name, '00000000-0000-0000-0000-000000000000'),
+        )
+
     @patch('apps.documentos.views.gerar_documento_docx.delay')
     def test_fluxo_legado_continua_sincrono(self, delay):
         legado = ModeloDocumento.objects.create(

@@ -31,8 +31,10 @@ TIME_LIMIT = 100
 ERRO_GENERICO = 'Falha ao gerar o documento. Tente novamente ou contate o suporte.'
 
 
+# typing=False: o schema_name é consumido por TenantTask.__call__ e não consta na
+# assinatura; sem isso o check_arguments do .delay() rejeita a chamada.
 @shared_task(
-	base=TenantTask, bind=True, max_retries=0,
+	base=TenantTask, bind=True, max_retries=0, typing=False,
 	soft_time_limit=SOFT_TIME_LIMIT, time_limit=TIME_LIMIT,
 )
 def gerar_documento_docx(self, documento_id):
