@@ -4,7 +4,7 @@
 {% block title %}Contrato {{ contrato.numero }}{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto space-y-6" x-data="{ modalDocumento: false, modeloSelecionado: '{{ modelo_predefinido_id }}', gerando: false, progresso: '' }">
+<div class="max-w-5xl mx-auto space-y-6" x-data="{ modalDocumento: false, modeloSelecionado: '{{ modelo_predefinido_id }}', gerando: false, progresso: '', downloadUrl: '' }">
 
   {# Navegação #}
   <div class="flex items-center gap-3">
@@ -343,9 +343,9 @@
     x-show="modalDocumento"
     x-cloak
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    @keydown.escape.window="modalDocumento = false"
+    @keydown.escape.window="fecharModalDocumento($data)"
 >
-  <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" @click.outside="modalDocumento = false">
+  <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" @click.outside="fecharModalDocumento($data)">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Gerar Documento</h3>
 
     <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -362,15 +362,23 @@
       <i class="ti ti-loader-2 animate-spin text-base"></i> <span x-text="progresso"></span>
     </p>
 
+    <p x-show="downloadUrl" x-cloak class="flex items-center gap-2 text-sm text-green-700 mb-4">
+      <i class="ti ti-circle-check text-base"></i>
+      <span>Documento gerado.
+        <a :href="downloadUrl" download class="font-semibold underline">Baixar documento</a>
+      </span>
+    </p>
+
     <div class="flex justify-end gap-3">
-      <button type="button" @click="modalDocumento = false"
-              class="px-3.5 py-2 text-xs font-semibold rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+      <button type="button" @click="fecharModalDocumento($data)" :disabled="gerando"
+              class="px-3.5 py-2 text-xs font-semibold rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              x-text="downloadUrl ? 'Fechar' : 'Cancelar'">
         Cancelar
       </button>
       <button
         type="button"
         @click="gerarDocumento($el, '{{ contrato.pk }}')"
-        :disabled="!modeloSelecionado || gerando"
+        :disabled="!modeloSelecionado || gerando || downloadUrl"
         class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         x-text="gerando ? 'Gerando...' : 'Gerar PDF'"
       ></button>
@@ -387,11 +395,20 @@ function getCookie(nome) {
 const POLL_INTERVALO_MS = 2000
 const POLL_MAX_MS = 90000
 
+const STATUS_EM_ANDAMENTO = ['pendente', 'processando']
+
 function baixarArquivo(url, nome) {
   const a = document.createElement('a')
   a.href = url
   if (nome) a.download = nome
   a.click()
+}
+
+function fecharModalDocumento(comp) {
+  if (comp.gerando) return
+  const gerou = !!comp.downloadUrl
+  comp.modalDocumento = false
+  if (gerou) window.location.reload()
 }
 
 async function aguardarDocumento(statusUrl, comp) {
@@ -403,6 +420,7 @@ async function aguardarDocumento(statusUrl, comp) {
     const s = await r.json()
     if (s.status === 'gerado') return s.download_url
     if (s.status === 'erro') throw new Error(s.erro || 'Erro ao gerar documento')
+    if (!STATUS_EM_ANDAMENTO.includes(s.status)) throw new Error('Status inesperado: ' + s.status)
     comp.progresso = s.status === 'processando' ? 'Convertendo para PDF...' : 'Na fila de geração...'
   }
   throw new Error('A geração está demorando mais que o esperado. Confira o histórico de documentos em instantes.')
@@ -412,6 +430,7 @@ async function gerarDocumento(btn, contratoId) {
   const comp = Alpine.$data(btn.closest('[x-data]'))
   comp.gerando = true
   comp.progresso = ''
+  comp.downloadUrl = ''
 
   try {
     const r = await fetch("{% url 'documentos:gerar_documento' %}", {
@@ -429,7 +448,15 @@ async function gerarDocumento(btn, contratoId) {
     if (r.status === 202) {
       const { status_url } = await r.json()
       comp.progresso = 'Na fila de geração...'
-      baixarArquivo(await aguardarDocumento(status_url, comp))
+      comp.downloadUrl = await aguardarDocumento(status_url, comp)
+      comp.progresso = ''
+      comp.gerando = false
+      try {
+        baixarArquivo(comp.downloadUrl)
+      } catch (e) {
+        // o link "Baixar documento" continua no modal
+        return
+      }
     } else if (r.ok) {
       const blob = await r.blob()
       const url = URL.createObjectURL(blob)
