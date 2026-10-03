@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import timedelta
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -35,6 +36,7 @@ from .tasks import gerar_documento_docx
 logger = logging.getLogger(__name__)
 
 TIMEOUT_GERACAO = timedelta(minutes=5)
+ERRO_ENFILEIRAR = 'Serviço de geração indisponível no momento. Tente novamente em instantes.'
 CONTENT_TYPE_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 
@@ -235,7 +237,15 @@ def gerar_documento(request):
 			status='pendente',
 			gerado_por=request.user,
 		)
-		gerar_documento_docx.delay(connection.schema_name, str(documento.pk))
+		try:
+			gerar_documento_docx.delay(connection.schema_name, str(documento.pk))
+		except Exception as exc:
+			logger.exception('Falha ao enfileirar geração do documento %s', documento.pk)
+			sentry_sdk.capture_exception(exc)
+			documento.status = 'erro'
+			documento.erro_msg = ERRO_ENFILEIRAR
+			documento.save(update_fields=['status', 'erro_msg'])
+			return JsonResponse({'erro': ERRO_ENFILEIRAR}, status=503)
 		return JsonResponse(
 			{'id': str(documento.pk), 'status_url': reverse('documentos:status_documento', args=[documento.pk])},
 			status=202,

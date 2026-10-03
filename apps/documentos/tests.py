@@ -941,6 +941,20 @@ class ViewsGeracaoDocxTests(StorageTemporarioMixin, TenantTestCase):
         self.assertEqual(doc.status, 'gerado')
         conv.assert_called_once()
 
+    @patch('apps.documentos.views.sentry_sdk')
+    @patch('apps.documentos.views.gerar_documento_docx.delay', side_effect=ConnectionError('broker fora'))
+    def test_falha_ao_enfileirar_retorna_503_e_marca_erro(self, delay, sentry):
+        resp = self._gerar(self.modelo_docx)
+
+        self.assertEqual(resp.status_code, 503)
+        self.assertIn('erro', resp.json())
+        self.assertNotIn('broker', resp.json()['erro'])
+        doc = ContratoDocumentoGerado.objects.get()
+        self.assertEqual(doc.status, 'erro')
+        self.assertEqual(doc.erro_msg, resp.json()['erro'])
+        self.assertFalse(ContratoDocumentoGerado.objects.filter(status='pendente').exists())
+        sentry.capture_exception.assert_called_once()
+
     def test_assinatura_da_task_aceita_schema_e_documento_id(self):
         with patch('celery.app.base.Celery.send_task') as send_task:
             gerar_documento_docx.delay(self.tenant.schema_name, '00000000-0000-0000-0000-000000000000')
