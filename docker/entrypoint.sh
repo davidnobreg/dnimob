@@ -3,6 +3,9 @@ set -e
 cd /app
 
 if [ "$RUN_MIGRATIONS" = "true" ]; then
+  echo "Verificando ownership das tabelas..."
+  python manage.py check_table_owners || echo "AVISO: tabelas com owner diferente; verifique antes de migrar"
+
   echo "Rodando migrations (schema public)..."
   python manage.py migrate_schemas --shared --noinput
 
