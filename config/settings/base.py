@@ -204,6 +204,11 @@ CELERY_BROKER_URL = env('REDIS_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env('REDIS_URL', default='redis://redis:6379/0')
 CELERY_TIMEZONE = 'America/Fortaleza'
 CELERY_TASK_TRACK_STARTED = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+	'health_check_interval': 30,
+	'socket_keepalive': True,
+}
 CELERY_RESULT_EXTENDED = True
 
 # Tasks da integração Sicredi rodam na fila financeiro
